@@ -25,3 +25,22 @@ jobs:
             -scheme Coufunch \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+      - name: Select an available iPhone Simulator
+        id: simulator
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess
+          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
+          phones = [device for devices in data["devices"].values() for device in devices
+                    if device["name"].startswith("iPhone") and device.get("isAvailable", False)]
+          if not phones:
+              raise SystemExit("No available iPhone Simulator found")
+          print("udid=" + phones[0]["udid"])
+          PY
+      - name: Run unit tests
+        run: |
+          xcodebuild test \
+            -project Coufunch.xcodeproj \
+            -scheme Coufunch \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            CODE_SIGNING_ALLOWED=NO

@@ -1,7 +1,10 @@
 import SwiftUI
+import SwiftData
 import TrisCalendarKit
+import WakTrainerDesignSystem
 
 struct WorkOverviewView: View {
+    @Query private var sessions: [WorkSession]
     @State private var displayedMonth = Date()
     @State private var selectedDate: Date?
     @State private var isSidebarPresented = false
@@ -12,26 +15,48 @@ struct WorkOverviewView: View {
         weekStart: .sunday
     )
 
+    private var completedDays: Set<Date> {
+        let calendar = Calendar.current
+        return Set(sessions.filter { $0.status == .completed }.map {
+            calendar.startOfDay(for: $0.startAt)
+        })
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: WakSpacing.large) {
                     MonthCalendarView(
                         displayedMonth: $displayedMonth,
                         selectedDate: $selectedDate,
+                        highlightedDates: completedDays,
                         configuration: calendarConfiguration
                     )
 
-                    if let selectedDate {
-                        Text(selectedDate, format: .dateTime.year().month().day())
-                            .font(.headline)
-                    } else {
-                        Text("Select a date to view work sessions.")
-                            .foregroundStyle(.secondary)
+                    WakCard {
+                        VStack(alignment: .leading, spacing: WakSpacing.medium) {
+                            Text("Work Sessions")
+                                .font(WakTypography.screenTitle)
+                                .foregroundStyle(WakColor.textPrimary)
+
+                            if let selectedDate {
+                                let daySessions = sessions.filter {
+                                    Calendar.current.isDate($0.startAt, inSameDayAs: selectedDate)
+                                }
+                                Text(selectedDate, format: .dateTime.year().month().day())
+                                    .foregroundStyle(WakColor.textPrimary)
+                                Text("\(daySessions.count) session(s)")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("Select a date to view work sessions.")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
-                .padding()
+                .padding(WakSpacing.large)
             }
+            .background(WakColor.background)
             .navigationTitle("Work Overview")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -63,6 +88,8 @@ struct WorkOverviewView: View {
                         Label("Incentives", systemImage: "slider.horizontal.3")
                         Label("Settings", systemImage: "gearshape")
                     }
+                    .scrollContentBackground(.hidden)
+                    .background(WakColor.background)
                     .navigationTitle("Coufunch")
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
@@ -78,4 +105,5 @@ struct WorkOverviewView: View {
 
 #Preview {
     WorkOverviewView()
+        .modelContainer(for: [WorkSession.self], inMemory: true)
 }
