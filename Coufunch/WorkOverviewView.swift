@@ -119,12 +119,27 @@ struct WorkOverviewView: View {
                     isSessionEntryPresented = false
                 }
             }
-            .navigationDestination(isPresented: $showFinance) {\n                if let financeScreen { WorkFinanceView(screen: financeScreen) }\n            }\n            .sheet(isPresented: $isSidebarPresented) {
+            .navigationDestination(isPresented: $showFinance) {
+                if let financeScreen { WorkFinanceView(screen: financeScreen) }
+            }
+            .sheet(isPresented: $isSidebarPresented) {
                 NavigationStack {
                     List {
                         Label("Work Overview", systemImage: "calendar")
-                        Label("Pay & Allowances", systemImage: "wallet.bifold")
-                        Label("Work Strategy", systemImage: "chart.bar")
+                        Button {
+                            financeScreen = .pay
+                            isSidebarPresented = false
+                            showFinance = true
+                        } label: {
+                            Label("Pay & Allowances", systemImage: "wallet.bifold")
+                        }
+                        Button {
+                            financeScreen = .strategy
+                            isSidebarPresented = false
+                            showFinance = true
+                        } label: {
+                            Label("Work Strategy", systemImage: "chart.bar")
+                        }
                         Label("Workplaces", systemImage: "building.2")
                         Label("Incentives", systemImage: "slider.horizontal.3")
                         Label("Settings", systemImage: "gearshape")
