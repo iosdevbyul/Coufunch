@@ -4,11 +4,15 @@ import TrisCalendarKit
 import WakTrainerDesignSystem
 
 struct WorkOverviewView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var workBreaks: [WorkBreak]
     @Query private var sessions: [WorkSession]
     @State private var displayedMonth = Date()
     @State private var selectedDate: Date?
     @State private var isSidebarPresented = false
     @State private var isSessionEntryPresented = false
+    @State private var editingSession: WorkSession?
+    @State private var pendingDelete: WorkSession?
 
     private let calendarConfiguration = CalendarConfiguration(
         locale: .system,
@@ -50,6 +54,18 @@ struct WorkOverviewView: View {
                                 Text(selectedDate, format: .dateTime.year().month().day())
                                     .foregroundStyle(WakColor.textPrimary)
                                 Text("\(daySessions.count) session(s)")
+                                ForEach(daySessions.sorted(by: { $0.startAt < $1.startAt })) { session in
+                                    HStack {
+                                        Text(session.startAt, format: .dateTime.hour().minute())
+                                        Text(session.status.rawValue.capitalized).foregroundStyle(.secondary)
+                                        Spacer()
+                                        Button("Edit") { editingSession = session }
+                                        Button(role: .destructive) { pendingDelete = session } label: {
+                                            Image(systemName: "trash")
+                                        }
+                                    }
+                                    .font(.subheadline)
+                                }
                                     .foregroundStyle(.secondary)
                             } else {
                                 Text("Select a date to view work sessions.")
@@ -82,6 +98,20 @@ struct WorkOverviewView: View {
                     .accessibilityLabel("Refresh overview")
                 }
             }
+            .sheet(item: $editingSession) { session in
+                WorkSessionEntryView(date: session.startAt, editingSession: session) {
+                    editingSession = nil
+                }
+            }
+            .alert("Delete Work Session?", isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            )) {
+                Button("Delete", role: .destructive) { deletePendingSession() }
+                Button("Cancel", role: .cancel) { pendingDelete = nil }
+            } message: {
+                Text("This also removes the session's break records.")
+            }
             .sheet(isPresented: $isSessionEntryPresented) {
                 WorkSessionEntryView(date: selectedDate ?? Date()) {
                     isSessionEntryPresented = false
@@ -108,6 +138,19 @@ struct WorkOverviewView: View {
                 }
                 .presentationDetents([.large])
             }
+        }
+    }
+    private func deletePendingSession() {
+        guard let session = pendingDelete else { return }
+        pendingDelete = nil
+        for rest in workBreaks where rest.sessionID == session.id {
+            modelContext.delete(rest)
+        }
+        modelContext.delete(session)
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
         }
     }
 }

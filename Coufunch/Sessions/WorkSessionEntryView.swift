@@ -4,11 +4,13 @@ import WakTrainerDesignSystem
 
 struct WorkSessionEntryView: View {
     let date: Date
+    var editingSession: WorkSession? = nil
     let onSaved: () -> Void
 
     @Environment(\.modelContext) private var context
     @Query(sort: \Workplace.name) private var workplaces: [Workplace]
     @Query private var settings: [WorkplacePaySettings]
+    @Query private var storedBreaks: [WorkBreak]
 
     @State private var workplaceID: UUID?
     @State private var status: WorkSessionStatus = .completed
@@ -51,7 +53,7 @@ struct WorkSessionEntryView: View {
 
                     WorkTimelineEditor(work: $work, breaks: $breaks)
 
-                    if currentSettings?.payMode == .fixedDaily {
+                    if (editingSession?.payMode ?? currentSettings?.payMode) == .fixedDaily {
                         TextField("Daily pay override (optional)", text: $overrideAmount)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(.roundedBorder)
@@ -67,7 +69,7 @@ struct WorkSessionEntryView: View {
                 .padding(WakSpacing.medium)
             }
             .background(WakColor.background)
-            .navigationTitle("Add Work Session")
+            .navigationTitle(editingSession == nil ? "Add Work Session" : "Edit Work Session")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Cancel", action: onSaved)
@@ -76,7 +78,27 @@ struct WorkSessionEntryView: View {
         }
         .tint(WakColor.primary)
         .preferredColorScheme(.dark)
-        .onAppear { workplaceID = workplaceID ?? workplaces.first?.id }
+        .onAppear(perform: loadExisting)
+    }
+
+    private func loadExisting() {
+        guard let session = editingSession else {
+            workplaceID = workplaces.first?.id
+            return
+        }
+        workplaceID = session.workplaceID
+        status = session.status
+        let startOfDay = Calendar.current.startOfDay(for: session.startAt)
+        let startMinute = Int(session.startAt.timeIntervalSince(startOfDay) / 60)
+        let endMinute = Int((session.endAt ?? session.startAt).timeIntervalSince(startOfDay) / 60)
+        work = TimelineRange(start: startMinute, end: endMinute)
+        breaks = storedBreaks.filter { $0.sessionID == session.id }.map {
+            TimelineRange(start: Int($0.startAt.timeIntervalSince(startOfDay) / 60),
+                          end: Int($0.endAt.timeIntervalSince(startOfDay) / 60))
+        }
+        if session.payMode == .fixedDaily, let amount = session.fixedDailyPaySnapshot {
+            overrideAmount = NSDecimalNumber(decimal: amount).stringValue
+        }
     }
 
     private func save() {
@@ -89,37 +111,49 @@ struct WorkSessionEntryView: View {
         }
         let start = midnight.addingTimeInterval(TimeInterval(work.start * 60))
         let end = midnight.addingTimeInterval(TimeInterval(work.end * 60))
-        let fixed = fixedPay
-        if settings.payMode == .fixedDaily && (fixed == nil || fixed! < 0) {
+        let fixed = editingSession?.payMode == .fixedDaily ? (Decimal(string: overrideAmount) ?? editingSession?.fixedDailyPaySnapshot) : fixedPay
+        let selectedMode = editingSession?.payMode ?? settings.payMode
+        if selectedMode == .fixedDaily && (fixed == nil || fixed! < 0) {
             errorMessage = "Enter a valid daily wage."
             return
         }
         let hourlyRate: Decimal?
-        switch settings.payMode {
+        switch selectedMode {
         case .fixedDaily: hourlyRate = nil
-        case .customHourly: hourlyRate = settings.customHourlyRate
+        case .customHourly: hourlyRate = editingSession?.hourlyRateSnapshot ?? settings.customHourlyRate
         case .minimumHourly:
-            // 2026 statutory minimum; later phases will provide a dated rate table.
-            hourlyRate = 10_320
+            hourlyRate = MinimumWageSchedule.hourlyRate(for: start)
         }
-        if settings.payMode != .fixedDaily && (hourlyRate == nil || hourlyRate! <= 0) {
+        if selectedMode != .fixedDaily && (hourlyRate == nil || hourlyRate! <= 0) {
             errorMessage = "Hourly rate is missing."
             return
         }
 
-        let session = WorkSession(
-            workplaceID: workplaceID, startAt: start, endAt: end, status: status,
-            payMode: settings.payMode,
-            hourlyRateSnapshot: hourlyRate,
-            fixedDailyPaySnapshot: fixed
-        )
-        context.insert(session)
-        for rest in breaks {
-            guard rest.start >= work.start, rest.end <= work.end, rest.end > rest.start else {
-                context.rollback()
-                errorMessage = "Break times must be within the shift."
-                return
+        guard breaks.allSatisfy({ $0.start >= work.start && $0.end <= work.end && $0.end > $0.start }) else {
+            errorMessage = "Break times must be within the shift."
+            return
+        }
+        let session: WorkSession
+        if let existing = editingSession {
+            session = existing
+            session.workplaceID = workplaceID
+            session.startAt = start
+            session.endAt = end
+            session.status = status
+            session.hourlyRateSnapshot = hourlyRate
+            session.fixedDailyPaySnapshot = fixed
+            for item in storedBreaks where item.sessionID == session.id {
+                context.delete(item)
             }
+        } else {
+            session = WorkSession(
+                workplaceID: workplaceID, startAt: start, endAt: end, status: status,
+                payMode: selectedMode, hourlyRateSnapshot: hourlyRate,
+                fixedDailyPaySnapshot: fixed
+            )
+            context.insert(session)
+        }
+        for rest in breaks {
             context.insert(WorkBreak(
                 sessionID: session.id,
                 startAt: midnight.addingTimeInterval(TimeInterval(rest.start * 60)),
