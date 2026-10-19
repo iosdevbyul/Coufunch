@@ -12,6 +12,9 @@ packages:
   TrisCalendarKit:
     url: https://github.com/iosdevbyul/TrisCalendarKit
     from: 1.0.0
+  WakTrainerDesignSystem:
+    url: https://github.com/iosdevbyul/WakTrainerDesignSystem
+    branch: main
 targets:
   Coufunch:
     type: application
@@ -30,5 +33,6 @@ targets:
         SWIFT_STRICT_CONCURRENCY: complete
     dependencies:
       - package: TrisCalendarKit
+      - package: WakTrainerDesignSystem
     scheme:
       testTargets: []
