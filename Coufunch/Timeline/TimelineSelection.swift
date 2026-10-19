@@ -20,7 +20,9 @@ enum TimelineSelection {
     static func selection(from anchor: Int, to current: Int) -> TimelineRange {
         let a = snap(Double(anchor))
         let b = snap(Double(current))
-        return TimelineRange(start: min(a, b), end: max(min(a, b) + step, max(a, b)))
+        let lower = min(a, b)
+        let start = min(lower, maximumMinute - step)
+        return TimelineRange(start: start, end: min(maximumMinute, max(start + step, max(a, b))))
     }
 
     static func adjust(_ range: TimelineRange, edge: Edge, to minute: Int, bounds: TimelineRange) -> TimelineRange {
