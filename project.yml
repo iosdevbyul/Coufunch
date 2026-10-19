@@ -35,4 +35,12 @@ targets:
       - package: TrisCalendarKit
       - package: WakTrainerDesignSystem
     scheme:
-      testTargets: []
+      testTargets:
+        - CoufunchTests
+  CoufunchTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: CoufunchTests
+    dependencies:
+      - target: Coufunch
