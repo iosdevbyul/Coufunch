@@ -1,0 +1,9 @@
+# Xcode
+.DS_Store
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.build/
+.swiftpm/
+# Generated from project.yml via XcodeGen
+Coufunch.xcodeproj/
