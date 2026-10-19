@@ -21,6 +21,8 @@ struct PayResult: Equatable {
     let nightMinutes: Int
     let basePay: Decimal
     let nightPremium: Decimal
+    let overtimeMinutes: Int
+    let overtimePremium: Decimal
     let total: Decimal
 }
 
@@ -29,7 +31,8 @@ enum WorkPayCalculator {
         session: WorkSession,
         breaks: [WorkBreak],
         calendar: Calendar,
-        nightPremiumEnabled: Bool = true
+        nightPremiumEnabled: Bool = true,
+        overtimePremiumEnabled: Bool = true
     ) throws -> PayResult {
         guard let end = session.endAt else { throw PayCalculationError.missingEndTime }
         guard end > session.startAt else { throw PayCalculationError.invalidTimeRange }
@@ -45,19 +48,23 @@ enum WorkPayCalculator {
 
         guard worked >= 0, night <= worked else { throw PayCalculationError.invalidBreak }
 
-        switch session.payMode {
+        // Daily overtime starts after eight paid hours, excluding unpaid breaks.
+        // Weekly >40h and public-holiday cases require separate payroll context.
+        let overtime = overtimePremiumEnabled ? max(0, worked - 8 * 60) : 0\n\n        switch session.payMode {
         case .fixedDaily:
             guard let amount = session.fixedDailyPaySnapshot else { throw PayCalculationError.missingFixedPay }
             guard amount >= 0 else { throw PayCalculationError.invalidRate }
             return PayResult(workedMinutes: worked, nightMinutes: night,
-                             basePay: amount, nightPremium: 0, total: amount)
+                             basePay: amount, nightPremium: 0,\n                             overtimeMinutes: overtime, overtimePremium: 0, total: amount)
         case .minimumHourly, .customHourly:
             guard let rate = session.hourlyRateSnapshot else { throw PayCalculationError.missingHourlyRate }
             guard rate >= 0 else { throw PayCalculationError.invalidRate }
             let base = rate * Decimal(worked) / 60
             let premium = nightPremiumEnabled ? rate * Decimal(night) / 120 : 0
-            return PayResult(workedMinutes: worked, nightMinutes: night,
-                             basePay: base, nightPremium: premium, total: base + premium)
+            let overtimePremium = rate * Decimal(overtime) / 120
+            return PayResult(workedMinutes: worked, nightMinutes: night,\n                             basePay: base, nightPremium: premium,
+                             overtimeMinutes: overtime, overtimePremium: overtimePremium,
+                             total: base + premium + overtimePremium)
         }
     }
 
