@@ -48,11 +48,12 @@ enum WorkFinanceSummary {
         var skipped = 0
         for session in included {
             do {
-                let nightEnabled = settings.first { $0.workplaceID == session.workplaceID }?.nightPremiumEnabled ?? true
+                let nightEnabled = session.nightPremiumSnapshot ?? settings.first { $0.workplaceID == session.workplaceID }?.nightPremiumEnabled ?? true
                 let result = try WorkPayCalculator.calculate(
                     session: session,
                     breaks: breaks.filter { $0.sessionID == session.id },
-                    calendar: calendar, nightPremiumEnabled: nightEnabled
+                    calendar: calendar, nightPremiumEnabled: nightEnabled,
+                    overtimePremiumEnabled: session.overtimePremiumSnapshot ?? settings.first { $0.workplaceID == session.workplaceID }?.overtimePremiumEnabled ?? true
                 )
                 base += result.basePay
                 premium += result.nightPremium
