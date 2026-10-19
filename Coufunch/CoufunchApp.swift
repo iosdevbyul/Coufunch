@@ -16,7 +16,8 @@ struct CoufunchApp: App {
             WorkSession.self,
             WorkBreak.self,
             IncentiveRule.self,
-            ManualIncentive.self
+            ManualIncentive.self,
+            ReceivedPayRecord.self
         ])
     }
 }
