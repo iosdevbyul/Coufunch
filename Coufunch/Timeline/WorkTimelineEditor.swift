@@ -10,6 +10,7 @@ struct WorkTimelineEditor: View {
     @State private var dragAnchor: Int?
     @State private var selectingBreak = false
     @State private var handleAnchor: TimelineRange?
+    @State private var activeBreakIndex = 0
 
     private let pointsPerHour: CGFloat = 132
     private var pointsPerMinute: CGFloat { pointsPerHour / 60 }
@@ -29,7 +30,7 @@ struct WorkTimelineEditor: View {
                 VStack(alignment: .leading, spacing: 14) {
                     ruler
                     lane(title: "Shift", range: work, tint: WakColor.primary, isBreak: false)
-                    lane(title: "Break", range: breaks.first, tint: .orange, isBreak: true)
+                    lane(title: "Break", range: breaks.indices.contains(activeBreakIndex) ? breaks[activeBreakIndex] : nil, tint: .orange, isBreak: true)
                 }
                 .frame(width: contentWidth)
                 .padding(.vertical, 8)
@@ -42,22 +43,38 @@ struct WorkTimelineEditor: View {
             }
             .font(.footnote)
 
-            HStack {
-                Text(breaks.first.map { "Break: \(label($0.start)) – \(label($0.end))" } ?? "No break")
-                Spacer()
-                Button(breaks.isEmpty ? "Add Break" : "Remove Break") {
-                    if breaks.isEmpty {
-                        let initial = TimelineRange(start: work.start, end: min(work.end, work.start + 60))
-                        if let clamped = TimelineSelection.contained(initial, within: work) {
-                            breaks = [clamped]
-                        }
-                    } else {
-                        breaks = []
+            ForEach(breaks.indices, id: \.self) { index in
+                HStack {
+                    Button {
+                        activeBreakIndex = index
+                    } label: {
+                        Text("Break \(index + 1): \(label(breaks[index].start)) – \(label(breaks[index].end))")
+                    }
+                    .foregroundStyle(activeBreakIndex == index ? WakColor.primary : WakColor.textPrimary)
+                    Spacer()
+                    Button(role: .destructive) {
+                        breaks.remove(at: index)
+                        activeBreakIndex = max(0, min(activeBreakIndex, breaks.count - 1))
+                    } label: {
+                        Image(systemName: "trash")
                     }
                 }
-                .disabled(work.duration < TimelineSelection.step)
+                .font(.footnote)
             }
-            .font(.footnote)
+
+            Button("Add Break") {
+                let occupied = breaks.sorted { $0.start < $1.start }
+                var cursor = work.start
+                for rest in occupied {
+                    if rest.start - cursor >= 5 { break }
+                    cursor = max(cursor, rest.end)
+                }
+                if work.end - cursor >= 5 {
+                    breaks.append(TimelineRange(start: cursor, end: min(cursor + 60, work.end)))
+                    activeBreakIndex = breaks.count - 1
+                }
+            }
+            .disabled(work.duration < TimelineSelection.step)
 
             Text("Work is attributed to its start date, including overnight shifts.")
                 .font(.caption)
@@ -67,6 +84,7 @@ struct WorkTimelineEditor: View {
         .background(WakColor.background)
         .onChange(of: work) { _, updated in
             breaks = breaks.compactMap { TimelineSelection.contained($0, within: updated) }
+            activeBreakIndex = max(0, min(activeBreakIndex, breaks.count - 1))
         }
     }
 
@@ -129,7 +147,7 @@ struct WorkTimelineEditor: View {
                     if isBreak {
                         guard let contained = TimelineSelection.contained(selection, within: work) else { return }
                         selection = contained
-                        breaks = [selection]
+                        if breaks.indices.contains(activeBreakIndex) { breaks[activeBreakIndex] = selection }
                     } else {
                         work = selection
                     }
@@ -154,8 +172,8 @@ struct WorkTimelineEditor: View {
                         let original = edge == .start ? anchor.start : anchor.end
                         let next = original + Int((value.translation.width / pointsPerMinute).rounded())
                         let bounds = isBreak ? work : TimelineRange(start: 0, end: TimelineSelection.maximumMinute)
-                        if isBreak, let current = breaks.first {
-                            breaks = [TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)]
+                        if isBreak, breaks.indices.contains(activeBreakIndex) {
+                            breaks[activeBreakIndex] = TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)
                         } else if !isBreak {
                             work = TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)
                         }

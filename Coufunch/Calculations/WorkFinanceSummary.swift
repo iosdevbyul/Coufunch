@@ -4,11 +4,12 @@ struct MonthlyPaySummary {
     let completedDays: Int
     let basePay: Decimal
     let nightPremium: Decimal
+    let overtimePremium: Decimal
     let automaticIncentives: Decimal
     let manualIncentives: Decimal
     let skippedSessions: Int
 
-    var total: Decimal { basePay + nightPremium + automaticIncentives + manualIncentives }
+    var total: Decimal { basePay + nightPremium + overtimePremium + automaticIncentives + manualIncentives }
     var dailyAverage: Decimal { completedDays > 0 ? total / Decimal(completedDays) : 0 }
 }
 
@@ -36,13 +37,14 @@ enum WorkFinanceSummary {
         calendar: Calendar
     ) -> MonthlyPaySummary {
         guard let interval = calendar.dateInterval(of: .month, for: month) else {
-            return MonthlyPaySummary(completedDays: 0, basePay: 0, nightPremium: 0,
+            return MonthlyPaySummary(completedDays: 0, basePay: 0, nightPremium: 0, overtimePremium: 0,
                                      automaticIncentives: 0, manualIncentives: 0, skippedSessions: 0)
         }
         let included = sessions.filter { $0.status == .completed &&
             interval.contains($0.startAt) }
         var base: Decimal = 0
         var premium: Decimal = 0
+        var overtimePremium: Decimal = 0
         var skipped = 0
         for session in included {
             do {
@@ -54,6 +56,7 @@ enum WorkFinanceSummary {
                 )
                 base += result.basePay
                 premium += result.nightPremium
+                overtimePremium += result.overtimePremium
             } catch {
                 skipped += 1
             }
@@ -80,7 +83,7 @@ enum WorkFinanceSummary {
         }
         let unique = Set(included.map { calendar.startOfDay(for: $0.startAt) })
         return MonthlyPaySummary(completedDays: unique.count, basePay: base,
-                                 nightPremium: premium, automaticIncentives: incentiveTotal,
+                                 nightPremium: premium, overtimePremium: overtimePremium, automaticIncentives: incentiveTotal,
                                  manualIncentives: manualTotal, skippedSessions: skipped)
     }
 
