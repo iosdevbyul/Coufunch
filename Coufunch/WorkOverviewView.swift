@@ -10,6 +10,8 @@ struct WorkOverviewView: View {
     @State private var displayedMonth = Date()
     @State private var selectedDate: Date?
     @State private var isSidebarPresented = false
+    @State private var financeScreen: WorkFinanceView.Screen?
+    @State private var showFinance = false
     @State private var isSessionEntryPresented = false
     @State private var editingSession: WorkSession?
     @State private var pendingDelete: WorkSession?
@@ -117,12 +119,27 @@ struct WorkOverviewView: View {
                     isSessionEntryPresented = false
                 }
             }
+            .navigationDestination(isPresented: $showFinance) {
+                if let financeScreen { WorkFinanceView(screen: financeScreen) }
+            }
             .sheet(isPresented: $isSidebarPresented) {
                 NavigationStack {
                     List {
                         Label("Work Overview", systemImage: "calendar")
-                        Label("Pay & Allowances", systemImage: "wallet.bifold")
-                        Label("Work Strategy", systemImage: "chart.bar")
+                        Button {
+                            financeScreen = .pay
+                            isSidebarPresented = false
+                            showFinance = true
+                        } label: {
+                            Label("Pay & Allowances", systemImage: "wallet.bifold")
+                        }
+                        Button {
+                            financeScreen = .strategy
+                            isSidebarPresented = false
+                            showFinance = true
+                        } label: {
+                            Label("Work Strategy", systemImage: "chart.bar")
+                        }
                         Label("Workplaces", systemImage: "building.2")
                         Label("Incentives", systemImage: "slider.horizontal.3")
                         Label("Settings", systemImage: "gearshape")
