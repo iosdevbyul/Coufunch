@@ -19,6 +19,8 @@ struct WorkFinanceView: View {
     @Query private var rules: [IncentiveRule]
     @Query private var manual: [ManualIncentive]
     @State private var selectedMonth = Date()
+    @State private var simulationWorkplaceID: UUID?
+    @State private var simulationDate = Date()
 
     private var summary: MonthlyPaySummary {
         WorkFinanceSummary.summarize(month: selectedMonth, sessions: sessions,
@@ -43,6 +45,16 @@ struct WorkFinanceView: View {
 
     private var receivedNet: Decimal {
         selectedReceipts.filter { $0.basis == .net }.reduce(Decimal.zero) { $0 + $1.amount }
+    }
+
+    private var simulationResult: WorkdaySimulationResult? {
+        guard let workplace = workplaces.first(where: { $0.id == simulationWorkplaceID }) else {
+            return nil
+        }
+        return WorkdayIncentiveSimulator.simulate(
+            candidateDate: simulationDate, workplace: workplace,
+            sessions: sessions, rules: rules, calendar: .current
+        )
     }
 
     private var opportunities: [NextWorkdayOpportunity] {
@@ -175,6 +187,44 @@ struct WorkFinanceView: View {
                             }
                         }
                     }
+                    WakCard {
+                        VStack(alignment: .leading, spacing: WakSpacing.medium) {
+                            Text("What If I Work One More Day?")
+                                .font(WakTypography.screenTitle)
+                            Picker("Workplace", selection: $simulationWorkplaceID) {
+                                Text("Choose a workplace").tag(Optional<UUID>.none)
+                                ForEach(workplaces) { workplace in
+                                    Text(workplace.name).tag(Optional(workplace.id))
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            DatePicker("Additional workday", selection: $simulationDate,
+                                       displayedComponents: .date)
+                            if let simulationResult {
+                                if simulationResult.alreadyCompletedOnDate {
+                                    Text("This workplace already has a completed attendance record on this date. An additional shift will not increase the attendance day count.")
+                                        .font(.footnote).foregroundStyle(.secondary)
+                                } else {
+                                    row("New bonus unlocked", money(simulationResult.newlyUnlockedBonus))
+                                    if simulationResult.triggeredRules.isEmpty {
+                                        Text("This extra attendance day does not immediately unlock a bonus.")
+                                            .font(.footnote).foregroundStyle(.secondary)
+                                    } else {
+                                        ForEach(simulationResult.triggeredRules, id: \.self) { name in
+                                            Label(name, systemImage: "checkmark.circle")
+                                                .font(.footnote)
+                                        }
+                                    }
+                                }
+                            } else {
+                                Text("Select a workplace to simulate the incentive impact.")
+                                    .font(.footnote).foregroundStyle(.secondary)
+                            }
+                            Text("Simulation only: no work record is saved. This assumes the selected date becomes a completed attendance day. Daily wages, approvals, and deductions are excluded.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+
                     Text("These opportunities depend on approval and qualifying completed workdays. Daily wages are not included in the potential bonus.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
@@ -184,6 +234,7 @@ struct WorkFinanceView: View {
         .background(WakColor.background)
         .navigationTitle(screen == .pay ? "Pay & Allowances" : "Work Strategy")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id }
     }
 
     private func addReceipt() {
