@@ -7,8 +7,6 @@ struct WorkTimelineEditor: View {
     @Binding var work: TimelineRange
     @Binding var breaks: [TimelineRange]
 
-    @State private var dragAnchor: Int?
-    @State private var selectingBreak = false
     @State private var handleAnchor: TimelineRange?
     @State private var activeBreakIndex = 0
 
@@ -22,7 +20,7 @@ struct WorkTimelineEditor: View {
                 .font(WakTypography.screenTitle)
                 .foregroundStyle(WakColor.textPrimary)
 
-            Text("Scroll horizontally on the ruler. Drag across an empty lane to select a range; drag the handles for five-minute adjustments.")
+            Text("Swipe to explore the timeline. Drag a colored handle, or use the five-minute adjustment buttons below.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -37,11 +35,12 @@ struct WorkTimelineEditor: View {
             }
             .scrollIndicators(.visible)
 
-            HStack {
+            VStack(alignment: .leading, spacing: WakSpacing.medium) {
                 Label("Shift: \(label(work.start)) – \(label(work.end))", systemImage: "clock")
-                Spacer()
+                    .font(.footnote.monospacedDigit())
+                timeAdjustment(title: "Start", range: work, isBreak: false, edge: .start)
+                timeAdjustment(title: "End", range: work, isBreak: false, edge: .end)
             }
-            .font(.footnote)
 
             ForEach(breaks.indices, id: \.self) { index in
                 HStack {
@@ -62,19 +61,29 @@ struct WorkTimelineEditor: View {
                 .font(.footnote)
             }
 
+            if breaks.indices.contains(activeBreakIndex) {
+                timeAdjustment(title: "Break Start", range: breaks[activeBreakIndex], isBreak: true, edge: .start)
+                timeAdjustment(title: "Break End", range: breaks[activeBreakIndex], isBreak: true, edge: .end)
+            }
             Button("Add Break") {
                 let occupied = breaks.sorted { $0.start < $1.start }
                 var cursor = work.start
+                var gap: TimelineRange?
                 for rest in occupied {
-                    if rest.start - cursor >= 5 { break }
+                    if rest.start - cursor >= TimelineSelection.step {
+                        gap = TimelineRange(start: cursor, end: rest.start)
+                        break
+                    }
                     cursor = max(cursor, rest.end)
                 }
-                if work.end - cursor >= 5 {
-                    breaks.append(TimelineRange(start: cursor, end: min(cursor + 60, work.end)))
-                    activeBreakIndex = breaks.count - 1
+                if gap == nil && work.end - cursor >= TimelineSelection.step {
+                    gap = TimelineRange(start: cursor, end: work.end)
                 }
+                guard let gap else { return }
+                breaks.append(TimelineRange(start: gap.start, end: min(gap.start + 60, gap.end)))
+                activeBreakIndex = breaks.count - 1
             }
-            .disabled(work.duration < TimelineSelection.step)
+            .disabled(!hasAvailableBreakGap)
 
             Text("Work is attributed to its start date, including overnight shifts.")
                 .font(.caption)
@@ -129,33 +138,7 @@ struct WorkTimelineEditor: View {
         }
         .frame(width: contentWidth, height: 54)
         .contentShape(Rectangle())
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 8)
-                .onChanged { value in
-                    // Only start a new selection when the user begins in empty space.
-                    let originMinute = TimelineSelection.snap(Double(value.startLocation.x / pointsPerMinute))
-                    if dragAnchor == nil {
-                        if let range, originMinute >= range.start && originMinute <= range.end {
-                            return
-                        }
-                        dragAnchor = originMinute
-                        selectingBreak = isBreak
-                    }
-                    guard selectingBreak == isBreak, let anchor = dragAnchor else { return }
-                    let current = TimelineSelection.snap(Double(value.location.x / pointsPerMinute))
-                    var selection = TimelineSelection.selection(from: anchor, to: current)
-                    if isBreak {
-                        guard let contained = TimelineSelection.contained(selection, within: work) else { return }
-                        selection = contained
-                        if breaks.indices.contains(activeBreakIndex) { breaks[activeBreakIndex] = selection }
-                    } else {
-                        work = selection
-                    }
-                }
-                .onEnded { _ in
-                    dragAnchor = nil
-                }
-        )
+
     }
 
     private func handle(edge: TimelineSelection.Edge, range: TimelineRange, tint: Color, isBreak: Bool) -> some View {
@@ -173,7 +156,12 @@ struct WorkTimelineEditor: View {
                         let next = original + Int((value.translation.width / pointsPerMinute).rounded())
                         let bounds = isBreak ? work : TimelineRange(start: 0, end: TimelineSelection.maximumMinute)
                         if isBreak, breaks.indices.contains(activeBreakIndex) {
-                            breaks[activeBreakIndex] = TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)
+                            let updated = TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)
+                            guard !breaks.enumerated().contains(where: {
+                                $0.offset != activeBreakIndex &&
+                                updated.start < $0.element.end && $0.element.start < updated.end
+                            }) else { return }
+                            breaks[activeBreakIndex] = updated
                         } else if !isBreak {
                             work = TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)
                         }
@@ -181,6 +169,60 @@ struct WorkTimelineEditor: View {
                     .onEnded { _ in handleAnchor = nil }
             )
             .accessibilityLabel(isBreak ? "Adjust break boundary" : "Adjust shift boundary")
+    }
+
+    private var hasAvailableBreakGap: Bool {
+        let occupied = breaks.sorted { $0.start < $1.start }
+        var cursor = work.start
+        for rest in occupied {
+            if rest.start - cursor >= TimelineSelection.step { return true }
+            cursor = max(cursor, rest.end)
+        }
+        return work.end - cursor >= TimelineSelection.step
+    }
+
+    private func timeAdjustment(title: String, range: TimelineRange,
+                                isBreak: Bool, edge: TimelineSelection.Edge) -> some View {
+        HStack {
+            Text(title).font(.subheadline)
+            Spacer()
+            Button {
+                adjustByStep(range: range, isBreak: isBreak, edge: edge, direction: -1)
+            } label: {
+                Image(systemName: "minus.circle")
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .accessibilityLabel("Move \(title) five minutes earlier")
+            Text(label(edge == .start ? range.start : range.end))
+                .font(.subheadline.monospacedDigit())
+                .frame(minWidth: 88)
+            Button {
+                adjustByStep(range: range, isBreak: isBreak, edge: edge, direction: 1)
+            } label: {
+                Image(systemName: "plus.circle")
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .accessibilityLabel("Move \(title) five minutes later")
+        }
+    }
+
+    private func adjustByStep(range: TimelineRange, isBreak: Bool,
+                              edge: TimelineSelection.Edge, direction: Int) {
+        let current = edge == .start ? range.start : range.end
+        let bounds = isBreak ? work : TimelineRange(start: 0, end: TimelineSelection.maximumMinute)
+        let updated = TimelineSelection.adjust(
+            range, edge: edge, to: current + direction * TimelineSelection.step, bounds: bounds
+        )
+        if isBreak {
+            guard breaks.indices.contains(activeBreakIndex),
+                  !breaks.enumerated().contains(where: {
+                      $0.offset != activeBreakIndex &&
+                      updated.start < $0.element.end && $0.element.start < updated.end
+                  }) else { return }
+            breaks[activeBreakIndex] = updated
+        } else {
+            work = updated
+        }
     }
 
     private func label(_ minute: Int) -> String {

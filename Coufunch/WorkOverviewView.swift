@@ -7,6 +7,7 @@ struct WorkOverviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var workBreaks: [WorkBreak]
     @Query private var sessions: [WorkSession]
+    @Query private var workplaces: [Workplace]
     @State private var displayedMonth = Date()
     @State private var selectedDate: Date?
     @State private var isSidebarPresented = false
@@ -58,19 +59,28 @@ struct WorkOverviewView: View {
                                 Text(selectedDate, format: .dateTime.year().month().day())
                                     .foregroundStyle(WakColor.textPrimary)
                                 Text("\(daySessions.count) session(s)")
+                                    .foregroundStyle(.secondary)
+                                if daySessions.isEmpty {
+                                    Text("No shifts recorded for this day.").font(.subheadline).foregroundStyle(.secondary)
+                                }
                                 ForEach(daySessions.sorted(by: { $0.startAt < $1.startAt })) { session in
                                     HStack {
-                                        Text(session.startAt, format: .dateTime.hour().minute())
-                                        Text(session.status.rawValue.capitalized).foregroundStyle(.secondary)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(workplaces.first(where: { $0.id == session.workplaceID })?.name ?? "Workplace").font(.headline)
+                                            Text(session.startAt, format: .dateTime.hour().minute())
+                                                .font(.caption.monospacedDigit())
+                                            Text(session.status.rawValue.capitalized).font(.caption).foregroundStyle(.secondary)
+                                        }
                                         Spacer()
                                         Button("Edit") { editingSession = session }
+                                            .accessibilityLabel("Edit work session")
                                         Button(role: .destructive) { pendingDelete = session } label: {
-                                            Image(systemName: "trash")
+                                            Image(systemName: "trash").frame(minWidth: 44, minHeight: 44)
                                         }
+                                        .accessibilityLabel("Delete work session")
                                     }
                                     .font(.subheadline)
                                 }
-                                    .foregroundStyle(.secondary)
                             } else {
                                 Text("Select a date to view work sessions.")
                                     .foregroundStyle(.secondary)
