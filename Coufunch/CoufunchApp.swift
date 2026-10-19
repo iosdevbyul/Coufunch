@@ -6,16 +6,29 @@ import WakTrainerDesignSystem
 struct CoufunchApp: App {
     var body: some Scene {
         WindowGroup {
-            WorkOverviewView()
+            CoufunchRootView()
                 .preferredColorScheme(.dark)
                 .tint(WakColor.primary)
         }
         .modelContainer(for: [
             Workplace.self,
+            WorkplacePaySettings.self,
             WorkSession.self,
             WorkBreak.self,
             IncentiveRule.self,
             ManualIncentive.self
         ])
+    }
+}
+
+private struct CoufunchRootView: View {
+    @Query private var workplaces: [Workplace]
+
+    var body: some View {
+        if workplaces.isEmpty {
+            WorkplaceOnboardingView(onComplete: {})
+        } else {
+            WorkOverviewView()
+        }
     }
 }
