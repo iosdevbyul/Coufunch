@@ -9,6 +9,7 @@ struct WorkTimelineEditor: View {
 
     @State private var dragAnchor: Int?
     @State private var selectingBreak = false
+    @State private var handleAnchor: TimelineRange?
 
     private let pointsPerHour: CGFloat = 132
     private var pointsPerMinute: CGFloat { pointsPerHour / 60 }
@@ -148,15 +149,18 @@ struct WorkTimelineEditor: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        let original = edge == .start ? range.start : range.end
+                        if handleAnchor == nil { handleAnchor = range }
+                        guard let anchor = handleAnchor else { return }
+                        let original = edge == .start ? anchor.start : anchor.end
                         let next = original + Int((value.translation.width / pointsPerMinute).rounded())
                         let bounds = isBreak ? work : TimelineRange(start: 0, end: TimelineSelection.maximumMinute)
                         if isBreak, let current = breaks.first {
-                            breaks = [TimelineSelection.adjust(current, edge: edge, to: next, bounds: bounds)]
+                            breaks = [TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)]
                         } else if !isBreak {
-                            work = TimelineSelection.adjust(work, edge: edge, to: next, bounds: bounds)
+                            work = TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)
                         }
                     }
+                    .onEnded { _ in handleAnchor = nil }
             )
             .accessibilityLabel(isBreak ? "Adjust break boundary" : "Adjust shift boundary")
     }
