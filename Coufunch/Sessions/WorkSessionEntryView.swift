@@ -23,6 +23,39 @@ struct WorkSessionEntryView: View {
         settings.first { $0.workplaceID == workplaceID }
     }
 
+    private var payPreview: PayResult? {
+        guard let workplaceID,
+              let preferences = currentSettings,
+              let midnight = Calendar.current.dateInterval(of: .day, for: date)?.start else { return nil }
+        let start = midnight.addingTimeInterval(TimeInterval(work.start * 60))
+        let end = midnight.addingTimeInterval(TimeInterval(work.end * 60))
+        let mode = editingSession?.payMode ?? preferences.payMode
+        let hourly: Decimal?
+        switch mode {
+        case .minimumHourly:
+            hourly = MinimumWageSchedule.hourlyRate(for: start)
+        case .customHourly:
+            hourly = editingSession?.hourlyRateSnapshot ?? preferences.customHourlyRate
+        case .fixedDaily:
+            hourly = nil
+        }
+        let draft = WorkSession(workplaceID: workplaceID, startAt: start, endAt: end,
+                                status: status, payMode: mode, hourlyRateSnapshot: hourly,
+                                fixedDailyPaySnapshot: fixedPay)
+        let rests = breaks.map {
+            WorkBreak(sessionID: draft.id,
+                      startAt: midnight.addingTimeInterval(TimeInterval($0.start * 60)),
+                      endAt: midnight.addingTimeInterval(TimeInterval($0.end * 60)))
+        }
+        return try? WorkPayCalculator.calculate(session: draft, breaks: rests,
+                                                  calendar: .current,
+                                                  nightPremiumEnabled: preferences.nightPremiumEnabled)
+    }
+
+    private func currency(_ amount: Decimal) -> String {
+        NSDecimalNumber(decimal: amount).intValue.formatted(.currency(code: "KRW"))
+    }
+
     private var fixedPay: Decimal? {
         guard let settings = currentSettings else { return nil }
         guard settings.payMode == .fixedDaily else { return nil }
@@ -57,6 +90,26 @@ struct WorkSessionEntryView: View {
                         TextField("Daily pay override (optional)", text: $overrideAmount)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(.roundedBorder)
+                    }
+
+                    if let preview = payPreview {
+                        WakCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Estimated Gross Pay").font(.headline)
+                                LabeledContent("Paid work", value: "\(preview.workedMinutes / 60)h \(preview.workedMinutes % 60)m")
+                                LabeledContent("Night work", value: "\(preview.nightMinutes / 60)h \(preview.nightMinutes % 60)m")
+                                LabeledContent("Daily overtime", value: "\(preview.overtimeMinutes / 60)h \(preview.overtimeMinutes % 60)m")
+                                LabeledContent("Base pay", value: currency(preview.basePay))
+                                LabeledContent("Night premium", value: currency(preview.nightPremium))
+                                LabeledContent("Overtime premium", value: currency(preview.overtimePremium))
+                                Text(currency(preview.total))
+                                    .font(.title2.bold())
+                                    .foregroundStyle(WakColor.primary)
+                                Text("Before deductions. Overtime estimates assume eligible employment and daily work exceeding 8 paid hours; weekly and holiday rules are not included.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
 
                     if let errorMessage {
