@@ -51,6 +51,7 @@ struct WorkFinanceView: View {
                             row("Completed days", "\(summary.completedDays)")
                             row("Base pay", money(summary.basePay))
                             row("Night premium", money(summary.nightPremium))
+                            row("Overtime premium", money(summary.overtimePremium))
                             row("Automatic incentives", money(summary.automaticIncentives))
                             row("Manual incentives", money(summary.manualIncentives))
                             row("Average per completed day", money(summary.dailyAverage))
