@@ -10,6 +10,8 @@ struct WorkOverviewView: View {
     @State private var displayedMonth = Date()
     @State private var selectedDate: Date?
     @State private var isSidebarPresented = false
+    @State private var financeScreen: WorkFinanceView.Screen?
+    @State private var showFinance = false
     @State private var isSessionEntryPresented = false
     @State private var editingSession: WorkSession?
     @State private var pendingDelete: WorkSession?
@@ -117,7 +119,7 @@ struct WorkOverviewView: View {
                     isSessionEntryPresented = false
                 }
             }
-            .sheet(isPresented: $isSidebarPresented) {
+            .navigationDestination(isPresented: $showFinance) {\n                if let financeScreen { WorkFinanceView(screen: financeScreen) }\n            }\n            .sheet(isPresented: $isSidebarPresented) {
                 NavigationStack {
                     List {
                         Label("Work Overview", systemImage: "calendar")
