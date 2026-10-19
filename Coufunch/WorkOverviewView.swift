@@ -8,7 +8,7 @@ struct WorkOverviewView: View {
     @State private var displayedMonth = Date()
     @State private var selectedDate: Date?
     @State private var isSidebarPresented = false
-    @State private var isTimeEditorPresented = false
+    @State private var isSessionEntryPresented = false
     @State private var draftWork = TimelineRange(start: 1140, end: 1680)
     @State private var draftBreaks = [TimelineRange(start: 1320, end: 1380)]
 
@@ -36,7 +36,7 @@ struct WorkOverviewView: View {
                         configuration: calendarConfiguration
                     )
 
-                    Button("Try Time Selector") { isTimeEditorPresented = true }
+                    Button("Add Work Session") { isSessionEntryPresented = true }
                         .buttonStyle(.borderedProminent)
 
                     WakCard {
