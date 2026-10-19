@@ -9,9 +9,9 @@ The estimate uses the 2026 Korean Labor Standards Act (Article 56) for establish
 - Daily overtime premium: 50% hourly rate × paid minutes over 8 hours in the same continuous session, excluding unpaid breaks.
 - If night and overtime overlap, both additional premiums are added; base pay is counted once.
 - Fixed daily pay is preserved as entered and no premium is automatically added to prevent double counting.
-- The calculator has `nightPremiumEnabled` and `overtimePremiumEnabled` flags. The latter defaults to true in this phase. A workplace-level eligibility control and weekly-40-hour/holiday rules are not yet modeled and should be added before treating projections as payroll.
+- The calculator has `nightPremiumEnabled` and `overtimePremiumEnabled` flags. The latter defaults to true in this phase. A workplace-level eligibility control is not yet modeled; verify eligibility before treating projections as payroll.
 - For multiple sessions on a day, this phase does not aggregate paid hours across sessions into daily overtime. The result can underestimate premiums.
-- Estimated overtime premium does not account for weekly >40h, public holidays, paid breaks or higher contractual premiums.
+- Weekly-hours overtime calculations are intentionally not part of Coufunch. Holiday work and higher contractual premiums also are not calculated.
 
 ## Timeline
 
