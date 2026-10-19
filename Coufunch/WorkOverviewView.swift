@@ -9,8 +9,6 @@ struct WorkOverviewView: View {
     @State private var selectedDate: Date?
     @State private var isSidebarPresented = false
     @State private var isSessionEntryPresented = false
-    @State private var draftWork = TimelineRange(start: 1140, end: 1680)
-    @State private var draftBreaks = [TimelineRange(start: 1320, end: 1380)]
 
     private let calendarConfiguration = CalendarConfiguration(
         locale: .system,
@@ -84,16 +82,9 @@ struct WorkOverviewView: View {
                     .accessibilityLabel("Refresh overview")
                 }
             }
-            .sheet(isPresented: $isTimeEditorPresented) {
-                NavigationStack {
-                    WorkTimelineEditor(work: $draftWork, breaks: $draftBreaks)
-                        .navigationTitle("Time Selector")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button("Done") { isTimeEditorPresented = false }
-                            }
-                        }
+            .sheet(isPresented: $isSessionEntryPresented) {
+                WorkSessionEntryView(date: selectedDate ?? Date()) {
+                    isSessionEntryPresented = false
                 }
             }
             .sheet(isPresented: $isSidebarPresented) {
