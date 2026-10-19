@@ -45,6 +45,8 @@ final class WorkSession {
     var hourlyRateSnapshot: Decimal?
     var fixedDailyPaySnapshot: Decimal?
     var recordedAt: Date
+    var nightPremiumSnapshot: Bool? = nil
+    var overtimePremiumSnapshot: Bool? = nil
 
     var status: WorkSessionStatus {
         get { WorkSessionStatus(rawValue: statusRaw) ?? .applied }
@@ -65,7 +67,9 @@ final class WorkSession {
         payMode: PayCalculationMode = .minimumHourly,
         hourlyRateSnapshot: Decimal? = nil,
         fixedDailyPaySnapshot: Decimal? = nil,
-        recordedAt: Date = .now
+        recordedAt: Date = .now,
+        nightPremiumSnapshot: Bool? = nil,
+        overtimePremiumSnapshot: Bool? = nil
     ) {
         self.id = id
         self.workplaceID = workplaceID
@@ -76,6 +80,8 @@ final class WorkSession {
         self.hourlyRateSnapshot = hourlyRateSnapshot
         self.fixedDailyPaySnapshot = fixedDailyPaySnapshot
         self.recordedAt = recordedAt
+        self.nightPremiumSnapshot = nightPremiumSnapshot
+        self.overtimePremiumSnapshot = overtimePremiumSnapshot
     }
 }
 

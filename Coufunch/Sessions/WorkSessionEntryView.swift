@@ -49,7 +49,8 @@ struct WorkSessionEntryView: View {
         }
         return try? WorkPayCalculator.calculate(session: draft, breaks: rests,
                                                   calendar: .current,
-                                                  nightPremiumEnabled: preferences.nightPremiumEnabled)
+                                                  nightPremiumEnabled: editingSession?.nightPremiumSnapshot ?? preferences.nightPremiumEnabled,
+                                                  overtimePremiumEnabled: editingSession?.overtimePremiumSnapshot ?? preferences.overtimePremiumEnabled)
     }
 
     private func currency(_ amount: Decimal) -> String {
@@ -195,6 +196,8 @@ struct WorkSessionEntryView: View {
             session.status = status
             session.hourlyRateSnapshot = hourlyRate
             session.fixedDailyPaySnapshot = fixed
+            session.nightPremiumSnapshot = session.nightPremiumSnapshot ?? settings.nightPremiumEnabled
+            session.overtimePremiumSnapshot = session.overtimePremiumSnapshot ?? settings.overtimePremiumEnabled
             for item in storedBreaks where item.sessionID == session.id {
                 context.delete(item)
             }
@@ -204,6 +207,8 @@ struct WorkSessionEntryView: View {
                 payMode: selectedMode, hourlyRateSnapshot: hourlyRate,
                 fixedDailyPaySnapshot: fixed
             )
+            session.nightPremiumSnapshot = settings.nightPremiumEnabled
+            session.overtimePremiumSnapshot = settings.overtimePremiumEnabled
             context.insert(session)
         }
         for rest in breaks {

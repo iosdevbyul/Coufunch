@@ -10,6 +10,7 @@ final class WorkplacePaySettings {
     var customHourlyRate: Decimal?
     var fixedDailyPay: Decimal?
     var nightPremiumEnabled: Bool
+    var overtimePremiumEnabled: Bool = true
     var createdAt: Date
 
     var payMode: PayCalculationMode {
@@ -22,7 +23,8 @@ final class WorkplacePaySettings {
         payMode: PayCalculationMode,
         customHourlyRate: Decimal? = nil,
         fixedDailyPay: Decimal? = nil,
-        nightPremiumEnabled: Bool = true
+        nightPremiumEnabled: Bool = true,
+        overtimePremiumEnabled: Bool = true
     ) {
         self.id = UUID()
         self.workplaceID = workplaceID
@@ -30,6 +32,7 @@ final class WorkplacePaySettings {
         self.customHourlyRate = customHourlyRate
         self.fixedDailyPay = fixedDailyPay
         self.nightPremiumEnabled = nightPremiumEnabled
+        self.overtimePremiumEnabled = overtimePremiumEnabled
         self.createdAt = .now
     }
 }

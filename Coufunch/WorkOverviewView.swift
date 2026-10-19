@@ -12,6 +12,8 @@ struct WorkOverviewView: View {
     @State private var isSidebarPresented = false
     @State private var financeScreen: WorkFinanceView.Screen?
     @State private var showFinance = false
+    @State private var managementSection: WorkplaceManagementView.Section?
+    @State private var showManagement = false
     @State private var isSessionEntryPresented = false
     @State private var editingSession: WorkSession?
     @State private var pendingDelete: WorkSession?
@@ -122,6 +124,9 @@ struct WorkOverviewView: View {
             .navigationDestination(isPresented: $showFinance) {
                 if let financeScreen { WorkFinanceView(screen: financeScreen) }
             }
+            .navigationDestination(isPresented: $showManagement) {
+                if let managementSection { WorkplaceManagementView(section: managementSection) }
+            }
             .sheet(isPresented: $isSidebarPresented) {
                 NavigationStack {
                     List {
@@ -140,8 +145,20 @@ struct WorkOverviewView: View {
                         } label: {
                             Label("Work Strategy", systemImage: "chart.bar")
                         }
-                        Label("Workplaces", systemImage: "building.2")
-                        Label("Incentives", systemImage: "slider.horizontal.3")
+                        Button {
+                            managementSection = .workplaces
+                            isSidebarPresented = false
+                            showManagement = true
+                        } label: {
+                            Label("Workplaces", systemImage: "building.2")
+                        }
+                        Button {
+                            managementSection = .incentives
+                            isSidebarPresented = false
+                            showManagement = true
+                        } label: {
+                            Label("Incentives", systemImage: "slider.horizontal.3")
+                        }
                         Label("Settings", systemImage: "gearshape")
                     }
                     .scrollContentBackground(.hidden)
