@@ -28,6 +28,11 @@ struct WorkFinanceView: View {
             rules: rules, manual: manual, calendar: .current)
     }
 
+    private var audit: PayrollAuditReport {
+        PayrollAuditCalculator.report(month: selectedMonth, sessions: sessions,
+            breaks: breaks, workplaces: workplaces, settings: settings, calendar: .current)
+    }
+
     private var forecast: PayForecast {
         PayForecastCalculator.calculate(month: selectedMonth, sessions: sessions,
             breaks: breaks, settings: settings, calendar: .current)
@@ -98,6 +103,38 @@ struct WorkFinanceView: View {
                             }
                         }
                     }
+                    WakCard {
+                        VStack(alignment: .leading, spacing: WakSpacing.medium) {
+                            Text("Payroll Audit").font(WakTypography.screenTitle)
+                            Text("Completed shifts only. Compare these gross estimates with a gross payslip; bonuses and deductions are shown separately in the monthly summary.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                            if audit.entries.isEmpty {
+                                Text("No completed shift breakdowns for this month.")
+                                    .foregroundStyle(.secondary)
+                            }
+                            ForEach(audit.entries) { item in
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(item.workplaceName).font(.headline)
+                                    Text(item.start, format: .dateTime.month().day().hour().minute())
+                                        .font(.caption).foregroundStyle(.secondary)
+                                    row("Paid minutes", "\(item.paidMinutes)")
+                                    row("Night minutes", "\(item.nightMinutes)")
+                                    row("Daily overtime minutes", "\(item.dailyOvertimeMinutes)")
+                                    row("Base pay", money(item.basePay))
+                                    row("Night premium", money(item.nightPremium))
+                                    row("Overtime premium", money(item.overtimePremium))
+                                    row("Shift gross", money(item.grossTotal))
+                                    Divider()
+                                }
+                            }
+                            row("Total shift gross", money(audit.shiftGross))
+                            if audit.excluded > 0 {
+                                Text("\(audit.excluded) completed shift(s) could not be calculated.")
+                                    .font(.caption).foregroundStyle(.orange)
+                            }
+                        }
+                    }
+
                     WakCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Shift Pay Forecast").font(WakTypography.screenTitle)
