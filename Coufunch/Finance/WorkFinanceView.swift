@@ -106,6 +106,12 @@ struct WorkFinanceView: View {
                     WakCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Payroll Audit").font(WakTypography.screenTitle)
+                            ShareLink(item: PayrollAuditCSV.make(report: audit, calendar: .current)) {
+                                Label("Share Payroll CSV", systemImage: "square.and.arrow.up")
+                            }
+                            .disabled(audit.entries.isEmpty)
+                            Text("Shares a CSV text breakdown outside this app only when you choose. It may contain workplace and shift details.")
+                                .font(.caption).foregroundStyle(.secondary)
                             Text("Completed shifts only. Compare these gross estimates with a gross payslip; bonuses and deductions are shown separately in the monthly summary.")
                                 .font(.footnote).foregroundStyle(.secondary)
                             if audit.entries.isEmpty {
