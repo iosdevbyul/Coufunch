@@ -33,7 +33,7 @@ struct WorkSessionEntryView: View {
         let hourly: Decimal?
         switch mode {
         case .minimumHourly:
-            hourly = MinimumWageSchedule.hourlyRate(for: start)
+            hourly = editingSession?.hourlyRateSnapshot ?? MinimumWageSchedule.hourlyRate(for: start)
         case .customHourly:
             hourly = editingSession?.hourlyRateSnapshot ?? preferences.customHourlyRate
         case .fixedDaily:
@@ -176,7 +176,7 @@ struct WorkSessionEntryView: View {
         case .fixedDaily: hourlyRate = nil
         case .customHourly: hourlyRate = editingSession?.hourlyRateSnapshot ?? settings.customHourlyRate
         case .minimumHourly:
-            hourlyRate = MinimumWageSchedule.hourlyRate(for: start)
+            hourlyRate = editingSession?.hourlyRateSnapshot ?? MinimumWageSchedule.hourlyRate(for: start)
         }
         if selectedMode != .fixedDaily && (hourlyRate == nil || hourlyRate! <= 0) {
             errorMessage = "Hourly rate is missing."
