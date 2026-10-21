@@ -23,6 +23,7 @@ struct PayResult: Equatable {
     let nightPremium: Decimal
     let overtimeMinutes: Int
     let overtimePremium: Decimal
+    let holidayPremium: Decimal
     let total: Decimal
 }
 
@@ -32,7 +33,8 @@ enum WorkPayCalculator {
         breaks: [WorkBreak],
         calendar: Calendar,
         nightPremiumEnabled: Bool = true,
-        overtimePremiumEnabled: Bool = true
+        overtimePremiumEnabled: Bool = true,
+        holidayPaidMinutes: Int = 0
     ) throws -> PayResult {
         guard let end = session.endAt else { throw PayCalculationError.missingEndTime }
         guard end > session.startAt else { throw PayCalculationError.invalidTimeRange }
@@ -46,6 +48,7 @@ enum WorkPayCalculator {
             ? nightMinutes(start: session.startAt, end: end, breaks: intervals, calendar: calendar)
             : 0
 
+        guard holidayPaidMinutes >= 0, holidayPaidMinutes <= worked else { throw PayCalculationError.invalidTimeRange }
         guard worked >= 0, night <= worked else { throw PayCalculationError.invalidBreak }
 
         // Daily overtime starts after eight paid hours, excluding unpaid breaks.
@@ -58,17 +61,25 @@ enum WorkPayCalculator {
             guard amount >= 0 else { throw PayCalculationError.invalidRate }
             return PayResult(workedMinutes: worked, nightMinutes: night,
                              basePay: amount, nightPremium: 0,
-                             overtimeMinutes: overtime, overtimePremium: 0, total: amount)
+                             overtimeMinutes: overtime, overtimePremium: 0,
+                             holidayPremium: 0, total: amount)
         case .minimumHourly, .customHourly:
             guard let rate = session.hourlyRateSnapshot else { throw PayCalculationError.missingHourlyRate }
             guard rate >= 0 else { throw PayCalculationError.invalidRate }
             let base = rate * Decimal(worked) / 60
             let premium = nightPremiumEnabled ? rate * Decimal(night) / 120 : 0
             let overtimePremium = rate * Decimal(overtime) / 120
+            let holidayBeyondEight = max(0, holidayPaidMinutes - 480)
+            let holidayPremium = rate * Decimal(min(holidayPaidMinutes, 480)) / 120
+                + rate * Decimal(holidayBeyondEight) / 60
+            // Avoid stacking daily overtime premium on the same holiday hours beyond eight.
+            let overtimeOnHoliday = min(overtime, holidayBeyondEight)
+            let adjustedOvertimePremium = overtimePremium - rate * Decimal(overtimeOnHoliday) / 120
             return PayResult(workedMinutes: worked, nightMinutes: night,
                              basePay: base, nightPremium: premium,
-                             overtimeMinutes: overtime, overtimePremium: overtimePremium,
-                             total: base + premium + overtimePremium)
+                             overtimeMinutes: overtime, overtimePremium: adjustedOvertimePremium,
+                             holidayPremium: holidayPremium,
+                             total: base + premium + adjustedOvertimePremium + holidayPremium)
         }
     }
 
