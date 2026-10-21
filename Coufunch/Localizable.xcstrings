@@ -440,6 +440,36 @@
           }
         }
       }
+    },
+    "Enable Payday Reminders": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "급여일 알림 켜기"
+          }
+        }
+      }
+    },
+    "Payday Reminder": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "급여일 알림"
+          }
+        }
+      }
+    },
+    "Today is payday. Check your payment details.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘은 급여일입니다. 지급 내역을 확인해 보세요."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
