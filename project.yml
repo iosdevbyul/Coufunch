@@ -29,6 +29,7 @@ targets:
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Coufunch
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
         SWIFT_STRICT_CONCURRENCY: complete
     dependencies:
