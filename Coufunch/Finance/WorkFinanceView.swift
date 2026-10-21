@@ -38,7 +38,8 @@ struct WorkFinanceView: View {
 
     private var forecast: PayForecast {
         PayForecastCalculator.calculate(month: selectedMonth, sessions: sessions,
-            breaks: breaks, settings: settings, calendar: .current)
+            breaks: breaks, settings: settings, calendar: .current,
+            holidayDates: holidayStore.dates)
     }
 
     private var selectedReceipts: [ReceivedPayRecord] {

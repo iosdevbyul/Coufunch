@@ -149,7 +149,7 @@ struct WorkplaceManagementView: View {
                         HStack {
                             VStack(alignment: .leading) {
                                 Text(rule.name)
-                                Text("\(rule.requiredAttendanceDays) days · \(rule.amount) KRW")
+                                Text("\(rule.requiredAttendanceDays.formatted()) days · \(NSDecimalNumber(decimal: rule.amount).intValue.formatted()) KRW")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
@@ -187,7 +187,7 @@ struct WorkplaceManagementView: View {
                         HStack {
                             VStack(alignment: .leading) {
                                 Text(award.name)
-                                Text("\(award.amount) KRW")
+                                Text("\(NSDecimalNumber(decimal: award.amount).intValue.formatted()) KRW")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
