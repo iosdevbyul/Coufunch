@@ -110,7 +110,7 @@ struct WorkSessionEntryView: View {
                     }
 
                     if let preview = payPreview {
-                        WakCard {
+                        CoufunchCard {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Estimated Gross Pay").font(.headline)
                                 LabeledContent("Paid work", value: "\(preview.workedMinutes / 60)h \(preview.workedMinutes % 60)m")
@@ -122,7 +122,7 @@ struct WorkSessionEntryView: View {
                                 LabeledContent("Holiday premium", value: currency(preview.holidayPremium))
                                 Text(currency(preview.total))
                                     .font(.title2.bold())
-                                    .foregroundStyle(WakColor.primary)
+                                    .foregroundStyle(CoufunchColor.primary)
                                 Text("Before deductions. Overtime estimates assume eligible employment and daily work exceeding 8 paid hours; weekly and holiday rules are not included.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -142,7 +142,7 @@ struct WorkSessionEntryView: View {
                 }
                 .padding(WakSpacing.medium)
             }
-            .background(WakColor.background)
+            .background(CoufunchColor.background)
             .navigationTitle(editingSession == nil ? "Add Work Session" : "Edit Work Session")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -150,7 +150,7 @@ struct WorkSessionEntryView: View {
                 }
             }
         }
-        .tint(WakColor.primary)
+        .tint(CoufunchColor.primary)
         .onAppear(perform: loadExisting)
         .task(id: Calendar.current.component(.year, from: date)) {
             let year = Calendar.current.component(.year, from: date)
