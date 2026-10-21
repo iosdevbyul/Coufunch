@@ -19,7 +19,7 @@ final class PayrollAuditCSVTests: XCTestCase {
             calendar: calendar
         )
         XCTAssertTrue(csv.contains("\"'=SUM(1,2) \"\"Branch\"\"\""))
-        XCTAssertTrue(csv.contains(",60,0,0,10320,0,0,10320"))
+        XCTAssertTrue(csv.contains(",60,0,0,10320,0,0,0,10320"))
         XCTAssertEqual(csv.split(separator: "\n").count, 2)
     }
 
