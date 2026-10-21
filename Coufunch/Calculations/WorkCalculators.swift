@@ -52,7 +52,7 @@ enum WorkPayCalculator {
         guard worked >= 0, night <= worked else { throw PayCalculationError.invalidBreak }
 
         // Daily overtime starts after eight paid hours, excluding unpaid breaks.
-        // Holiday premiums and workplace eligibility are outside this estimate.
+        // Holiday paid minutes are passed in by the caller; eligibility remains workplace-specific.
         let overtime = overtimePremiumEnabled ? max(0, worked - 8 * 60) : 0
 
         switch session.payMode {
