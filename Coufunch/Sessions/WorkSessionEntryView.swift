@@ -151,7 +151,6 @@ struct WorkSessionEntryView: View {
             }
         }
         .tint(WakColor.primary)
-        .preferredColorScheme(.dark)
         .onAppear(perform: loadExisting)
         .task(id: Calendar.current.component(.year, from: date)) {
             let year = Calendar.current.component(.year, from: date)
