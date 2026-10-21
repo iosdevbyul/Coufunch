@@ -90,7 +90,6 @@ struct WorkplaceOnboardingView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .tint(WakColor.primary)
-        .preferredColorScheme(.dark)
     }
 
     private var workplaceStep: some View {
