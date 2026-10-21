@@ -23,3 +23,11 @@
 3. Complete Korean translations for all app screens and test iOS per-app language selection.
 4. Release TrisCalendarKit's configurable weekday colors, pin the tagged version in Coufunch and set Saturday blue / Sunday red only for the weekday header labels.
 5. Run full CI and iPhone UI/payroll regression tests. No weekly 40-hour overtime rule.
+
+## Payday local notifications
+- Users opt in through the **Enable Payday Reminders** button; no background or remote push service is required.
+- Each completed work session is attributed to its shift start date. A reminder is scheduled for the next Korean business day (Monday–Friday, excluding the currently loaded public-holiday dates) at **10:00 AM Asia/Seoul**.
+- Multiple shifts sharing one payday produce one notification. Editing/removing/completing shifts resynchronizes future reminders while the overview is active.
+- If reliable holiday data is unavailable for the target year, the app avoids guessing and does not schedule for that year.
+- Notification permission is required. This notification is a work-based estimate, not confirmation that an employer has transferred the wages.
+- In-app reminders do not run while the app remains closed and holiday calendars have changed; reopening the app resynchronizes them.
