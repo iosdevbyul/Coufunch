@@ -75,18 +75,18 @@ struct WorkOverviewView: View {
                     Button("Add Work Session") { isSessionEntryPresented = true }
                         .buttonStyle(.borderedProminent)
 
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Work Sessions")
                                 .font(WakTypography.screenTitle)
-                                .foregroundStyle(WakColor.textPrimary)
+                                .foregroundStyle(CoufunchColor.textPrimary)
 
                             if let selectedDate {
                                 let daySessions = sessions.filter {
                                     Calendar.current.isDate($0.startAt, inSameDayAs: selectedDate)
                                 }
                                 Text(selectedDate, format: .dateTime.year().month().day())
-                                    .foregroundStyle(WakColor.textPrimary)
+                                    .foregroundStyle(CoufunchColor.textPrimary)
                                 Text("\(daySessions.count) session(s)")
                                     .foregroundStyle(.secondary)
                                 if daySessions.isEmpty {
@@ -119,7 +119,7 @@ struct WorkOverviewView: View {
                 }
                 .padding(WakSpacing.large)
             }
-            .background(WakColor.background)
+            .background(CoufunchColor.background)
             .task(id: reminderSyncKey) { await refreshPaydayReminders() }
             .navigationTitle("Work Overview")
             .navigationBarTitleDisplayMode(.inline)
@@ -202,7 +202,7 @@ struct WorkOverviewView: View {
                         Label("Settings", systemImage: "gearshape")
                     }
                     .scrollContentBackground(.hidden)
-                    .background(WakColor.background)
+                    .background(CoufunchColor.background)
                     .navigationTitle("Coufunch")
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
