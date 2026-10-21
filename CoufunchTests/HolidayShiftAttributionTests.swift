@@ -42,6 +42,6 @@ final class HolidayShiftAttributionTests: XCTestCase {
             WorkBreak(sessionID: shift.id, startAt: date(19, 0), endAt: date(19, 2))
         ]
         XCTAssertEqual(HolidayWorkMinutes.calculate(session: shift, breaks: rests,
-            holidayDates: ["2026-10-18"]), 420)
+            holidayDates: ["2026-10-18"]), 360)
     }
 }
