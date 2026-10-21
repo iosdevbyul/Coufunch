@@ -18,7 +18,7 @@ struct WorkTimelineEditor: View {
         VStack(alignment: .leading, spacing: WakSpacing.medium) {
             Text("Work Hours")
                 .font(WakTypography.screenTitle)
-                .foregroundStyle(WakColor.textPrimary)
+                .foregroundStyle(CoufunchColor.textPrimary)
 
             Text("Swipe to explore the timeline. Drag a colored handle, or use the five-minute adjustment buttons below.")
                 .font(.caption)
@@ -27,7 +27,7 @@ struct WorkTimelineEditor: View {
             ScrollView(.horizontal) {
                 VStack(alignment: .leading, spacing: 14) {
                     ruler
-                    lane(title: "Shift", range: work, tint: WakColor.primary, isBreak: false)
+                    lane(title: "Shift", range: work, tint: CoufunchColor.primary, isBreak: false)
                     lane(title: "Break", range: breaks.indices.contains(activeBreakIndex) ? breaks[activeBreakIndex] : nil, tint: .orange, isBreak: true)
                 }
                 .frame(width: contentWidth)
@@ -49,7 +49,7 @@ struct WorkTimelineEditor: View {
                     } label: {
                         Text("Break \(index + 1): \(label(breaks[index].start)) – \(label(breaks[index].end))")
                     }
-                    .foregroundStyle(activeBreakIndex == index ? WakColor.primary : WakColor.textPrimary)
+                    .foregroundStyle(activeBreakIndex == index ? CoufunchColor.primary : CoufunchColor.textPrimary)
                     Spacer()
                     Button(role: .destructive) {
                         breaks.remove(at: index)
@@ -90,7 +90,7 @@ struct WorkTimelineEditor: View {
                 .foregroundStyle(.secondary)
         }
         .padding(WakSpacing.large)
-        .background(WakColor.background)
+        .background(CoufunchColor.background)
         .onChange(of: work) { _, updated in
             breaks = breaks.compactMap { TimelineSelection.contained($0, within: updated) }
             activeBreakIndex = max(0, min(activeBreakIndex, breaks.count - 1))
@@ -111,7 +111,7 @@ struct WorkTimelineEditor: View {
             }
             ForEach(0..<576, id: \.self) { tick in
                 Rectangle()
-                    .fill(WakColor.textPrimary.opacity(0.14))
+                    .fill(CoufunchColor.textPrimary.opacity(0.14))
                     .frame(width: 1, height: tick.isMultiple(of: 12) ? 10 : 4)
                     .offset(x: CGFloat(tick * 5) * pointsPerMinute, y: 34)
             }
@@ -122,7 +122,7 @@ struct WorkTimelineEditor: View {
     private func lane(title: String, range: TimelineRange?, tint: Color, isBreak: Bool) -> some View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: 10)
-                .fill(WakColor.textPrimary.opacity(0.08))
+                .fill(CoufunchColor.textPrimary.opacity(0.08))
                 .frame(width: contentWidth, height: 54)
 
             if let range {
@@ -145,7 +145,7 @@ struct WorkTimelineEditor: View {
         RoundedRectangle(cornerRadius: 9)
             .fill(tint)
             .frame(width: 22, height: 48)
-            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(WakColor.textPrimary, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(CoufunchColor.textPrimary, lineWidth: 1))
             .offset(x: CGFloat(edge == .start ? range.start : range.end) * pointsPerMinute - 11)
             .gesture(
                 DragGesture(minimumDistance: 0)
