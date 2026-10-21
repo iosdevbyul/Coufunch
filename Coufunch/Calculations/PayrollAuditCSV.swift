@@ -11,7 +11,7 @@ enum PayrollAuditCSV {
         let header = [
             "Workplace", "Start", "End", "Paid minutes",
             "Night minutes", "Daily overtime minutes",
-            "Base KRW", "Night premium KRW", "Overtime premium KRW", "Gross KRW"
+            "Base KRW", "Night premium KRW", "Overtime premium KRW", "Holiday premium KRW", "Gross KRW"
         ].joined(separator: ",")
 
         let rows = report.entries.map { entry in
@@ -25,6 +25,7 @@ enum PayrollAuditCSV {
                 number(entry.basePay),
                 number(entry.nightPremium),
                 number(entry.overtimePremium),
+                number(entry.holidayPremium),
                 number(entry.grossTotal)
             ].joined(separator: ",")
         }
