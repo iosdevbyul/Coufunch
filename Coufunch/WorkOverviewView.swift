@@ -70,10 +70,6 @@ struct WorkOverviewView: View {
         }.sorted { $0.date < $1.date }
     }
 
-    private var holidayCalendarHighlights: Set<Date> {
-        Set(displayedHolidayDates.map { Calendar.current.startOfDay(for: $0.date) })
-    }
-
     private var completedDays: Set<Date> {
         let calendar = Calendar.current
         return Set(sessions.filter { $0.status == .completed }.map {
@@ -88,7 +84,7 @@ struct WorkOverviewView: View {
                     MonthCalendarView(
                         displayedMonth: $displayedMonth,
                         selectedDate: $selectedDate,
-                        highlightedDates: completedDays.union(holidayCalendarHighlights),
+                        highlightedDates: completedDays,
                         configuration: calendarConfiguration,
                         style: calendarStyle
                     )
@@ -106,8 +102,6 @@ struct WorkOverviewView: View {
                                 .font(.caption)
                                 .foregroundStyle(.red)
                             }
-                            Text("Calendar highlights include both worked days and public holidays.")
-                                .font(.caption2).foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
