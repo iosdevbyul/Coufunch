@@ -11,6 +11,7 @@ struct PayrollAuditEntry: Identifiable {
     let basePay: Decimal
     let nightPremium: Decimal
     let overtimePremium: Decimal
+    let holidayPremium: Decimal
     let grossTotal: Decimal
 }
 
@@ -29,7 +30,8 @@ enum PayrollAuditCalculator {
         breaks: [WorkBreak],
         workplaces: [Workplace],
         settings: [WorkplacePaySettings],
-        calendar: Calendar
+        calendar: Calendar,
+        holidayDates: Set<String> = []
     ) -> PayrollAuditReport {
         guard let interval = calendar.dateInterval(of: .month, for: month) else {
             return PayrollAuditReport(entries: [], excluded: 0)
@@ -51,7 +53,9 @@ enum PayrollAuditCalculator {
                     breaks: breaks.filter { $0.sessionID == session.id },
                     calendar: calendar,
                     nightPremiumEnabled: session.nightPremiumSnapshot ?? preferences?.nightPremiumEnabled ?? true,
-                    overtimePremiumEnabled: session.overtimePremiumSnapshot ?? preferences?.overtimePremiumEnabled ?? true
+                    overtimePremiumEnabled: session.overtimePremiumSnapshot ?? preferences?.overtimePremiumEnabled ?? true,
+                    holidayPaidMinutes: HolidayWorkMinutes.calculate(session: session,
+                        breaks: breaks.filter { $0.sessionID == session.id }, holidayDates: holidayDates)
                 )
                 entries.append(PayrollAuditEntry(
                     id: session.id,
@@ -60,6 +64,7 @@ enum PayrollAuditCalculator {
                     paidMinutes: pay.workedMinutes, nightMinutes: pay.nightMinutes,
                     dailyOvertimeMinutes: pay.overtimeMinutes, basePay: pay.basePay,
                     nightPremium: pay.nightPremium, overtimePremium: pay.overtimePremium,
+                    holidayPremium: pay.holidayPremium,
                     grossTotal: pay.total
                 ))
             } catch {

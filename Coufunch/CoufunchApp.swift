@@ -7,8 +7,7 @@ struct CoufunchApp: App {
     var body: some Scene {
         WindowGroup {
             CoufunchRootView()
-                .preferredColorScheme(.dark)
-                .tint(WakColor.primary)
+                .tint(CoufunchColor.primary)
         }
         .modelContainer(for: [
             Workplace.self,

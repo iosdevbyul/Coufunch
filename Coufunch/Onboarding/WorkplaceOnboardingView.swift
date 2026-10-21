@@ -53,7 +53,7 @@ struct WorkplaceOnboardingView: View {
                 VStack(alignment: .leading, spacing: WakSpacing.large) {
                     Text("Step \(step + 1) of 3")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(WakColor.primary)
+                        .foregroundStyle(CoufunchColor.primary)
 
                     switch step {
                     case 0: workplaceStep
@@ -85,26 +85,25 @@ struct WorkplaceOnboardingView: View {
                 }
                 .padding(WakSpacing.large)
             }
-            .background(WakColor.background)
+            .background(CoufunchColor.background)
             .navigationTitle("Set Up Coufunch")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .tint(WakColor.primary)
-        .preferredColorScheme(.dark)
+        .tint(CoufunchColor.primary)
     }
 
     private var workplaceStep: some View {
         VStack(alignment: .leading, spacing: WakSpacing.medium) {
             Text("Your Workplace")
                 .font(WakTypography.screenTitle)
-                .foregroundStyle(WakColor.textPrimary)
+                .foregroundStyle(CoufunchColor.textPrimary)
             Text("Enter any name you like. Coufunch does not download employer or work center names.")
                 .foregroundStyle(.secondary)
             TextField("Workplace name", text: $workplaceName)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .padding()
-                .background(WakColor.textPrimary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                .background(CoufunchColor.textPrimary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
         }
     }
 

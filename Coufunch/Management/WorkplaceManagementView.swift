@@ -69,7 +69,7 @@ struct WorkplaceManagementView: View {
             }
             .padding(WakSpacing.large)
         }
-        .background(WakColor.background)
+        .background(CoufunchColor.background)
         .navigationTitle(section.rawValue)
         .onChange(of: selectedWorkplaceID) { _, _ in
             loadWorkplace()

@@ -3,6 +3,7 @@ import SwiftData
 import WakTrainerDesignSystem
 
 struct WorkFinanceView: View {
+    @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.modelContext) private var modelContext
     @Query private var receivedPay: [ReceivedPayRecord]
     @State private var receiptAmount = ""
@@ -25,12 +26,14 @@ struct WorkFinanceView: View {
     private var summary: MonthlyPaySummary {
         WorkFinanceSummary.summarize(month: selectedMonth, sessions: sessions,
             breaks: breaks, workplaces: workplaces, settings: settings,
-            rules: rules, manual: manual, calendar: .current)
+            rules: rules, manual: manual, calendar: .current,
+            holidayDates: holidayStore.dates)
     }
 
     private var audit: PayrollAuditReport {
         PayrollAuditCalculator.report(month: selectedMonth, sessions: sessions,
-            breaks: breaks, workplaces: workplaces, settings: settings, calendar: .current)
+            breaks: breaks, workplaces: workplaces, settings: settings, calendar: .current,
+            holidayDates: holidayStore.dates)
     }
 
     private var forecast: PayForecast {
@@ -74,6 +77,10 @@ struct WorkFinanceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: WakSpacing.large) {
+                if screen == .pay && !holidayStore.loadedYears.contains(Calendar.current.component(.year, from: selectedMonth)) {
+                    Text("Public holiday data is unavailable. Holiday premiums may be missing.")
+                        .font(.footnote).foregroundStyle(.orange)
+                }
                 if screen == .pay {
                     HStack {
                         Button { selectedMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth } label: {
@@ -86,14 +93,15 @@ struct WorkFinanceView: View {
                             Image(systemName: "chevron.right")
                         }
                     }
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Estimated Gross Pay").font(WakTypography.screenTitle)
-                            Text(money(summary.total)).font(.title.bold()).foregroundStyle(WakColor.primary)
+                            Text(money(summary.total)).font(.title.bold()).foregroundStyle(CoufunchColor.primary)
                             row("Completed days", "\(summary.completedDays)")
                             row("Base pay", money(summary.basePay))
                             row("Night premium", money(summary.nightPremium))
                             row("Overtime premium", money(summary.overtimePremium))
+                            row("Holiday premium", money(summary.holidayPremium))
                             row("Automatic incentives", money(summary.automaticIncentives))
                             row("Manual incentives", money(summary.manualIncentives))
                             row("Average per completed day", money(summary.dailyAverage))
@@ -103,7 +111,7 @@ struct WorkFinanceView: View {
                             }
                         }
                     }
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Payroll Audit").font(WakTypography.screenTitle)
                             ShareLink(item: PayrollAuditCSV.make(report: audit, calendar: .current)) {
@@ -129,6 +137,7 @@ struct WorkFinanceView: View {
                                     row("Base pay", money(item.basePay))
                                     row("Night premium", money(item.nightPremium))
                                     row("Overtime premium", money(item.overtimePremium))
+                                    row("Holiday premium", money(item.holidayPremium))
                                     row("Shift gross", money(item.grossTotal))
                                     Divider()
                                 }
@@ -141,7 +150,7 @@ struct WorkFinanceView: View {
                         }
                     }
 
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Shift Pay Forecast").font(WakTypography.screenTitle)
                             row("Completed shifts", "\(forecast.completedCount)")
@@ -159,7 +168,7 @@ struct WorkFinanceView: View {
                         }
                     }
 
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Actual Payments").font(WakTypography.screenTitle)
                             Text("Record gross or take-home deposits separately. Only gross receipts can be compared to the estimated gross amount.")
@@ -219,7 +228,7 @@ struct WorkFinanceView: View {
                             .foregroundStyle(.secondary)
                     }
                     ForEach(opportunities) { goal in
-                        WakCard {
+                        CoufunchCard {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(goal.workplaceName).foregroundStyle(.secondary)
                                 Text(goal.ruleName).font(.headline)
@@ -230,7 +239,7 @@ struct WorkFinanceView: View {
                             }
                         }
                     }
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("What If I Work One More Day?")
                                 .font(WakTypography.screenTitle)
@@ -274,10 +283,15 @@ struct WorkFinanceView: View {
             }
             .padding(WakSpacing.large)
         }
-        .background(WakColor.background)
+        .background(CoufunchColor.background)
         .navigationTitle(screen == .pay ? "Pay & Allowances" : "Work Strategy")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id }
+        .task(id: Calendar.current.component(.year, from: selectedMonth)) {
+            let year = Calendar.current.component(.year, from: selectedMonth)
+            await holidayStore.load(year: year)
+            await holidayStore.load(year: year + 1)
+        }
     }
 
     private func addReceipt() {
