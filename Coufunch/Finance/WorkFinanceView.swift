@@ -93,10 +93,10 @@ struct WorkFinanceView: View {
                             Image(systemName: "chevron.right")
                         }
                     }
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Estimated Gross Pay").font(WakTypography.screenTitle)
-                            Text(money(summary.total)).font(.title.bold()).foregroundStyle(WakColor.primary)
+                            Text(money(summary.total)).font(.title.bold()).foregroundStyle(CoufunchColor.primary)
                             row("Completed days", "\(summary.completedDays)")
                             row("Base pay", money(summary.basePay))
                             row("Night premium", money(summary.nightPremium))
@@ -111,7 +111,7 @@ struct WorkFinanceView: View {
                             }
                         }
                     }
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Payroll Audit").font(WakTypography.screenTitle)
                             ShareLink(item: PayrollAuditCSV.make(report: audit, calendar: .current)) {
@@ -150,7 +150,7 @@ struct WorkFinanceView: View {
                         }
                     }
 
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Shift Pay Forecast").font(WakTypography.screenTitle)
                             row("Completed shifts", "\(forecast.completedCount)")
@@ -168,7 +168,7 @@ struct WorkFinanceView: View {
                         }
                     }
 
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Actual Payments").font(WakTypography.screenTitle)
                             Text("Record gross or take-home deposits separately. Only gross receipts can be compared to the estimated gross amount.")
@@ -228,7 +228,7 @@ struct WorkFinanceView: View {
                             .foregroundStyle(.secondary)
                     }
                     ForEach(opportunities) { goal in
-                        WakCard {
+                        CoufunchCard {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(goal.workplaceName).foregroundStyle(.secondary)
                                 Text(goal.ruleName).font(.headline)
@@ -239,7 +239,7 @@ struct WorkFinanceView: View {
                             }
                         }
                     }
-                    WakCard {
+                    CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("What If I Work One More Day?")
                                 .font(WakTypography.screenTitle)
@@ -283,7 +283,7 @@ struct WorkFinanceView: View {
             }
             .padding(WakSpacing.large)
         }
-        .background(WakColor.background)
+        .background(CoufunchColor.background)
         .navigationTitle(screen == .pay ? "Pay & Allowances" : "Work Strategy")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id }
