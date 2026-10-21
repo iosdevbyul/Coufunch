@@ -11,7 +11,7 @@ settings:
 packages:
   TrisCalendarKit:
     url: https://github.com/iosdevbyul/TrisCalendarKit
-    from: 1.0.0
+    exactVersion: 1.1.0
   WakTrainerDesignSystem:
     url: https://github.com/iosdevbyul/WakTrainerDesignSystem
     branch: main
