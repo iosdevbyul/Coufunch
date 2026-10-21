@@ -4,6 +4,7 @@ import TrisCalendarKit
 import WakTrainerDesignSystem
 
 struct WorkOverviewView: View {
+    @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.modelContext) private var modelContext
     @Query private var workBreaks: [WorkBreak]
     @Query private var sessions: [WorkSession]
@@ -25,6 +26,24 @@ struct WorkOverviewView: View {
         weekStart: .sunday
     )
 
+    private var reminderSyncKey: String {
+        sessions.sorted { $0.id.uuidString < $1.id.uuidString }
+            .map { "\($0.id):\($0.startAt.timeIntervalSince1970):\($0.statusRaw)" }
+            .joined(separator: "|")
+    }
+
+    private func refreshPaydayReminders() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let year = calendar.component(.year, from: Date())
+        await holidayStore.load(year: year)
+        await holidayStore.load(year: year + 1)
+        await PaydayReminderScheduler.synchronize(
+            sessions: sessions, holidays: holidayStore.dates,
+            loadedYears: holidayStore.loadedYears
+        )
+    }
+
     private var completedDays: Set<Date> {
         let calendar = Calendar.current
         return Set(sessions.filter { $0.status == .completed }.map {
@@ -42,6 +61,16 @@ struct WorkOverviewView: View {
                         highlightedDates: completedDays,
                         configuration: calendarConfiguration
                     )
+
+                    Button("Enable Payday Reminders") {
+                        Task {
+                            if await PaydayReminderScheduler.requestAuthorization() {
+                                await refreshPaydayReminders()
+                            }
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityHint("Receive a payday reminder at 10 AM on the next Korean business day after completed work.")
 
                     Button("Add Work Session") { isSessionEntryPresented = true }
                         .buttonStyle(.borderedProminent)
@@ -91,6 +120,7 @@ struct WorkOverviewView: View {
                 .padding(WakSpacing.large)
             }
             .background(WakColor.background)
+            .task(id: reminderSyncKey) { await refreshPaydayReminders() }
             .navigationTitle("Work Overview")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
