@@ -32,7 +32,7 @@ final class KoreanPublicHolidayStore: ObservableObject {
                 throw URLError(.badServerResponse)
             }
             let results = try JSONDecoder().decode([Holiday].self, from: data)
-            let values = results.map(\.date)
+            let values = results.filter { $0.types.contains("Public") }.map(\.date)
             defaults.set(values, forKey: "KRPublicHolidays.\(year)")
             dates.formUnion(values)
             loadedYears.insert(year)
@@ -42,7 +42,7 @@ final class KoreanPublicHolidayStore: ObservableObject {
         }
     }
 
-    private struct Holiday: Decodable { let date: String }
+    private struct Holiday: Decodable { let date: String; let types: [String] }
     private static var seoulCalendar: Calendar {
         var c = Calendar(identifier: .gregorian)
         c.timeZone = TimeZone(identifier: "Asia/Seoul")!
