@@ -9,7 +9,7 @@ final class PayrollAuditCSVTests: XCTestCase {
             id: UUID(), workplaceName: "=SUM(1,2) \"Branch\"",
             start: start, end: start.addingTimeInterval(3600),
             paidMinutes: 60, nightMinutes: 0, dailyOvertimeMinutes: 0,
-            basePay: 10_320, nightPremium: 0, overtimePremium: 0,
+            basePay: 10_320, nightPremium: 0, overtimePremium: 0, holidayPremium: 0,
             grossTotal: 10_320
         )
         var calendar = Calendar(identifier: .gregorian)
