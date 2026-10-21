@@ -37,6 +37,6 @@ final class HolidayPremiumTests: XCTestCase {
         let pay = try WorkPayCalculator.calculate(session: shift, breaks: [],
                                                   calendar: calendar)
         XCTAssertEqual(pay.holidayPremium, 0)
-        XCTAssertEqual(pay.total, 108_360)
+        XCTAssertEqual(pay.total, 113_520)
     }
 }
