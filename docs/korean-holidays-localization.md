@@ -3,7 +3,7 @@
 ## Current implementation
 - Cached yearly Korean public holiday dates are retrieved from Nager.Date's KR PublicHolidays API when the app is online.
 - Only entries marked `Public` are treated as public holidays. No weekend is automatically treated as a statutory public holiday.
-- Paid time on a holiday excludes overlapping unpaid breaks and supports shifts crossing midnight.
+- Coufunch workplace policy: holiday eligibility for a work session is determined exclusively by the Korean calendar date when the shift starts. If a shift begins on a public holiday, its entire paid duration, including after midnight, is considered holiday work. If it begins on a non-holiday, midnight crossing into a public holiday does not change the shift's classification. Overlapping unpaid breaks are excluded once.
 - For eligible hourly-paid work, the holiday premium is +50% for the first eight holiday paid hours and +100% for the remaining holiday paid hours. Duplicate daily overtime premium is removed for those same holiday hours.
 - Day-rate/fixed-pay sessions are not automatically increased by this calculator.
 - Monthly summary, forecast, shift audit and CSV receive the same holiday date set.
