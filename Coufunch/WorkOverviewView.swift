@@ -49,6 +49,25 @@ struct WorkOverviewView: View {
         )
     }
 
+    private var displayedHolidayDates: [(date: Date, name: String)] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let month = calendar.dateComponents([.year, .month], from: displayedMonth)
+        guard let interval = calendar.dateInterval(of: .month, for: displayedMonth) else { return [] }
+        return holidayStore.names.compactMap { key, name -> (date: Date, name: String)? in
+            let parts = key.split(separator: "-").compactMap { Int($0) }
+            guard parts.count == 3, parts[0] == month.year,
+                  parts[1] == month.month,
+                  let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])),
+                  interval.contains(date) else { return nil }
+            return (date, name)
+        }.sorted { $0.date < $1.date }
+    }
+
+    private var holidayCalendarHighlights: Set<Date> {
+        Set(displayedHolidayDates.map { Calendar.current.startOfDay(for: $0.date) })
+    }
+
     private var completedDays: Set<Date> {
         let calendar = Calendar.current
         return Set(sessions.filter { $0.status == .completed }.map {
@@ -63,10 +82,32 @@ struct WorkOverviewView: View {
                     MonthCalendarView(
                         displayedMonth: $displayedMonth,
                         selectedDate: $selectedDate,
-                        highlightedDates: completedDays,
+                        highlightedDates: completedDays.union(holidayCalendarHighlights),
                         configuration: calendarConfiguration,
                         style: calendarStyle
                     )
+
+                    if !displayedHolidayDates.isEmpty {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Label("Public Holidays & Substitute Holidays", systemImage: "calendar.badge.exclamationmark")
+                                .font(.subheadline.weight(.semibold))
+                            ForEach(displayedHolidayDates, id: \.date) { holiday in
+                                HStack(spacing: 8) {
+                                    Text(holiday.date, format: .dateTime.month().day())
+                                        .monospacedDigit()
+                                    Text(holiday.name)
+                                }
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                            }
+                            Text("Calendar highlights include both worked days and public holidays.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if let error = holidayStore.errorMessage {
+                        Text(error).font(.caption).foregroundStyle(.orange)
+                    }
 
                     Button("Enable Payday Reminders") {
                         Task {
@@ -127,6 +168,11 @@ struct WorkOverviewView: View {
             }
             .background(CoufunchColor.background)
             .task(id: reminderSyncKey) { await refreshPaydayReminders() }
+            .task(id: Calendar.current.component(.year, from: displayedMonth)) {
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+                await holidayStore.load(year: calendar.component(.year, from: displayedMonth))
+            }
             .navigationTitle("Work Overview")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
