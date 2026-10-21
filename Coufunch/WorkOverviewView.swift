@@ -70,6 +70,11 @@ struct WorkOverviewView: View {
         }.sorted { $0.date < $1.date }
     }
 
+    private var holidayDateTextColors: [Date: Color] {
+        Dictionary(displayedHolidayDates.map { ($0.date, Color.red) },
+                   uniquingKeysWith: { first, _ in first })
+    }
+
     private var completedDays: Set<Date> {
         let calendar = Calendar.current
         return Set(sessions.filter { $0.status == .completed }.map {
@@ -85,6 +90,7 @@ struct WorkOverviewView: View {
                         displayedMonth: $displayedMonth,
                         selectedDate: $selectedDate,
                         highlightedDates: completedDays,
+                        dateTextColors: holidayDateTextColors,
                         configuration: calendarConfiguration,
                         style: calendarStyle
                     )
