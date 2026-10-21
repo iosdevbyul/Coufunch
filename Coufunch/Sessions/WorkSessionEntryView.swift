@@ -7,6 +7,7 @@ struct WorkSessionEntryView: View {
     var editingSession: WorkSession? = nil
     let onSaved: () -> Void
 
+    @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.modelContext) private var context
     @Query(sort: \Workplace.name) private var workplaces: [Workplace]
     @Query private var settings: [WorkplacePaySettings]
@@ -21,6 +22,31 @@ struct WorkSessionEntryView: View {
 
     private var currentSettings: WorkplacePaySettings? {
         settings.first { $0.workplaceID == workplaceID }
+    }
+
+    private var holidayMinutes: Int {
+        guard let midnight = Calendar.current.dateInterval(of: .day, for: date)?.start else { return 0 }
+        let start = midnight.addingTimeInterval(Double(work.start * 60))
+        let end = midnight.addingTimeInterval(Double(work.end * 60))
+        var cursor = Calendar.current.startOfDay(for: start)
+        var total = 0
+        while cursor < end {
+            guard let next = Calendar.current.date(byAdding: .day, value: 1, to: cursor) else { break }
+            if holidayStore.isPublicHoliday(cursor) {
+                let overlapStart = max(start, cursor)
+                let overlapEnd = min(end, next)
+                if overlapEnd > overlapStart {
+                    total += Int(overlapEnd.timeIntervalSince(overlapStart) / 60)
+                    for interval in breaks {
+                        let from = midnight.addingTimeInterval(Double(interval.start * 60))
+                        let to = midnight.addingTimeInterval(Double(interval.end * 60))
+                        total -= max(0, Int(min(overlapEnd, to).timeIntervalSince(max(overlapStart, from)) / 60))
+                    }
+                }
+            }
+            cursor = next
+        }
+        return max(0, total)
     }
 
     private var payPreview: PayResult? {
@@ -50,7 +76,8 @@ struct WorkSessionEntryView: View {
         return try? WorkPayCalculator.calculate(session: draft, breaks: rests,
                                                   calendar: .current,
                                                   nightPremiumEnabled: editingSession?.nightPremiumSnapshot ?? preferences.nightPremiumEnabled,
-                                                  overtimePremiumEnabled: editingSession?.overtimePremiumSnapshot ?? preferences.overtimePremiumEnabled)
+                                                  overtimePremiumEnabled: editingSession?.overtimePremiumSnapshot ?? preferences.overtimePremiumEnabled,
+                                                  holidayPaidMinutes: holidayMinutes)
     }
 
     private func currency(_ amount: Decimal) -> String {
@@ -103,6 +130,7 @@ struct WorkSessionEntryView: View {
                                 LabeledContent("Base pay", value: currency(preview.basePay))
                                 LabeledContent("Night premium", value: currency(preview.nightPremium))
                                 LabeledContent("Overtime premium", value: currency(preview.overtimePremium))
+                                LabeledContent("Holiday premium", value: currency(preview.holidayPremium))
                                 Text(currency(preview.total))
                                     .font(.title2.bold())
                                     .foregroundStyle(WakColor.primary)
@@ -113,6 +141,9 @@ struct WorkSessionEntryView: View {
                         }
                     }
 
+                    if let holidayError = holidayStore.errorMessage {
+                        Text(holidayError).font(.caption).foregroundStyle(.orange)
+                    }
                     if let errorMessage {
                         Text(errorMessage).foregroundStyle(.red).font(.footnote)
                     }
@@ -133,6 +164,11 @@ struct WorkSessionEntryView: View {
         .tint(WakColor.primary)
         .preferredColorScheme(.dark)
         .onAppear(perform: loadExisting)
+        .task(id: Calendar.current.component(.year, from: date)) {
+            let year = Calendar.current.component(.year, from: date)
+            await holidayStore.load(year: year)
+            await holidayStore.load(year: year + 1)
+        }
     }
 
     private func loadExisting() {
