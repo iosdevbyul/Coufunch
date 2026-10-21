@@ -5,23 +5,23 @@ import WakTrainerDesignSystem
 enum CoufunchColor {
     static let background = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 11/255, green: 14/255, blue: 17/255, alpha: 1)
+            ? UIColor(red: 11.0/255.0, green: 14.0/255.0, blue: 17.0/255.0, alpha: 1)
             : .white
     })
     static let surface = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 23/255, green: 27/255, blue: 32/255, alpha: 1)
-            : UIColor(red: 246/255, green: 247/255, blue: 249/255, alpha: 1)
+            ? UIColor(red: 23.0/255.0, green: 27.0/255.0, blue: 32.0/255.0, alpha: 1)
+            : UIColor(red: 246.0/255.0, green: 247.0/255.0, blue: 249.0/255.0, alpha: 1)
     })
     static let textPrimary = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 247/255, green: 248/255, blue: 249/255, alpha: 1)
-            : UIColor(red: 22/255, green: 26/255, blue: 31/255, alpha: 1)
+            ? UIColor(red: 247.0/255.0, green: 248.0/255.0, blue: 249.0/255.0, alpha: 1)
+            : UIColor(red: 22.0/255.0, green: 26.0/255.0, blue: 31.0/255.0, alpha: 1)
     })
     static let primary = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 140/255, green: 246/255, blue: 108/255, alpha: 1)
-            : UIColor(red: 35/255, green: 123/255, blue: 44/255, alpha: 1)
+            ? UIColor(red: 140.0/255.0, green: 246.0/255.0, blue: 108.0/255.0, alpha: 1)
+            : UIColor(red: 35.0/255.0, green: 123.0/255.0, blue: 44.0/255.0, alpha: 1)
     })
 }
 
