@@ -26,27 +26,16 @@ struct WorkSessionEntryView: View {
 
     private var holidayMinutes: Int {
         guard let midnight = Calendar.current.dateInterval(of: .day, for: date)?.start else { return 0 }
-        let start = midnight.addingTimeInterval(Double(work.start * 60))
-        let end = midnight.addingTimeInterval(Double(work.end * 60))
-        var cursor = Calendar.current.startOfDay(for: start)
-        var total = 0
-        while cursor < end {
-            guard let next = Calendar.current.date(byAdding: .day, value: 1, to: cursor) else { break }
-            if holidayStore.isPublicHoliday(cursor) {
-                let overlapStart = max(start, cursor)
-                let overlapEnd = min(end, next)
-                if overlapEnd > overlapStart {
-                    total += Int(overlapEnd.timeIntervalSince(overlapStart) / 60)
-                    for interval in breaks {
-                        let from = midnight.addingTimeInterval(Double(interval.start * 60))
-                        let to = midnight.addingTimeInterval(Double(interval.end * 60))
-                        total -= max(0, Int(min(overlapEnd, to).timeIntervalSince(max(overlapStart, from)) / 60))
-                    }
-                }
-            }
-            cursor = next
+        let draft = WorkSession(workplaceID: workplaceID ?? UUID(),
+            startAt: midnight.addingTimeInterval(Double(work.start * 60)),
+            endAt: midnight.addingTimeInterval(Double(work.end * 60)))
+        let rests = breaks.map {
+            WorkBreak(sessionID: draft.id,
+                startAt: midnight.addingTimeInterval(Double($0.start * 60)),
+                endAt: midnight.addingTimeInterval(Double($0.end * 60)))
         }
-        return max(0, total)
+        return HolidayWorkMinutes.calculate(session: draft, breaks: rests,
+            holidayDates: holidayStore.dates)
     }
 
     private var payPreview: PayResult? {
