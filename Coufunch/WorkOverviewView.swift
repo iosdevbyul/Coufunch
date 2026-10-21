@@ -49,18 +49,24 @@ struct WorkOverviewView: View {
         )
     }
 
-    private var displayedHolidayDates: [(date: Date, name: String)] {
+    private struct HolidayDisplay: Identifiable {
+        let date: Date
+        let name: String
+        var id: Date { date }
+    }
+
+    private var displayedHolidayDates: [HolidayDisplay] {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
         let month = calendar.dateComponents([.year, .month], from: displayedMonth)
         guard let interval = calendar.dateInterval(of: .month, for: displayedMonth) else { return [] }
-        return holidayStore.names.compactMap { key, name -> (date: Date, name: String)? in
+        return holidayStore.names.compactMap { key, name -> HolidayDisplay? in
             let parts = key.split(separator: "-").compactMap { Int($0) }
             guard parts.count == 3, parts[0] == month.year,
                   parts[1] == month.month,
                   let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])),
                   interval.contains(date) else { return nil }
-            return (date, name)
+            return HolidayDisplay(date: date, name: name)
         }.sorted { $0.date < $1.date }
     }
 
@@ -91,7 +97,7 @@ struct WorkOverviewView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Label("Public Holidays & Substitute Holidays", systemImage: "calendar.badge.exclamationmark")
                                 .font(.subheadline.weight(.semibold))
-                            ForEach(displayedHolidayDates, id: \.date) { holiday in
+                            ForEach(displayedHolidayDates) { holiday in
                                 HStack(spacing: 8) {
                                     Text(holiday.date, format: .dateTime.month().day())
                                         .monospacedDigit()
