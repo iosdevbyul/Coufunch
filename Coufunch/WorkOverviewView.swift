@@ -20,6 +20,11 @@ struct WorkOverviewView: View {
     @State private var editingSession: WorkSession?
     @State private var pendingDelete: WorkSession?
 
+    private let calendarStyle = CalendarStyle(
+        weekdaySaturdayColor: .blue,
+        weekdaySundayColor: .red
+    )
+
     private let calendarConfiguration = CalendarConfiguration(
         locale: .system,
         timeZone: .system,
@@ -59,7 +64,8 @@ struct WorkOverviewView: View {
                         displayedMonth: $displayedMonth,
                         selectedDate: $selectedDate,
                         highlightedDates: completedDays,
-                        configuration: calendarConfiguration
+                        configuration: calendarConfiguration,
+                        style: calendarStyle
                     )
 
                     Button("Enable Payday Reminders") {
