@@ -27,7 +27,8 @@ enum PayForecastCalculator {
         sessions: [WorkSession],
         breaks: [WorkBreak],
         settings: [WorkplacePaySettings],
-        calendar: Calendar
+        calendar: Calendar,
+        holidayDates: Set<String> = []
     ) -> PayForecast {
         guard let interval = calendar.dateInterval(of: .month, for: month) else {
             return PayForecast(completedGross: 0, confirmedGross: 0, appliedGross: 0,
@@ -50,7 +51,9 @@ enum PayForecastCalculator {
                     breaks: breaks.filter { $0.sessionID == session.id },
                     calendar: calendar,
                     nightPremiumEnabled: session.nightPremiumSnapshot ?? setting?.nightPremiumEnabled ?? true,
-                    overtimePremiumEnabled: session.overtimePremiumSnapshot ?? setting?.overtimePremiumEnabled ?? true
+                    overtimePremiumEnabled: session.overtimePremiumSnapshot ?? setting?.overtimePremiumEnabled ?? true,
+                    holidayPaidMinutes: HolidayWorkMinutes.calculate(session: session,
+                        breaks: breaks.filter { $0.sessionID == session.id }, holidayDates: holidayDates)
                 )
                 switch session.status {
                 case .completed:
