@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// Public holiday dates are data inputs, not proof of individual holiday-pay eligibility.
 /// Fetches public KR holidays and preserves a last-known copy for offline use.
