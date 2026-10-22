@@ -75,6 +75,11 @@ struct WorkOverviewView: View {
                    uniquingKeysWith: { first, _ in first })
     }
 
+    private var holidayDateLabels: [Date: String] {
+        Dictionary(displayedHolidayDates.map { ($0.date, $0.name) },
+                   uniquingKeysWith: { first, _ in first })
+    }
+
     private var completedDays: Set<Date> {
         let calendar = Calendar.current
         return Set(sessions.filter { $0.status == .completed }.map {
@@ -91,26 +96,11 @@ struct WorkOverviewView: View {
                         selectedDate: $selectedDate,
                         highlightedDates: completedDays,
                         dateTextColors: holidayDateTextColors,
+                        dateLabels: holidayDateLabels,
                         configuration: calendarConfiguration,
                         style: calendarStyle
                     )
 
-                    if !displayedHolidayDates.isEmpty {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Label("Public Holidays & Substitute Holidays", systemImage: "calendar.badge.exclamationmark")
-                                .font(.subheadline.weight(.semibold))
-                            ForEach(displayedHolidayDates) { holiday in
-                                HStack(spacing: 8) {
-                                    Text(holiday.date, format: .dateTime.month().day())
-                                        .monospacedDigit()
-                                    Text(holiday.name)
-                                }
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
                     if let error = holidayStore.errorMessage {
                         Text(error).font(.caption).foregroundStyle(.orange)
                     }
