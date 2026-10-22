@@ -6,6 +6,7 @@ struct WorkFinanceView: View {
     @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.modelContext) private var modelContext
     @Query private var receivedPay: [ReceivedPayRecord]
+    @AppStorage("estimatedDeductionPercent") private var estimatedDeductionPercent = 0.0
     @State private var receiptAmount = ""
     @State private var receiptBasis: ReceivedPayBasis = .net
     @State private var receiptNote = ""
@@ -98,6 +99,19 @@ struct WorkFinanceView: View {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Estimated Gross Pay").font(WakTypography.screenTitle)
                             Text(money(summary.total)).font(.title.bold()).foregroundStyle(CoufunchColor.primary)
+                            Divider()
+                            Text("Estimated Take-Home Pay").font(WakTypography.screenTitle)
+                            Text(money(summary.total * Decimal(1 - estimatedDeductionPercent / 100)))
+                                .font(.title2.bold())
+                            HStack {
+                                Text("Assumed deduction rate")
+                                Spacer()
+                                Text(estimatedDeductionPercent.formatted(.number.precision(.fractionLength(1))) + "%")
+                            }
+                            .font(.subheadline)
+                            Slider(value: $estimatedDeductionPercent, in: 0...30, step: 0.5)
+                            Text("Estimate only. Set an assumed deduction rate; Coupang's 8th-day insurance reconciliation and daily deduction cap are not modeled.")
+                                .font(.caption).foregroundStyle(.secondary)
                             row("Completed days", "\(summary.completedDays)")
                             row("Base pay", money(summary.basePay))
                             row("Night premium", money(summary.nightPremium))
