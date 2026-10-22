@@ -16,6 +16,7 @@ struct WorkOverviewView: View {
     @State private var showFinance = false
     @State private var managementSection: WorkplaceManagementView.Section?
     @State private var showManagement = false
+    @State private var showSettings = false
     @State private var isSessionEntryPresented = false
     @State private var editingSession: WorkSession?
     @State private var pendingDelete: WorkSession?
@@ -80,6 +81,13 @@ struct WorkOverviewView: View {
                    uniquingKeysWith: { first, _ in first })
     }
 
+    private var pendingDays: Set<Date> {
+        let calendar = Calendar.current
+        return Set(sessions.filter { $0.status != .completed }.map {
+            calendar.startOfDay(for: $0.startAt)
+        }).subtracting(completedDays)
+    }
+
     private var completedDays: Set<Date> {
         let calendar = Calendar.current
         return Set(sessions.filter { $0.status == .completed }.map {
@@ -95,6 +103,7 @@ struct WorkOverviewView: View {
                         displayedMonth: $displayedMonth,
                         selectedDate: $selectedDate,
                         highlightedDates: completedDays,
+                        outlinedDates: pendingDays,
                         dateTextColors: holidayDateTextColors,
                         dateLabels: holidayDateLabels,
                         configuration: calendarConfiguration,
@@ -104,16 +113,6 @@ struct WorkOverviewView: View {
                     if let error = holidayStore.errorMessage {
                         Text(error).font(.caption).foregroundStyle(.orange)
                     }
-
-                    Button("Enable Payday Reminders") {
-                        Task {
-                            if await PaydayReminderScheduler.requestAuthorization() {
-                                await refreshPaydayReminders()
-                            }
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityHint("Receive a payday reminder at 10 AM on the next Korean business day after completed work.")
 
                     Button("Add Work Session") { isSessionEntryPresented = true }
                         .buttonStyle(.borderedProminent)
@@ -212,6 +211,9 @@ struct WorkOverviewView: View {
             .navigationDestination(isPresented: $showFinance) {
                 if let financeScreen { WorkFinanceView(screen: financeScreen) }
             }
+            .navigationDestination(isPresented: $showSettings) {
+                CoufunchSettingsView()
+            }
             .navigationDestination(isPresented: $showManagement) {
                 if let managementSection { WorkplaceManagementView(section: managementSection) }
             }
@@ -247,7 +249,12 @@ struct WorkOverviewView: View {
                         } label: {
                             Label("Incentives", systemImage: "slider.horizontal.3")
                         }
-                        Label("Settings", systemImage: "gearshape")
+                        Button {
+                            isSidebarPresented = false
+                            showSettings = true
+                        } label: {
+                            Label("Settings", systemImage: "gearshape")
+                        }
                     }
                     .scrollContentBackground(.hidden)
                     .background(CoufunchColor.background)

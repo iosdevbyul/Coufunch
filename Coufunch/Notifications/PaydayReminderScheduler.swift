@@ -33,8 +33,19 @@ enum PaydayReminderScheduler {
             options: [.alert, .badge, .sound])) ?? false
     }
 
+    static func cancelAll() async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+        center.removePendingNotificationRequests(withIdentifiers:
+            pending.map(\.identifier).filter { $0.hasPrefix(prefix) })
+    }
+
     static func synchronize(sessions: [WorkSession], holidays: Set<String>,
                             loadedYears: Set<Int>, now: Date = .now) async {
+        guard UserDefaults.standard.bool(forKey: "paydayRemindersEnabled") else {
+            await cancelAll()
+            return
+        }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized ||

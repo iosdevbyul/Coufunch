@@ -30,6 +30,13 @@ struct WorkFinanceView: View {
             holidayDates: holidayStore.dates)
     }
 
+    private var estimatedTakeHome: EstimatedTakeHomeResult {
+        EstimatedTakeHomeCalculator.calculate(
+            gross: summary.total,
+            shifts: audit.entries.map { .init(date: $0.start, gross: $0.grossTotal) }
+        )
+    }
+
     private var audit: PayrollAuditReport {
         PayrollAuditCalculator.report(month: selectedMonth, sessions: sessions,
             breaks: breaks, workplaces: workplaces, settings: settings, calendar: .current,
@@ -98,6 +105,16 @@ struct WorkFinanceView: View {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
                             Text("Estimated Gross Pay").font(WakTypography.screenTitle)
                             Text(money(summary.total)).font(.title.bold()).foregroundStyle(CoufunchColor.primary)
+                            Divider()
+                            Text("Estimated Take-Home Pay").font(WakTypography.screenTitle)
+                            Text(money(estimatedTakeHome.net))
+                                .font(.title2.bold())
+                            row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
+                            if estimatedTakeHome.outstanding > 0 {
+                                row("Uncollected insurance estimate", money(estimatedTakeHome.outstanding))
+                            }
+                            Text("Automatically estimated from completed shifts. Assumes employment-insurance withholding before day 8, then catch-up social insurance deductions capped at KRW 60,000 per payday. Actual eligibility, contribution bases, withholding and income tax can differ.")
+                                .font(.caption).foregroundStyle(.secondary)
                             row("Completed days", "\(summary.completedDays)")
                             row("Base pay", money(summary.basePay))
                             row("Night premium", money(summary.nightPremium))
