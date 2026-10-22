@@ -6,7 +6,6 @@ struct WorkFinanceView: View {
     @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.modelContext) private var modelContext
     @Query private var receivedPay: [ReceivedPayRecord]
-    @AppStorage("estimatedDeductionPercent") private var estimatedDeductionPercent = 0.0
     @State private var receiptAmount = ""
     @State private var receiptBasis: ReceivedPayBasis = .net
     @State private var receiptNote = ""
@@ -29,6 +28,13 @@ struct WorkFinanceView: View {
             breaks: breaks, workplaces: workplaces, settings: settings,
             rules: rules, manual: manual, calendar: .current,
             holidayDates: holidayStore.dates)
+    }
+
+    private var estimatedTakeHome: EstimatedTakeHomeResult {
+        EstimatedTakeHomeCalculator.calculate(
+            gross: summary.total,
+            shifts: audit.entries.map { .init(date: $0.start, gross: $0.grossTotal) }
+        )
     }
 
     private var audit: PayrollAuditReport {
@@ -101,16 +107,13 @@ struct WorkFinanceView: View {
                             Text(money(summary.total)).font(.title.bold()).foregroundStyle(CoufunchColor.primary)
                             Divider()
                             Text("Estimated Take-Home Pay").font(WakTypography.screenTitle)
-                            Text(money(summary.total * Decimal(1 - estimatedDeductionPercent / 100)))
+                            Text(money(estimatedTakeHome.net))
                                 .font(.title2.bold())
-                            HStack {
-                                Text("Assumed deduction rate")
-                                Spacer()
-                                Text(estimatedDeductionPercent.formatted(.number.precision(.fractionLength(1))) + "%")
+                            row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
+                            if estimatedTakeHome.outstanding > 0 {
+                                row("Uncollected insurance estimate", money(estimatedTakeHome.outstanding))
                             }
-                            .font(.subheadline)
-                            Slider(value: $estimatedDeductionPercent, in: 0...30, step: 0.5)
-                            Text("Estimate only. Set an assumed deduction rate; Coupang's 8th-day insurance reconciliation and daily deduction cap are not modeled.")
+                            Text("Automatically estimated from completed shifts. Assumes employment-insurance withholding before day 8, then catch-up social insurance deductions capped at KRW 60,000 per payday. Actual eligibility, contribution bases, withholding and income tax can differ.")
                                 .font(.caption).foregroundStyle(.secondary)
                             row("Completed days", "\(summary.completedDays)")
                             row("Base pay", money(summary.basePay))
