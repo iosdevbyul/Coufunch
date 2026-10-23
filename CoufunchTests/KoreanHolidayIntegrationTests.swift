@@ -15,6 +15,29 @@ final class KoreanHolidayIntegrationTests: XCTestCase {
     }
 
 
+    func testOfflineCacheHydratesAcrossStoreInstances() async {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        defaults.set(["2023-10-03"], forKey: "KRPublicHolidays.2023")
+        defaults.set(["2023-10-03": "National Foundation Day"], forKey: "KRPublicHolidayNames.2023")
+        let store = KoreanPublicHolidayStore(defaults: defaults)
+        XCTAssertTrue(store.dates.contains("2023-10-03"))
+        XCTAssertEqual(store.names["2023-10-03"], "National Foundation Day")
+        XCTAssertTrue(store.loadedYears.contains(2023))
+    }
+
+    func testFreshCacheAvoidsNetworkOnStartup() async {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let year = seoul.component(.year, from: .now)
+        defaults.set(["\(year)-01-01"], forKey: "KRPublicHolidays.\(year)")
+        defaults.set(Date(), forKey: "KRPublicHolidayRefreshed.\(year)")
+        let client = StubHolidayClient()
+        client.shouldFail = true
+        let store = KoreanPublicHolidayStore(defaults: defaults, networkClient: client)
+        await store.load(year: year)
+        XCTAssertTrue(store.loadedYears.contains(year))
+        XCTAssertNil(client.requestedPath)
+    }
+
     func testHistoricalYearFetchedWithNetworkKitAndCached() async {
         let defaults = UserDefaults(suiteName: UUID().uuidString)!
         let client = StubHolidayClient()
