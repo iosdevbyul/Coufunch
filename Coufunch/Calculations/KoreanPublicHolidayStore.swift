@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import NetworkKit
 
 /// Korean public holidays are inputs for estimated pay, not evidence of employer eligibility.
 /// 2026 fallback dates are cross-checked with Korea Customs Service's published calendar.
@@ -12,8 +13,18 @@ final class KoreanPublicHolidayStore: ObservableObject {
     @Published private(set) var errorMessage: String?
 
     private let defaults: UserDefaults
-    init(defaults: UserDefaults = .standard) {
+    private let networkClient: any NetworkClient
+
+    init(
+        defaults: UserDefaults = .standard,
+        networkClient: any NetworkClient = URLSessionNetworkClient(
+            configuration: NetworkConfiguration(
+                baseURL: URL(string: "https://date.nager.at")!
+            )
+        )
+    ) {
         self.defaults = defaults
+        self.networkClient = networkClient
         applyVerified2026()
     }
 
@@ -66,13 +77,11 @@ final class KoreanPublicHolidayStore: ObservableObject {
         }
         if year == 2026 { applyVerified2026() }
 
-        guard let url = URL(string: "https://date.nager.at/api/v3/PublicHolidays/\(year)/KR") else { return }
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                throw URLError(.badServerResponse)
-            }
-            let holidays = try JSONDecoder().decode([Holiday].self, from: data)
+            let holidays = try await networkClient.request(
+                endpoint: KoreanHolidayEndpoint(year: year),
+                responseType: [Holiday].self
+            )
             let publicHolidays = holidays.filter { $0.types.contains("Public") }
             let downloadedDates = Set(publicHolidays.map(\.date))
             let downloadedNames = Dictionary(publicHolidays.map {
@@ -109,4 +118,11 @@ final class KoreanPublicHolidayStore: ObservableObject {
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
         return calendar
     }
+}
+
+private struct KoreanHolidayEndpoint: Endpoint {
+    let year: Int
+
+    var path: String { "api/v3/PublicHolidays/\(year)/KR" }
+    var method: HTTPMethod { .get }
 }
