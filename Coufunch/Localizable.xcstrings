@@ -2310,6 +2310,36 @@
           }
         }
       }
+    },
+    "%@ from %@ to %@": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %@부터 %@까지"
+          }
+        }
+      }
+    },
+    "Move %@ five minutes earlier": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 5분 앞당기기"
+          }
+        }
+      }
+    },
+    "Move %@ five minutes later": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 5분 늦추기"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
