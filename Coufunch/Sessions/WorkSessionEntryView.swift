@@ -18,6 +18,8 @@ struct WorkSessionEntryView: View {
     @State private var work = TimelineRange(start: 1140, end: 1680)
     @State private var breaks = [TimelineRange(start: 1320, end: 1380)]
     @State private var overrideAmount = ""
+    @State private var earlyDeparture = false
+    @State private var scheduledEndMinute = 1680
     @State private var errorMessage: String?
 
     private var currentSettings: WorkplacePaySettings? {
@@ -56,7 +58,8 @@ struct WorkSessionEntryView: View {
         }
         let draft = WorkSession(workplaceID: workplaceID, startAt: start, endAt: end,
                                 status: status, payMode: mode, hourlyRateSnapshot: hourly,
-                                fixedDailyPaySnapshot: fixedPay)
+                                fixedDailyPaySnapshot: fixedPay,
+                                scheduledEndAt: earlyDeparture ? midnight.addingTimeInterval(Double(scheduledEndMinute * 60)) : nil)
         let rests = breaks.map {
             WorkBreak(sessionID: draft.id,
                       startAt: midnight.addingTimeInterval(TimeInterval($0.start * 60)),
@@ -67,6 +70,11 @@ struct WorkSessionEntryView: View {
                                                   nightPremiumEnabled: editingSession?.nightPremiumSnapshot ?? preferences.nightPremiumEnabled,
                                                   overtimePremiumEnabled: editingSession?.overtimePremiumSnapshot ?? preferences.overtimePremiumEnabled,
                                                   holidayPaidMinutes: holidayMinutes)
+    }
+
+    private func timeLabel(_ minute: Int) -> String {
+        String(format: "%02d:%02d", (minute / 60) % 24, minute % 60)
+            + (minute >= 1440 ? " (+\(minute / 1440)d)" : "")
     }
 
     private func currency(_ amount: Decimal) -> String {
@@ -101,6 +109,22 @@ struct WorkSessionEntryView: View {
                     }
                     .pickerStyle(.segmented)
 
+                    Toggle("Left Early", isOn: $earlyDeparture)
+                        .onChange(of: earlyDeparture) { _, enabled in
+                            if enabled {
+                                scheduledEndMinute = max(scheduledEndMinute, work.end + 1)
+                            } else {
+                                work.end = scheduledEndMinute
+                            }
+                        }
+                    if earlyDeparture {
+                        Text("Scheduled end: \(timeLabel(scheduledEndMinute))")
+                        Stepper("Actual end: \(timeLabel(work.end))", value: $work.end,
+                                in: (work.start + 1)...max(work.start + 1, scheduledEndMinute - 1),
+                                step: 1)
+                        Text("Early-departure incentives will be evaluated once workplace rules are defined.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                     WorkTimelineEditor(work: $work, breaks: $breaks)
 
                     if (editingSession?.payMode ?? currentSettings?.payMode) == .fixedDaily {
@@ -176,6 +200,11 @@ struct WorkSessionEntryView: View {
         let startMinute = Int(session.startAt.timeIntervalSince(startOfDay) / 60)
         let endMinute = Int((session.endAt ?? session.startAt).timeIntervalSince(startOfDay) / 60)
         work = TimelineRange(start: startMinute, end: endMinute)
+        scheduledEndMinute = endMinute
+        if let planned = session.scheduledEndAt {
+            earlyDeparture = true
+            scheduledEndMinute = Int(planned.timeIntervalSince(startOfDay) / 60)
+        }
         breaks = storedBreaks.filter { $0.sessionID == session.id }.map {
             TimelineRange(start: Int($0.startAt.timeIntervalSince(startOfDay) / 60),
                           end: Int($0.endAt.timeIntervalSince(startOfDay) / 60))
@@ -189,7 +218,8 @@ struct WorkSessionEntryView: View {
         guard let workplaceID,
               let settings = currentSettings,
               let midnight = Calendar.current.dateInterval(of: .day, for: date)?.start,
-              work.end > work.start else {
+              work.end > work.start,
+              !earlyDeparture || (scheduledEndMinute > work.end && scheduledEndMinute <= TimelineSelection.maximumMinute) else {
             errorMessage = "Choose a workplace and a valid time range."
             return
         }
@@ -223,6 +253,8 @@ struct WorkSessionEntryView: View {
             session.workplaceID = workplaceID
             session.startAt = start
             session.endAt = end
+            session.scheduledEndAt = earlyDeparture
+                ? midnight.addingTimeInterval(TimeInterval(scheduledEndMinute * 60)) : nil
             session.status = status
             session.hourlyRateSnapshot = hourlyRate
             session.fixedDailyPaySnapshot = fixed
@@ -235,7 +267,9 @@ struct WorkSessionEntryView: View {
             session = WorkSession(
                 workplaceID: workplaceID, startAt: start, endAt: end, status: status,
                 payMode: selectedMode, hourlyRateSnapshot: hourlyRate,
-                fixedDailyPaySnapshot: fixed
+                fixedDailyPaySnapshot: fixed,
+                scheduledEndAt: earlyDeparture
+                    ? midnight.addingTimeInterval(TimeInterval(scheduledEndMinute * 60)) : nil
             )
             session.nightPremiumSnapshot = settings.nightPremiumEnabled
             session.overtimePremiumSnapshot = settings.overtimePremiumEnabled
