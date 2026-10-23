@@ -1400,6 +1400,816 @@
           }
         }
       }
+    },
+    "New workplace": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 근무지"
+          }
+        }
+      }
+    },
+    "Only a workplace with no work sessions can be deleted. Its settings and incentives will also be removed.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 기록이 없는 근무지만 삭제할 수 있습니다. 관련 설정과 인센티브도 함께 삭제됩니다."
+          }
+        }
+      }
+    },
+    "Add Workplace": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지 추가"
+          }
+        }
+      }
+    },
+    "Edit Workplace": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지 수정"
+          }
+        }
+      }
+    },
+    "Workplace name": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지 이름"
+          }
+        }
+      }
+    },
+    "Pay method": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "급여 계산 방식"
+          }
+        }
+      }
+    },
+    "Minimum hourly wage": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "최저시급"
+          }
+        }
+      }
+    },
+    "Custom hourly wage": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "직접 설정한 시급"
+          }
+        }
+      }
+    },
+    "Fixed daily pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고정 일급"
+          }
+        }
+      }
+    },
+    "Hourly KRW": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시급(원)"
+          }
+        }
+      }
+    },
+    "Daily KRW": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일급(원)"
+          }
+        }
+      }
+    },
+    "Night premium (22:00–06:00)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "야간 가산수당(22:00~06:00)"
+          }
+        }
+      }
+    },
+    "Daily overtime premium (over 8 paid hours)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일일 연장 가산수당(유급 8시간 초과)"
+          }
+        }
+      }
+    },
+    "These defaults affect new records only. Existing pay snapshots are retained. Weekly overtime is not calculated.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 설정은 새 근무 기록에만 적용됩니다. 기존 기록의 급여 기준은 유지되며, 주간 연장근무 수당은 계산하지 않습니다."
+          }
+        }
+      }
+    },
+    "Save Workplace": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지 저장"
+          }
+        }
+      }
+    },
+    "Add Another Workplace": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 근무지 추가"
+          }
+        }
+      }
+    },
+    "Delete Workplace": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지 삭제"
+          }
+        }
+      }
+    },
+    "Add a workplace before configuring incentives.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브를 설정하기 전에 근무지를 추가하세요."
+          }
+        }
+      }
+    },
+    "Incentive Rules": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 규칙"
+          }
+        }
+      }
+    },
+    "Rule name": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "규칙 이름"
+          }
+        }
+      }
+    },
+    "Period": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기간"
+          }
+        }
+      }
+    },
+    "Daily": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매일"
+          }
+        }
+      }
+    },
+    "Weekly": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매주"
+          }
+        }
+      }
+    },
+    "Monthly": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매월"
+          }
+        }
+      }
+    },
+    "Bonus KRW": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 금액(원)"
+          }
+        }
+      }
+    },
+    "Stack with other incentives": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 인센티브와 중복 지급"
+          }
+        }
+      }
+    },
+    "Add Rule": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "규칙 추가"
+          }
+        }
+      }
+    },
+    "Save Rule": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "규칙 저장"
+          }
+        }
+      }
+    },
+    "Cancel Editing": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수정 취소"
+          }
+        }
+      }
+    },
+    "Manual Incentives": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수동 인센티브"
+          }
+        }
+      }
+    },
+    "Incentive name": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 이름"
+          }
+        }
+      }
+    },
+    "Amount KRW": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "금액(원)"
+          }
+        }
+      }
+    },
+    "Earned on": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "발생일"
+          }
+        }
+      }
+    },
+    "Add Manual Incentive": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수동 인센티브 추가"
+          }
+        }
+      }
+    },
+    "Save Incentive": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 저장"
+          }
+        }
+      }
+    },
+    "Enter a workplace name.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지 이름을 입력하세요."
+          }
+        }
+      }
+    },
+    "Enter a valid hourly wage.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "올바른 시급을 입력하세요."
+          }
+        }
+      }
+    },
+    "Enter a valid rule name and bonus.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "규칙 이름과 올바른 인센티브 금액을 입력하세요."
+          }
+        }
+      }
+    },
+    "Enter a valid incentive name and amount.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 이름과 올바른 금액을 입력하세요."
+          }
+        }
+      }
+    },
+    "Could not save changes.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "변경사항을 저장하지 못했습니다."
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "뒤로"
+          }
+        }
+      }
+    },
+    "Finish Setup": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 완료"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계속"
+          }
+        }
+      }
+    },
+    "Set Up Coufunch": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "쿠펀치 초기 설정"
+          }
+        }
+      }
+    },
+    "Your Workplace": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지 설정"
+          }
+        }
+      }
+    },
+    "Enter any name you like. Coufunch does not download employer or work center names.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원하는 근무지 이름을 입력하세요. 쿠펀치는 회사 또는 물류센터 이름을 자동으로 가져오지 않습니다."
+          }
+        }
+      }
+    },
+    "Pay Method": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "급여 계산 방식"
+          }
+        }
+      }
+    },
+    "Calculation": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계산 방식"
+          }
+        }
+      }
+    },
+    "Hourly wage (KRW)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시급(원)"
+          }
+        }
+      }
+    },
+    "Daily pay (KRW)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일급(원)"
+          }
+        }
+      }
+    },
+    "The statutory minimum wage will be selected for the work date when the session is recorded.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 기록을 등록할 때 해당 근무일에 적용되는 법정 최저시급을 사용합니다."
+          }
+        }
+      }
+    },
+    "Include night work premium (22:00–06:00)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "야간근로 가산수당 포함(22:00~06:00)"
+          }
+        }
+      }
+    },
+    "Pay estimates exclude taxes, insurance and other deductions. Fixed daily pay will not receive an extra automatic night premium.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예상 급여에는 세금, 보험료 및 기타 공제가 반영되지 않습니다. 고정 일급에는 야간 가산수당이 자동으로 추가되지 않습니다."
+          }
+        }
+      }
+    },
+    "Incentive Setup": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 설정"
+          }
+        }
+      }
+    },
+    "These optional example rules may not match your workplace. You can edit them later.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예시 인센티브 규칙은 실제 근무지 조건과 다를 수 있습니다. 나중에 수정할 수 있습니다."
+          }
+        }
+      }
+    },
+    "Use example rules": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예시 규칙 사용"
+          }
+        }
+      }
+    },
+    "Enter my own rule": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "직접 규칙 입력"
+          }
+        }
+      }
+    },
+    "No incentives": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 없음"
+          }
+        }
+      }
+    },
+    "5 days per week: +80,000 KRW": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주 5일 근무: +80,000원"
+          }
+        }
+      }
+    },
+    "6 days per week: +40,000 KRW (stackable)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주 6일 근무: +40,000원(중복 가능)"
+          }
+        }
+      }
+    },
+    "15 days per month: +70,000 KRW": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "월 15일 근무: +70,000원"
+          }
+        }
+      }
+    },
+    "Week: Sunday–Saturday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주간 기준: 일요일~토요일"
+          }
+        }
+      }
+    },
+    "Day": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일"
+          }
+        }
+      }
+    },
+    "Week": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주"
+          }
+        }
+      }
+    },
+    "Month": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "월"
+          }
+        }
+      }
+    },
+    "Bonus amount (KRW)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 금액(원)"
+          }
+        }
+      }
+    },
+    "Allow stacking with other bonuses": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 인센티브와 중복 적용 허용"
+          }
+        }
+      }
+    },
+    "You can add incentive rules later.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 규칙은 나중에 추가할 수 있습니다."
+          }
+        }
+      }
+    },
+    "Could not save the workplace. Please try again.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지를 저장하지 못했습니다. 다시 시도하세요."
+          }
+        }
+      }
+    },
+    "Edit work session": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 기록 수정"
+          }
+        }
+      }
+    },
+    "Delete work session": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 기록 삭제"
+          }
+        }
+      }
+    },
+    "Open menu": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "메뉴 열기"
+          }
+        }
+      }
+    },
+    "Refresh overview": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 현황 새로고침"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완료"
+          }
+        }
+      }
+    },
+    "Timeline ruler, 48 hours in five-minute increments": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "타임라인 눈금, 48시간 범위, 5분 간격"
+          }
+        }
+      }
+    },
+    "Adjust break boundary": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "휴게시간 경계 조정"
+          }
+        }
+      }
+    },
+    "Adjust shift boundary": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무시간 경계 조정"
+          }
+        }
+      }
+    },
+    "Shift Confirmation": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 확정 확인"
+          }
+        }
+      }
+    },
+    "Shift Completion": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 완료 확인"
+          }
+        }
+      }
+    },
+    "Has your shift been confirmed? Update the status in Coufunch.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "신청한 근무가 확정됐나요? 쿠펀치에서 상태를 변경하세요."
+          }
+        }
+      }
+    },
+    "Have you finished your shift? Update the status in Coufunch.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무를 완료하셨나요? 쿠펀치에서 상태를 변경하세요."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
