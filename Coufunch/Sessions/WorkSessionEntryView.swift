@@ -155,10 +155,10 @@ struct WorkSessionEntryView: View {
                     }
 
                     if let holidayError = holidayStore.errorMessage {
-                        Text(holidayError).font(.caption).foregroundStyle(.orange)
+                        Text(LocalizedStringKey(holidayError)).font(.caption).foregroundStyle(.orange)
                     }
                     if let errorMessage {
-                        Text(errorMessage).foregroundStyle(.red).font(.footnote)
+                        Text(LocalizedStringKey(errorMessage)).foregroundStyle(.red).font(.footnote)
                     }
                     Button("Save Work Session") { save() }
                         .buttonStyle(.borderedProminent)
