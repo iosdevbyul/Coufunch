@@ -2,14 +2,51 @@ import SwiftUI
 import SwiftData
 
 struct CoufunchSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Workplace.name) private var workplaces: [Workplace]
     @AppStorage("paydayRemindersEnabled") private var remindersEnabled = false
     @StateObject private var holidays = KoreanPublicHolidayStore()
     @Query private var sessions: [WorkSession]
     @State private var isUpdating = false
     @State private var permissionMessage: String?
+    @State private var weeklyStartError: String?
 
     var body: some View {
         Form {
+            Section("Weekly Bonus Period") {
+                Text("Weekly attendance bonuses are calculated within each workplace's selected seven-day period. The default is Sunday through Saturday.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                ForEach(workplaces) { workplace in
+                    Picker(workplace.name, selection: Binding(
+                        get: { (1...7).contains(workplace.weekStartWeekday) ? workplace.weekStartWeekday : 1 },
+                        set: { saveWeekStart($0, for: workplace) }
+                    )) {
+                        Text("Sunday").tag(1)
+                        Text("Monday").tag(2)
+                        Text("Tuesday").tag(3)
+                        Text("Wednesday").tag(4)
+                        Text("Thursday").tag(5)
+                        Text("Friday").tag(6)
+                        Text("Saturday").tag(7)
+                    }
+                }
+
+                if workplaces.isEmpty {
+                    Text("Add a workplace to configure its bonus week.")
+                        .foregroundStyle(.secondary)
+                }
+                if let weeklyStartError {
+                    Text(weeklyStartError)
+                        .foregroundStyle(.red)
+                        .font(.footnote)
+                }
+                Text("Weekly 5-day and 6-day bonuses use this period. Monthly 15-day bonuses continue to use calendar months.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Notifications") {
                 Toggle("Payday Reminders", isOn: Binding(
                     get: { remindersEnabled },
@@ -24,6 +61,19 @@ struct CoufunchSettingsView: View {
             }
         }
         .navigationTitle("Settings")
+    }
+
+    private func saveWeekStart(_ weekday: Int, for workplace: Workplace) {
+        guard (1...7).contains(weekday) else { return }
+        let previous = workplace.weekStartWeekday
+        workplace.weekStartWeekday = weekday
+        do {
+            try modelContext.save()
+            weeklyStartError = nil
+        } catch {
+            workplace.weekStartWeekday = previous
+            weeklyStartError = "Couldn't save the weekly bonus start day."
+        }
     }
 
     private func updateReminders(_ enabled: Bool) async {
