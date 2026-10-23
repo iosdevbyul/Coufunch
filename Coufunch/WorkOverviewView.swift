@@ -135,7 +135,7 @@ struct WorkOverviewView: View {
                                         .font(.subheadline)
                                         .foregroundStyle(CoufunchColor.textPrimary)
                                 }
-                                Text("\(daySessions.count) session(s)")
+                                Text(String(format: String(localized: "%d session(s)"), daySessions.count))
                                     .foregroundStyle(.secondary)
                                 if daySessions.isEmpty {
                                     Text("No shifts recorded for this day.").font(.subheadline).foregroundStyle(.secondary)
