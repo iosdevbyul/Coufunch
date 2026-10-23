@@ -59,10 +59,24 @@ enum WorkPayCalculator {
         case .fixedDaily:
             guard let amount = session.fixedDailyPaySnapshot else { throw PayCalculationError.missingFixedPay }
             guard amount >= 0 else { throw PayCalculationError.invalidRate }
+            // Preserve the original flat daily wage for full shifts. For early departure,
+            // estimate proportional gross pay from actual paid minutes.
+            let payable: Decimal
+            if let scheduledEnd = session.scheduledEndAt, scheduledEnd > end {
+                let scheduledMinutes = minutesBetween(session.startAt, scheduledEnd)
+                let unpaidBreakMinutes = intervals.reduce(0) {
+                    $0 + minutesBetween($1.start, $1.end)
+                }
+                let scheduledPaidMinutes = scheduledMinutes - unpaidBreakMinutes
+                guard scheduledPaidMinutes > 0 else { throw PayCalculationError.invalidTimeRange }
+                payable = amount * Decimal(worked) / Decimal(scheduledPaidMinutes)
+            } else {
+                payable = amount
+            }
             return PayResult(workedMinutes: worked, nightMinutes: night,
-                             basePay: amount, nightPremium: 0,
+                             basePay: payable, nightPremium: 0,
                              overtimeMinutes: overtime, overtimePremium: 0,
-                             holidayPremium: 0, total: amount)
+                             holidayPremium: 0, total: payable)
         case .minimumHourly, .customHourly:
             guard let rate = session.hourlyRateSnapshot else { throw PayCalculationError.missingHourlyRate }
             guard rate >= 0 else { throw PayCalculationError.invalidRate }
