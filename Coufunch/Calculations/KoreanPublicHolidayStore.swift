@@ -26,6 +26,33 @@ final class KoreanPublicHolidayStore: ObservableObject {
         self.defaults = defaults
         self.networkClient = networkClient
         applyVerified2026()
+        hydrateCachedYears(around: Self.seoulCalendar.component(.year, from: .now))
+    }
+
+    /// Restore cached years synchronously so calendar labels are available offline immediately.
+    private func hydrateCachedYears(around year: Int) {
+        for candidate in (year - 5)...(year + 5) {
+            let cacheKey = "KRPublicHolidays.\(candidate)"
+            let namesKey = "KRPublicHolidayNames.\(candidate)"
+            if let cached = defaults.stringArray(forKey: cacheKey) {
+                dates.formUnion(cached)
+                loadedYears.insert(candidate)
+            }
+            if let cachedNames = defaults.dictionary(forKey: namesKey) as? [String: String] {
+                names.merge(cachedNames) { _, new in new }
+            }
+        }
+        applyVerified2026()
+    }
+
+    /// Preload a bounded 11-year window without blocking first render.
+    /// Failed years remain eligible for another attempt on the next launch.
+    func prefetchNearbyYears(referenceDate: Date = .now) async {
+        let year = Self.seoulCalendar.component(.year, from: referenceDate)
+        hydrateCachedYears(around: year)
+        for candidate in (year - 5)...(year + 5) {
+            await load(year: candidate)
+        }
     }
 
     // Officially listed 2026 holidays, including substitute days and election day.
@@ -77,6 +104,13 @@ final class KoreanPublicHolidayStore: ObservableObject {
         }
         if year == 2026 { applyVerified2026() }
 
+        let refreshedKey = "KRPublicHolidayRefreshed.\(year)"
+        if loadedYears.contains(year),
+           let refreshed = defaults.object(forKey: refreshedKey) as? Date,
+           Date().timeIntervalSince(refreshed) < 30 * 24 * 60 * 60 {
+            return
+        }
+
         do {
             let holidays = try await networkClient.request(
                 endpoint: KoreanHolidayEndpoint(year: year),
@@ -96,6 +130,7 @@ final class KoreanPublicHolidayStore: ObservableObject {
             defaults.set(Array(dates.filter { $0.hasPrefix("\(year)-") }), forKey: cacheKey)
             defaults.set(names.filter { $0.key.hasPrefix("\(year)-") }, forKey: namesKey)
             loadedYears.insert(year)
+            defaults.set(Date(), forKey: refreshedKey)
             errorMessage = nil
         } catch {
             if !loadedYears.contains(year) {
