@@ -46,7 +46,7 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 날짜에는 근무 기록이 없습니다."
+            "value": "선택한 날짜에 근무 기록이 없습니다."
           }
         }
       }
@@ -1227,6 +1227,176 @@
           "stringUnit": {
             "state": "translated",
             "value": "실수령"
+          }
+        }
+      }
+    },
+    "Public holiday data is unavailable for %@. Holiday pay cannot be verified.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@년 공휴일 정보를 가져올 수 없어 공휴일 수당을 확인할 수 없습니다."
+          }
+        }
+      }
+    },
+    "Holiday data could not be refreshed. Cached or verified dates are shown.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공휴일 데이터를 갱신하지 못했습니다. 저장된 공휴일 정보를 표시합니다."
+          }
+        }
+      }
+    },
+    "Choose a workplace and a valid time range.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지와 올바른 근무시간을 선택하세요."
+          }
+        }
+      }
+    },
+    "Enter a valid daily wage.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "올바른 일급을 입력하세요."
+          }
+        }
+      }
+    },
+    "Hourly rate is missing.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시급이 설정되지 않았습니다."
+          }
+        }
+      }
+    },
+    "Break times must be within the shift.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "휴게시간은 근무시간 안에 있어야 합니다."
+          }
+        }
+      }
+    },
+    "Could not save the session.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 기록을 저장하지 못했습니다."
+          }
+        }
+      }
+    },
+    "Daily pay override (optional)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일급 직접 입력(선택)"
+          }
+        }
+      }
+    },
+    "Before deductions. Overtime estimates assume eligible employment and daily work exceeding 8 paid hours; weekly and holiday rules are not included.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공제 전 예상액입니다. 연장수당은 지급 대상자가 하루 유급 근무 8시간을 초과한 경우를 가정합니다. 주간 및 휴일 규칙은 별도입니다."
+          }
+        }
+      }
+    },
+    "Work is attributed to its start date, including overnight shifts.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "야간에 날짜를 넘겨 근무해도 근무 시작일을 기준으로 기록됩니다."
+          }
+        }
+      }
+    },
+    "Swipe to explore the timeline. Drag a colored handle, or use the five-minute adjustment buttons below.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "타임라인을 좌우로 밀어 이동하세요. 색상 핸들을 끌거나 아래의 5분 단위 조정 버튼을 사용하세요."
+          }
+        }
+      }
+    },
+    "This also removes the session's break records.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "해당 근무의 휴게시간 기록도 함께 삭제됩니다."
+          }
+        }
+      }
+    },
+    "Enable Notifications": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "알림 켜기"
+          }
+        }
+      }
+    },
+    "Receive Payday Reminders?": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "급여일 알림을 받을까요?"
+          }
+        }
+      }
+    },
+    "Get a reminder on the next business day after you finish a shift. You can change this later in Settings.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 완료 후 다음 영업일에 급여일 알림을 받습니다. 설정에서 언제든 변경할 수 있습니다."
+          }
+        }
+      }
+    },
+    "Not Now": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "나중에"
+          }
+        }
+      }
+    },
+    "Add a workplace to configure its bonus week.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주간 인센티브 계산 기간을 설정하려면 근무지를 추가하세요."
           }
         }
       }
