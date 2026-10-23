@@ -64,13 +64,13 @@ struct WorkplaceManagementView: View {
                 }
 
                 if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red).font(.footnote)
+                    Text(LocalizedStringKey(errorMessage)).foregroundStyle(.red).font(.footnote)
                 }
             }
             .padding(WakSpacing.large)
         }
         .background(CoufunchColor.background)
-        .navigationTitle(section.rawValue)
+        .navigationTitle(LocalizedStringKey(section.rawValue))
         .onChange(of: selectedWorkplaceID) { _, _ in
             loadWorkplace()
             clearIncentiveEditors()
@@ -91,7 +91,7 @@ struct WorkplaceManagementView: View {
 
     private var workplaceForm: some View {
         VStack(alignment: .leading, spacing: WakSpacing.medium) {
-            Text(selected == nil ? "Add Workplace" : "Edit Workplace")
+            Text(LocalizedStringKey(selected == nil ? "Add Workplace" : "Edit Workplace"))
                 .font(WakTypography.screenTitle)
             TextField("Workplace name", text: $workplaceName)
                 .textFieldStyle(.roundedBorder)
@@ -117,7 +117,7 @@ struct WorkplaceManagementView: View {
                 .disabled(mode == .fixedDaily)
             Text("These defaults affect new records only. Existing pay snapshots are retained. Weekly overtime is not calculated.")
                 .font(.footnote).foregroundStyle(.secondary)
-            Button(selected == nil ? "Add Workplace" : "Save Workplace") { saveWorkplace() }
+            Button(LocalizedStringKey(selected == nil ? "Add Workplace" : "Save Workplace")) { saveWorkplace() }
                 .buttonStyle(.borderedProminent)
             if selected != nil {
                 Button("Add Another Workplace") {
@@ -171,7 +171,7 @@ struct WorkplaceManagementView: View {
                         .keyboardType(.decimalPad).textFieldStyle(.roundedBorder)
                     Toggle("Stack with other incentives", isOn: $stackable)
                     HStack {
-                        Button(editingRuleID == nil ? "Add Rule" : "Save Rule") { saveRule() }
+                        Button(LocalizedStringKey(editingRuleID == nil ? "Add Rule" : "Save Rule")) { saveRule() }
                             .buttonStyle(.borderedProminent)
                         if editingRuleID != nil {
                             Button("Cancel Editing") { clearIncentiveEditors() }
@@ -202,7 +202,7 @@ struct WorkplaceManagementView: View {
                         .keyboardType(.decimalPad).textFieldStyle(.roundedBorder)
                     DatePicker("Earned on", selection: $manualDate, displayedComponents: .date)
                     HStack {
-                        Button(editingAwardID == nil ? "Add Manual Incentive" : "Save Incentive") { saveAward() }
+                        Button(LocalizedStringKey(editingAwardID == nil ? "Add Manual Incentive" : "Save Incentive")) { saveAward() }
                             .buttonStyle(.borderedProminent)
                         if editingAwardID != nil {
                             Button("Cancel Editing") { clearIncentiveEditors() }
