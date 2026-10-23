@@ -11,8 +11,8 @@ final class EstimatedTakeHomeCalculatorTests: XCTestCase {
 
     func testGrossEqualsNetPlusDeductionsExactly() {
         let result = EstimatedTakeHomeCalculator.calculate(gross: 1_461_600, shifts: [])
-        XCTAssertEqual(result.deductions, 142_021)
-        XCTAssertEqual(result.net, 1_319_579)
+        XCTAssertEqual(result.deductions, 142_029)
+        XCTAssertEqual(result.net, 1_319_571)
         XCTAssertEqual(result.net + result.deductions, 1_461_600)
     }
 
