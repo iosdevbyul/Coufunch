@@ -470,6 +470,766 @@
           }
         }
       }
+    },
+    "Public Holiday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공휴일"
+          }
+        }
+      }
+    },
+    "Estimated Take-Home Pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예상 실수령액"
+          }
+        }
+      }
+    },
+    "Estimated insurance deductions": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예상 보험료 공제"
+          }
+        }
+      }
+    },
+    "Estimated using the 2026 employee social insurance rate (9.717383%). Actual deductions, tax, and eligibility may differ.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2026년 근로자 사회보험료율(9.717383%)로 추정한 금액입니다. 실제 공제액, 세금 및 가입 조건에 따라 달라질 수 있습니다."
+          }
+        }
+      }
+    },
+    "Average per completed day": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완료 근무일당 평균 급여"
+          }
+        }
+      }
+    },
+    "Public holiday data is unavailable. Holiday premiums may be missing.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공휴일 정보를 확인할 수 없어 공휴일 가산수당이 누락될 수 있습니다."
+          }
+        }
+      }
+    },
+    "Shares a CSV text breakdown outside this app only when you choose. It may contain workplace and shift details.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사용자가 선택한 경우에만 급여 상세 CSV를 외부로 공유합니다. 근무지와 근무시간 정보가 포함될 수 있습니다."
+          }
+        }
+      }
+    },
+    "Completed shifts only. Compare these gross estimates with a gross payslip; bonuses and deductions are shown separately in the monthly summary.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완료한 근무만 표시합니다. 세전 예상 금액은 급여명세서와 비교하세요. 인센티브와 공제액은 월별 요약에 별도 표시됩니다."
+          }
+        }
+      }
+    },
+    "No completed shift breakdowns for this month.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달에 완료한 근무의 급여 상세 내역이 없습니다."
+          }
+        }
+      }
+    },
+    "Paid minutes": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "유급 근무시간(분)"
+          }
+        }
+      }
+    },
+    "Night minutes": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "야간 근무시간(분)"
+          }
+        }
+      }
+    },
+    "Daily overtime minutes": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일일 연장근무(분)"
+          }
+        }
+      }
+    },
+    "Shift gross": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무별 세전 급여"
+          }
+        }
+      }
+    },
+    "Total shift gross": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무별 세전 급여 합계"
+          }
+        }
+      }
+    },
+    "Completed shifts": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완료한 근무"
+          }
+        }
+      }
+    },
+    "Completed shift pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완료한 근무의 예상 급여"
+          }
+        }
+      }
+    },
+    "Confirmed shifts": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확정된 근무"
+          }
+        }
+      }
+    },
+    "Confirmed projected pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확정된 근무의 예상 급여"
+          }
+        }
+      }
+    },
+    "Applied shifts": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지원한 근무"
+          }
+        }
+      }
+    },
+    "Applied hypothetical pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지원한 근무의 가상 급여"
+          }
+        }
+      }
+    },
+    "Completed + confirmed shifts": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완료 및 확정 근무 합계"
+          }
+        }
+      }
+    },
+    "Including applications (hypothetical)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지원한 근무 포함 예상액(가정)"
+          }
+        }
+      }
+    },
+    "Actual Payments": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 수령 금액"
+          }
+        }
+      }
+    },
+    "Record gross or take-home deposits separately. Only gross receipts can be compared to the estimated gross amount.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세전 급여와 실수령 입금액을 구분하여 기록하세요. 예상 세전 급여와는 세전 수령액만 비교할 수 있습니다."
+          }
+        }
+      }
+    },
+    "Gross received": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세전 수령"
+          }
+        }
+      }
+    },
+    "Net received": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실수령"
+          }
+        }
+      }
+    },
+    "Delete payment record": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지급 기록 삭제"
+          }
+        }
+      }
+    },
+    "Gross receipts": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세전 수령액 합계"
+          }
+        }
+      }
+    },
+    "Net receipts": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실수령액 합계"
+          }
+        }
+      }
+    },
+    "Gross difference (received − estimated)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세전 차이(수령액 − 예상액)"
+          }
+        }
+      }
+    },
+    "No gross payment recorded; gross difference is unavailable.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세전 수령 기록이 없어 예상액과 비교할 수 없습니다."
+          }
+        }
+      }
+    },
+    "Received as": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수령 기준"
+          }
+        }
+      }
+    },
+    "Take-home / net": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실수령액"
+          }
+        }
+      }
+    },
+    "Before deductions / gross": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세전 금액"
+          }
+        }
+      }
+    },
+    "Amount received (KRW)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수령액(원)"
+          }
+        }
+      }
+    },
+    "Payment note (optional)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지급 메모(선택)"
+          }
+        }
+      }
+    },
+    "Add Payment": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지급 기록 추가"
+          }
+        }
+      }
+    },
+    "Estimates exclude tax and insurance deductions. Weekly bonuses are attributed to the week-end date.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세금과 보험료를 제외하기 전 기준의 예상액입니다. 주간 인센티브는 해당 주의 종료일에 반영됩니다."
+          }
+        }
+      }
+    },
+    "Next Incentive Goals": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음 인센티브 목표"
+          }
+        }
+      }
+    },
+    "No pending incentive goals for the current periods.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 기간에 달성할 추가 인센티브 목표가 없습니다."
+          }
+        }
+      }
+    },
+    "More workdays needed": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "추가로 필요한 근무일"
+          }
+        }
+      }
+    },
+    "Potential bonus": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예상 인센티브"
+          }
+        }
+      }
+    },
+    "What If I Work One More Day?": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "하루 더 근무하면?"
+          }
+        }
+      }
+    },
+    "Choose a workplace": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무지를 선택하세요"
+          }
+        }
+      }
+    },
+    "Additional workday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "추가 근무일"
+          }
+        }
+      }
+    },
+    "This workplace already has a completed attendance record on this date. An additional shift will not increase the attendance day count.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 날짜에는 이미 완료한 근무 기록이 있습니다. 추가 근무를 등록해도 근무일수는 늘어나지 않습니다."
+          }
+        }
+      }
+    },
+    "New bonus unlocked": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새로 달성하는 인센티브"
+          }
+        }
+      }
+    },
+    "This extra attendance day does not immediately unlock a bonus.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "하루 더 근무해도 즉시 추가 인센티브가 발생하지 않습니다."
+          }
+        }
+      }
+    },
+    "Select a workplace to simulate the incentive impact.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 변화를 계산할 근무지를 선택하세요."
+          }
+        }
+      }
+    },
+    "Simulation only: no work record is saved. This assumes the selected date becomes a completed attendance day. Daily wages, approvals, and deductions are excluded.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "가상 계산이며 근무 기록은 저장되지 않습니다. 선택한 날짜에 근무를 완료한 것으로 가정하며 일급, 근무 확정 여부, 공제액은 포함하지 않습니다."
+          }
+        }
+      }
+    },
+    "These opportunities depend on approval and qualifying completed workdays. Daily wages are not included in the potential bonus.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 달성 여부는 근무 확정 및 인정되는 근무일수에 따라 달라집니다. 예상 인센티브에 일급은 포함되지 않습니다."
+          }
+        }
+      }
+    },
+    "Enter a valid non-negative payment amount.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0원 이상의 올바른 지급액을 입력하세요."
+          }
+        }
+      }
+    },
+    "Unable to save the payment record.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지급 기록을 저장하지 못했습니다."
+          }
+        }
+      }
+    },
+    "Unable to delete the payment record.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지급 기록을 삭제하지 못했습니다."
+          }
+        }
+      }
+    },
+    "Weekly Bonus Period": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주간 인센티브 계산 기간"
+          }
+        }
+      }
+    },
+    "Weekly attendance bonuses are calculated within each workplace's selected seven-day period. The default is Sunday through Saturday.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주간 출근 인센티브는 근무지별로 설정한 7일 동안 계산됩니다. 기본 기간은 일요일부터 토요일까지입니다."
+          }
+        }
+      }
+    },
+    "Weekly 5-day and 6-day bonuses use this period. Monthly 15-day bonuses continue to use calendar months.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주 5일 및 6일 인센티브는 이 기간을 기준으로 계산하며, 월 15일 인센티브는 해당 달을 기준으로 계산합니다."
+          }
+        }
+      }
+    },
+    "Notifications": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "알림"
+          }
+        }
+      }
+    },
+    "Payday Reminders": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "급여일 알림"
+          }
+        }
+      }
+    },
+    "Remind me at 10 AM on the next Korean business day after a completed shift.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무를 완료한 다음 한국 영업일 오전 10시에 알립니다."
+          }
+        }
+      }
+    },
+    "Sunday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일요일"
+          }
+        }
+      }
+    },
+    "Monday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "월요일"
+          }
+        }
+      }
+    },
+    "Tuesday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화요일"
+          }
+        }
+      }
+    },
+    "Wednesday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수요일"
+          }
+        }
+      }
+    },
+    "Thursday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "목요일"
+          }
+        }
+      }
+    },
+    "Friday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "금요일"
+          }
+        }
+      }
+    },
+    "Saturday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "토요일"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장"
+          }
+        }
+      }
+    },
+    "Left Early": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "조퇴"
+          }
+        }
+      }
+    },
+    "Scheduled end: %@": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예정 퇴근: %@"
+          }
+        }
+      }
+    },
+    "Actual end: %@": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 퇴근: %@"
+          }
+        }
+      }
+    },
+    "Early-departure incentives will be evaluated once workplace rules are defined.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "조퇴 인센티브는 근무지 규칙이 확정된 후 반영됩니다."
+          }
+        }
+      }
+    },
+    "Couldn't save the weekly bonus start day.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주간 인센티브 시작 요일을 저장하지 못했습니다."
+          }
+        }
+      }
+    },
+    "Notifications are disabled. Allow them in iPhone Settings.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "알림이 꺼져 있습니다. iPhone 설정에서 허용해 주세요."
+          }
+        }
+      }
+    },
+    "Gross": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세전"
+          }
+        }
+      }
+    },
+    "Net": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실수령"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
