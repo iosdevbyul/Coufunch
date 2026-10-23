@@ -62,7 +62,7 @@ struct WorkplaceOnboardingView: View {
                     }
 
                     if let errorMessage {
-                        Text(errorMessage).foregroundStyle(.red).font(.footnote)
+                        Text(LocalizedStringKey(errorMessage)).foregroundStyle(.red).font(.footnote)
                     }
 
                     HStack {
@@ -71,7 +71,7 @@ struct WorkplaceOnboardingView: View {
                                 .buttonStyle(.bordered)
                         }
                         Spacer()
-                        Button(step == 2 ? "Finish Setup" : "Continue") {
+                        Button(LocalizedStringKey(step == 2 ? "Finish Setup" : "Continue")) {
                             if step < 2 {
                                 step += 1
                             } else {
