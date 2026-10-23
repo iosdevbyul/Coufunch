@@ -9,6 +9,9 @@ settings:
     TARGETED_DEVICE_FAMILY: "1"
     CODE_SIGN_STYLE: Automatic
 packages:
+  NetworkKit:
+    url: https://github.com/iosdevbyul/TrisNetworkKit
+    exactVersion: 0.1.0
   TrisCalendarKit:
     url: https://github.com/iosdevbyul/TrisCalendarKit
     exactVersion: 1.4.0
@@ -33,6 +36,7 @@ targets:
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
         SWIFT_STRICT_CONCURRENCY: complete
     dependencies:
+      - package: NetworkKit
       - package: TrisCalendarKit
       - package: WakTrainerDesignSystem
     scheme:
