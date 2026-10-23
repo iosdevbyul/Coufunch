@@ -118,8 +118,8 @@ struct WorkSessionEntryView: View {
                             }
                         }
                     if earlyDeparture {
-                        Text("Scheduled end: \(timeLabel(scheduledEndMinute))")
-                        Stepper("Actual end: \(timeLabel(work.end))", value: $work.end,
+                        Text(String(format: String(localized: "Scheduled end: %@"), timeLabel(scheduledEndMinute)))
+                        Stepper(String(format: String(localized: "Actual end: %@"), timeLabel(work.end)), value: $work.end,
                                 in: (work.start + 1)...max(work.start + 1, scheduledEndMinute - 1),
                                 step: 1)
                         Text("Early-departure incentives will be evaluated once workplace rules are defined.")

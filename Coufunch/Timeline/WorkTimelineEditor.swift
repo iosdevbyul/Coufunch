@@ -36,7 +36,7 @@ struct WorkTimelineEditor: View {
             .scrollIndicators(.visible)
 
             VStack(alignment: .leading, spacing: WakSpacing.medium) {
-                Label("Shift: \(label(work.start)) – \(label(work.end))", systemImage: "clock")
+                Label(String(format: String(localized: "Shift: %@ – %@"), label(work.start), label(work.end)), systemImage: "clock")
                     .font(.footnote.monospacedDigit())
                 timeAdjustment(title: "Start", range: work, isBreak: false, edge: .start)
                 timeAdjustment(title: "End", range: work, isBreak: false, edge: .end)
@@ -47,7 +47,7 @@ struct WorkTimelineEditor: View {
                     Button {
                         activeBreakIndex = index
                     } label: {
-                        Text("Break \(index + 1): \(label(breaks[index].start)) – \(label(breaks[index].end))")
+                        Text(String(format: String(localized: "Break %d: %@ – %@"), index + 1, label(breaks[index].start), label(breaks[index].end)))
                     }
                     .foregroundStyle(activeBreakIndex == index ? CoufunchColor.primary : CoufunchColor.textPrimary)
                     Spacer()
@@ -130,7 +130,7 @@ struct WorkTimelineEditor: View {
                     .fill(tint.opacity(0.6))
                     .frame(width: CGFloat(range.duration) * pointsPerMinute, height: 36)
                     .offset(x: CGFloat(range.start) * pointsPerMinute)
-                    .accessibilityLabel("\(title) from \(label(range.start)) to \(label(range.end))")
+                    .accessibilityLabel(String(format: String(localized: "%@ from %@ to %@"), String(localized: String.LocalizationValue(title)), label(range.start), label(range.end)))
 
                 handle(edge: .start, range: range, tint: tint, isBreak: isBreak)
                 handle(edge: .end, range: range, tint: tint, isBreak: isBreak)
@@ -168,7 +168,7 @@ struct WorkTimelineEditor: View {
                     }
                     .onEnded { _ in handleAnchor = nil }
             )
-            .accessibilityLabel(isBreak ? "Adjust break boundary" : "Adjust shift boundary")
+            .accessibilityLabel(LocalizedStringKey(isBreak ? "Adjust break boundary" : "Adjust shift boundary"))
     }
 
     private var hasAvailableBreakGap: Bool {
@@ -184,7 +184,7 @@ struct WorkTimelineEditor: View {
     private func timeAdjustment(title: String, range: TimelineRange,
                                 isBreak: Bool, edge: TimelineSelection.Edge) -> some View {
         HStack {
-            Text(title).font(.subheadline)
+            Text(LocalizedStringKey(title)).font(.subheadline)
             Spacer()
             Button {
                 adjustByStep(range: range, isBreak: isBreak, edge: edge, direction: -1)
@@ -192,7 +192,7 @@ struct WorkTimelineEditor: View {
                 Image(systemName: "minus.circle")
                     .frame(minWidth: 44, minHeight: 44)
             }
-            .accessibilityLabel("Move \(title) five minutes earlier")
+            .accessibilityLabel(String(format: String(localized: "Move %@ five minutes earlier"), String(localized: String.LocalizationValue(title))))
             Text(label(edge == .start ? range.start : range.end))
                 .font(.subheadline.monospacedDigit())
                 .frame(minWidth: 88)
@@ -202,7 +202,7 @@ struct WorkTimelineEditor: View {
                 Image(systemName: "plus.circle")
                     .frame(minWidth: 44, minHeight: 44)
             }
-            .accessibilityLabel("Move \(title) five minutes later")
+            .accessibilityLabel(String(format: String(localized: "Move %@ five minutes later"), String(localized: String.LocalizationValue(title))))
         }
     }
 
