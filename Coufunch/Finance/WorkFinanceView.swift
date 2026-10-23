@@ -121,7 +121,7 @@ struct WorkFinanceView: View {
                             row("Manual incentives", money(summary.manualIncentives))
                             row("Average per completed day", money(summary.dailyAverage))
                             if summary.skippedSessions > 0 {
-                                Text("\(summary.skippedSessions) incomplete pay record(s) excluded.")
+                                Text(String(format: String(localized: "%d incomplete pay record(s) excluded."), summary.skippedSessions))
                                     .font(.footnote).foregroundStyle(.orange)
                             }
                         }
@@ -159,7 +159,7 @@ struct WorkFinanceView: View {
                             }
                             row("Total shift gross", money(audit.shiftGross))
                             if audit.excluded > 0 {
-                                Text("\(audit.excluded) completed shift(s) could not be calculated.")
+                                Text(String(format: String(localized: "%d completed shift(s) could not be calculated."), audit.excluded))
                                     .font(.caption).foregroundStyle(.orange)
                             }
                         }
@@ -177,7 +177,7 @@ struct WorkFinanceView: View {
                             row("Completed + confirmed shifts", money(forecast.securedGross))
                             row("Including applications (hypothetical)", money(forecast.possibleGross))
                             if forecast.unpricedCount > 0 {
-                                Text("\(forecast.unpricedCount) shift(s) without sufficient pay data.")
+                                Text(String(format: String(localized: "%d shift(s) without sufficient pay data."), forecast.unpricedCount))
                                     .font(.caption).foregroundStyle(.orange)
                             }
                         }
