@@ -112,7 +112,7 @@ struct WorkOverviewView: View {
                     )
 
                     if let error = holidayStore.errorMessage {
-                        Text(error).font(.caption).foregroundStyle(.orange)
+                        Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(.orange)
                     }
 
                     Button("Add Work Session") { isSessionEntryPresented = true }
