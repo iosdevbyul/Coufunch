@@ -45,6 +45,7 @@ final class WorkSession {
     var hourlyRateSnapshot: Decimal?
     var fixedDailyPaySnapshot: Decimal?
     var recordedAt: Date
+    var scheduledEndAt: Date? = nil
     var nightPremiumSnapshot: Bool? = nil
     var overtimePremiumSnapshot: Bool? = nil
 
@@ -52,6 +53,8 @@ final class WorkSession {
         get { WorkSessionStatus(rawValue: statusRaw) ?? .applied }
         set { statusRaw = newValue.rawValue }
     }
+
+    var isEarlyDeparture: Bool { scheduledEndAt.map { endAt != nil && endAt! < $0 } ?? false }
 
     var payMode: PayCalculationMode {
         get { PayCalculationMode(rawValue: payModeRaw) ?? .minimumHourly }
@@ -68,6 +71,7 @@ final class WorkSession {
         hourlyRateSnapshot: Decimal? = nil,
         fixedDailyPaySnapshot: Decimal? = nil,
         recordedAt: Date = .now,
+        scheduledEndAt: Date? = nil,
         nightPremiumSnapshot: Bool? = nil,
         overtimePremiumSnapshot: Bool? = nil
     ) {
@@ -80,6 +84,7 @@ final class WorkSession {
         self.hourlyRateSnapshot = hourlyRateSnapshot
         self.fixedDailyPaySnapshot = fixedDailyPaySnapshot
         self.recordedAt = recordedAt
+        self.scheduledEndAt = scheduledEndAt
         self.nightPremiumSnapshot = nightPremiumSnapshot
         self.overtimePremiumSnapshot = overtimePremiumSnapshot
     }
@@ -172,7 +177,7 @@ enum WorkAttendance {
         calendar: Calendar
     ) -> Set<Date> {
         Set(sessions.filter {
-            $0.workplaceID == workplaceID && $0.status == .completed
+            $0.workplaceID == workplaceID && $0.status == .completed && !$0.isEarlyDeparture
         }.map { calendar.startOfDay(for: $0.startAt) })
     }
 }
