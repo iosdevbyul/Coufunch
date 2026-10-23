@@ -85,6 +85,43 @@ final class KoreanPublicHolidayStore: ObservableObject {
         loadedYears.insert(2026)
     }
 
+    /// Localize at display time, not when caching. This also translates existing offline caches.
+    func displayName(for key: String, locale: Locale) -> String? {
+        guard let rawName = names[key] else { return nil }
+        guard locale.language.languageCode?.identifier == "ko" else { return rawName }
+
+        let translations: [String: String] = [
+            "New Year's Day": "신정",
+            "Seollal": "설날",
+            "Korean New Year": "설날",
+            "Independence Movement Day": "삼일절",
+            "Children's Day": "어린이날",
+            "Labor Day": "근로자의 날",
+            "Labour Day": "근로자의 날",
+            "Buddha's Birthday": "부처님오신날",
+            "Election Day": "선거일",
+            "Memorial Day": "현충일",
+            "Constitution Day": "제헌절",
+            "Liberation Day": "광복절",
+            "Chuseok": "추석",
+            "National Foundation Day": "개천절",
+            "Hangeul Day": "한글날",
+            "Hangul Day": "한글날",
+            "Christmas": "성탄절"
+        ]
+        if let translated = translations[rawName] { return translated }
+        if rawName.hasPrefix("Substitute Holiday ("),
+           rawName.hasSuffix(")") {
+            let original = String(rawName.dropFirst("Substitute Holiday (".count).dropLast())
+            let canonical = original == "March 1" ? "Independence Movement Day" : original
+            if let translated = translations[canonical] {
+                return "\(translated) 대체공휴일"
+            }
+        }
+        // The API may already provide Korean localName; retain unknown labels unchanged.
+        return rawName
+    }
+
     func isPublicHoliday(_ date: Date, calendar: Calendar = .current) -> Bool {
         let parts = Self.seoulCalendar.dateComponents([.year, .month, .day], from: date)
         guard let year = parts.year, let month = parts.month, let day = parts.day,

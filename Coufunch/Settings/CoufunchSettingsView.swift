@@ -38,7 +38,7 @@ struct CoufunchSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 if let weeklyStartError {
-                    Text(weeklyStartError)
+                    Text(LocalizedStringKey(weeklyStartError))
                         .foregroundStyle(.red)
                         .font(.footnote)
                 }
@@ -56,7 +56,7 @@ struct CoufunchSettingsView: View {
                 Text("Remind me at 10 AM on the next Korean business day after a completed shift.")
                     .font(.footnote).foregroundStyle(.secondary)
                 if let permissionMessage {
-                    Text(permissionMessage).font(.footnote).foregroundStyle(.orange)
+                    Text(LocalizedStringKey(permissionMessage)).font(.footnote).foregroundStyle(.orange)
                 }
             }
         }

@@ -192,7 +192,7 @@ struct WorkFinanceView: View {
                                 HStack {
                                     VStack(alignment: .leading) {
                                         Text(money(receipt.amount))
-                                        Text(receipt.basis == .gross ? "Gross received" : "Net received")
+                                        Text(LocalizedStringKey(receipt.basis == .gross ? "Gross received" : "Net received"))
                                             .font(.caption).foregroundStyle(.secondary)
                                         if !receipt.note.isEmpty {
                                             Text(receipt.note).font(.caption).foregroundStyle(.secondary)
@@ -226,7 +226,7 @@ struct WorkFinanceView: View {
                             TextField("Payment note (optional)", text: $receiptNote)
                                 .textFieldStyle(.roundedBorder)
                             if let receiptError {
-                                Text(receiptError).font(.footnote).foregroundStyle(.red)
+                                Text(LocalizedStringKey(receiptError)).font(.footnote).foregroundStyle(.red)
                             }
                             Button("Add Payment") { addReceipt() }
                                 .buttonStyle(.borderedProminent)
@@ -299,7 +299,7 @@ struct WorkFinanceView: View {
             .padding(WakSpacing.large)
         }
         .background(CoufunchColor.background)
-        .navigationTitle(screen == .pay ? "Pay & Allowances" : "Work Strategy")
+        .navigationTitle(LocalizedStringKey(screen == .pay ? "Pay & Allowances" : "Work Strategy"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id }
         .task(id: Calendar.current.component(.year, from: selectedMonth)) {
@@ -342,7 +342,7 @@ struct WorkFinanceView: View {
 
     private func row(_ title: String, _ value: String) -> some View {
         HStack {
-            Text(title).foregroundStyle(.secondary)
+            Text(LocalizedStringKey(title)).foregroundStyle(.secondary)
             Spacer()
             Text(value).fontWeight(.semibold)
         }

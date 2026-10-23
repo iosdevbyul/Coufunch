@@ -5,6 +5,7 @@ import WakTrainerDesignSystem
 
 struct WorkOverviewView: View {
     @StateObject private var holidayStore = KoreanPublicHolidayStore()
+    @Environment(\.locale) private var locale
     @Environment(\.modelContext) private var modelContext
     @Query private var workBreaks: [WorkBreak]
     @Query private var sessions: [WorkSession]
@@ -67,7 +68,7 @@ struct WorkOverviewView: View {
                   parts[1] == month.month,
                   let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])),
                   interval.contains(date) else { return nil }
-            return HolidayDisplay(date: date, name: name)
+            return HolidayDisplay(date: date, name: holidayStore.displayName(for: key, locale: locale) ?? name)
         }.sorted { $0.date < $1.date }
     }
 
@@ -111,7 +112,7 @@ struct WorkOverviewView: View {
                     )
 
                     if let error = holidayStore.errorMessage {
-                        Text(error).font(.caption).foregroundStyle(.orange)
+                        Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(.orange)
                     }
 
                     Button("Add Work Session") { isSessionEntryPresented = true }
@@ -281,7 +282,7 @@ struct WorkOverviewView: View {
         guard let year = parts.year, let month = parts.month, let day = parts.day else {
             return nil
         }
-        return holidayStore.names[String(format: "%04d-%02d-%02d", year, month, day)]
+        return holidayStore.displayName(for: String(format: "%04d-%02d-%02d", year, month, day), locale: locale)
     }
 
     private func deletePendingSession() {
