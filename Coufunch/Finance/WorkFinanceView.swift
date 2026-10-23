@@ -110,10 +110,7 @@ struct WorkFinanceView: View {
                             Text(money(estimatedTakeHome.net))
                                 .font(.title2.bold())
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
-                            if estimatedTakeHome.outstanding > 0 {
-                                row("Uncollected insurance estimate", money(estimatedTakeHome.outstanding))
-                            }
-                            Text("Automatically estimated from completed shifts. Assumes employment-insurance withholding before day 8, then catch-up social insurance deductions capped at KRW 60,000 per payday. Actual eligibility, contribution bases, withholding and income tax can differ.")
+                            Text("Estimated using the 2026 employee social insurance rate (9.717383%). Actual deductions, tax, and eligibility may differ.")
                                 .font(.caption).foregroundStyle(.secondary)
                             row("Completed days", "\(summary.completedDays)")
                             row("Base pay", money(summary.basePay))
