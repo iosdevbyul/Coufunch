@@ -51,7 +51,7 @@ struct WorkplaceOnboardingView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: WakSpacing.large) {
-                    Text("Step \(step + 1) of 3")
+                    Text(String(format: String(localized: "Step %d of 3"), step + 1))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(CoufunchColor.primary)
 
