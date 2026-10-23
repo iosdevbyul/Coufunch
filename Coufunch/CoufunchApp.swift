@@ -37,6 +37,9 @@ private struct CoufunchRootView: View {
             WorkOverviewView()
         }
         }
+        .task {
+            await holidayStore.prefetchNearbyYears()
+        }
         .onAppear { askReminders = !promptAnswered && !workplaces.isEmpty }
         .onChange(of: workplaces.count) { _, count in
             if count > 0 && !promptAnswered { askReminders = true }
