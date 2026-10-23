@@ -129,6 +129,11 @@ struct WorkOverviewView: View {
                                 }
                                 Text(selectedDate, format: .dateTime.year().month().day())
                                     .foregroundStyle(CoufunchColor.textPrimary)
+                                if let holidayName = holidayName(for: selectedDate) {
+                                    LabeledContent("Public Holiday", value: holidayName)
+                                        .font(.subheadline)
+                                        .foregroundStyle(CoufunchColor.textPrimary)
+                                }
                                 Text("\(daySessions.count) session(s)")
                                     .foregroundStyle(.secondary)
                                 if daySessions.isEmpty {
@@ -269,6 +274,16 @@ struct WorkOverviewView: View {
             }
         }
     }
+    private func holidayName(for date: Date) -> String? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        guard let year = parts.year, let month = parts.month, let day = parts.day else {
+            return nil
+        }
+        return holidayStore.names[String(format: "%04d-%02d-%02d", year, month, day)]
+    }
+
     private func deletePendingSession() {
         guard let session = pendingDelete else { return }
         pendingDelete = nil
