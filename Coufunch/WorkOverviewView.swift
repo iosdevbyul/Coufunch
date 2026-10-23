@@ -146,7 +146,7 @@ struct WorkOverviewView: View {
                                             Text(workplaces.first(where: { $0.id == session.workplaceID })?.name ?? "Workplace").font(.headline)
                                             Text(session.startAt, format: .dateTime.hour().minute())
                                                 .font(.caption.monospacedDigit())
-                                            Text(session.status.rawValue.capitalized).font(.caption).foregroundStyle(.secondary)
+                                            Text(LocalizedStringKey(session.status.rawValue.capitalized)).font(.caption).foregroundStyle(.secondary)
                                         }
                                         Spacer()
                                         Button("Edit") { editingSession = session }
