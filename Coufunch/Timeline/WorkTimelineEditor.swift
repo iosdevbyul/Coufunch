@@ -168,7 +168,7 @@ struct WorkTimelineEditor: View {
                     }
                     .onEnded { _ in handleAnchor = nil }
             )
-            .accessibilityLabel(isBreak ? "Adjust break boundary" : "Adjust shift boundary")
+            .accessibilityLabel(LocalizedStringKey(isBreak ? "Adjust break boundary" : "Adjust shift boundary"))
     }
 
     private var hasAvailableBreakGap: Bool {
@@ -184,7 +184,7 @@ struct WorkTimelineEditor: View {
     private func timeAdjustment(title: String, range: TimelineRange,
                                 isBreak: Bool, edge: TimelineSelection.Edge) -> some View {
         HStack {
-            Text(title).font(.subheadline)
+            Text(LocalizedStringKey(title)).font(.subheadline)
             Spacer()
             Button {
                 adjustByStep(range: range, isBreak: isBreak, edge: edge, direction: -1)
