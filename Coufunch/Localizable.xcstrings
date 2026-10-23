@@ -2210,6 +2210,106 @@
           }
         }
       }
+    },
+    "%@ days · %@ KRW": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@일 · %@원"
+          }
+        }
+      }
+    },
+    "%@ KRW": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@원"
+          }
+        }
+      }
+    },
+    "Step %d of 3": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3단계 중 %d단계"
+          }
+        }
+      }
+    },
+    "%d session(s)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무 기록 %d건"
+          }
+        }
+      }
+    },
+    "%d incomplete pay record(s) excluded.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "급여 정보가 불완전한 기록 %d건을 제외했습니다."
+          }
+        }
+      }
+    },
+    "%d completed shift(s) could not be calculated.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완료한 근무 %d건의 급여를 계산할 수 없습니다."
+          }
+        }
+      }
+    },
+    "%d shift(s) without sufficient pay data.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "급여 정보가 부족한 근무 %d건이 있습니다."
+          }
+        }
+      }
+    },
+    "Shift: %@ – %@": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무: %@ ~ %@"
+          }
+        }
+      }
+    },
+    "Break %d: %@ – %@": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "휴게 %d: %@ ~ %@"
+          }
+        }
+      }
+    },
+    "Deadline": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마감일"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
