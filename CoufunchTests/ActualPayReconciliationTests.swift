@@ -65,6 +65,25 @@ final class ActualPayReconciliationTests: XCTestCase {
         XCTAssertEqual(excluded, 175000 + bonusNet)
     }
 
+    func testWeeklyBonusCrossingMonthUsesWeekEnd() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        calendar.firstWeekday = 1
+        let start = calendar.date(from: DateComponents(year: 2026, month: 10, day: 25))!
+        let october = calendar.date(from: DateComponents(year: 2026, month: 10, day: 1))!
+        let november = calendar.date(from: DateComponents(year: 2026, month: 11, day: 1))!
+        XCTAssertTrue(ActualPayReconciliation.weeklyBonusBelongsToMonth(
+            periodStart: start, selectedMonth: october, calendar: calendar))
+        XCTAssertFalse(ActualPayReconciliation.weeklyBonusBelongsToMonth(
+            periodStart: start, selectedMonth: november, calendar: calendar))
+        let crossing = calendar.date(from: DateComponents(year: 2026, month: 11, day: 29))!
+        XCTAssertFalse(ActualPayReconciliation.weeklyBonusBelongsToMonth(
+            periodStart: crossing, selectedMonth: november, calendar: calendar))
+        let december = calendar.date(from: DateComponents(year: 2026, month: 12, day: 1))!
+        XCTAssertTrue(ActualPayReconciliation.weeklyBonusBelongsToMonth(
+            periodStart: crossing, selectedMonth: december, calendar: calendar))
+    }
+
     func testUnknownSessionDoesNotChangeMonthlyTotal() {
         XCTAssertEqual(ActualPayReconciliation.total(
             estimatedMonthlyNet: 123_456, shiftGross: [],
