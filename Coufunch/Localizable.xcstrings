@@ -2500,6 +2500,36 @@
           }
         }
       }
+    },
+    "Bank deposit date": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 입금일"
+          }
+        }
+      }
+    },
+    "Deposit date": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "입금일"
+          }
+        }
+      }
+    },
+    "The deposit date is recorded separately from the work date and does not change which month earned pay belongs to.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 입금일은 근무일과 별도로 저장하며, 급여가 발생한 월의 집계는 변경하지 않습니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
