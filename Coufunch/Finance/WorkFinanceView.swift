@@ -8,6 +8,7 @@ struct WorkFinanceView: View {
     @Query private var receivedPay: [ReceivedPayRecord]
     @State private var editingSessionID: UUID?
     @State private var receiptAmount = ""
+    @State private var depositDate = Date()
     @State private var bonusInclusion: BonusInclusion = .unknown
     @State private var receiptError: String?
     enum Screen { case pay, strategy }
@@ -214,6 +215,14 @@ struct WorkFinanceView: View {
                                     row("Shift gross", money(item.grossTotal))
                                     if let actual = actualBySession[item.id] {
                                         row("Actual received", money(actual))
+                                        if let date = receivedPay.first(where: { $0.sessionID == item.id })?.depositedAt {
+                                            HStack {
+                                                Text("Deposit date").foregroundStyle(.secondary)
+                                                Spacer()
+                                                Text(date, format: .dateTime.year().month().day())
+                                            }
+                                            .font(.subheadline)
+                                        }
                                     }
                                     Button(actualBySession[item.id] == nil ? "Enter Actual Pay" : "Edit Actual Pay") {
                                         editingSessionID = item.id
@@ -222,6 +231,7 @@ struct WorkFinanceView: View {
                                         } ?? ""
                                         receiptError = nil
                                         bonusInclusion = bonusInclusionBySession[item.id] ?? .unknown
+                                        depositDate = receivedPay.first(where: { $0.sessionID == item.id })?.depositedAt ?? Date()
                                     }
                                     .buttonStyle(.bordered)
                                     Divider()
@@ -351,6 +361,9 @@ struct WorkFinanceView: View {
                 Form {
                     TextField("Actual received (KRW)", text: $receiptAmount)
                         .keyboardType(.numberPad)
+                    DatePicker("Bank deposit date", selection: $depositDate, displayedComponents: .date)
+                    Text("The deposit date is recorded separately from the work date and does not change which month earned pay belongs to.")
+                        .font(.caption).foregroundStyle(.secondary)
                     if let id = editingSessionID,
                        let bonus = weeklyBonusGrossBySession[id], bonus > 0 {
                         Section {
@@ -407,11 +420,13 @@ struct WorkFinanceView: View {
             first.amount = amount
             first.basis = .net
             first.bonusInclusion = bonusInclusion
+            first.depositedAt = depositDate
             for duplicate in existing.dropFirst() { modelContext.delete(duplicate) }
         } else {
             modelContext.insert(ReceivedPayRecord(monthStart: month, amount: amount,
                                                    basis: .net, sessionID: id,
-                                                   bonusInclusion: bonusInclusion))
+                                                   bonusInclusion: bonusInclusion,
+                                                   depositedAt: depositDate))
         }
         do {
             try modelContext.save()
