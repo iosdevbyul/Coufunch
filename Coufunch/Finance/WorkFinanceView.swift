@@ -78,11 +78,10 @@ struct WorkFinanceView: View {
                 // Match the monthly summary's week-end attribution exactly.
                 // A bonus assigned to a different month must never be removed
                 // from this month's net estimate during reconciliation.
-                guard let selectedInterval = calendar.dateInterval(of: .month, for: selectedMonth),
-                      let attributedWeek = calendar.dateInterval(of: .weekOfYear, for: award.periodStart),
-                      selectedInterval.contains(attributedWeek.end.addingTimeInterval(-1)) else {
-                    continue
-                }
+                guard ActualPayReconciliation.weeklyBonusBelongsToMonth(
+                    periodStart: award.periodStart, selectedMonth: selectedMonth,
+                    calendar: calendar
+                ) else { continue }
                 guard let rule = rules.first(where: { $0.id == award.ruleID }),
                       rule.period == .weekly,
                       let week = calendar.dateInterval(of: .weekOfYear, for: award.periodStart),
