@@ -65,4 +65,27 @@ final class WeeklyBonusStartDayTests: XCTestCase {
         XCTAssertEqual(awards.count, 2)
         XCTAssertEqual(awards.reduce(Decimal.zero) { $0 + $1.amount }, 120_000)
     }
+    func testMonthlyFifteenDayBonusDoesNotUseWeeklyBoundary() {
+        let workplace = Workplace(name: "Warehouse", weekStartWeekday: 5)
+        let rule = IncentiveRule(workplaceID: workplace.id, name: "15-day monthly bonus",
+                                 period: .monthly, requiredAttendanceDays: 15,
+                                 amount: 70_000)
+        let sessions = (1...15).map { completedSession($0, workplaceID: workplace.id) }
+        let awards = WorkIncentiveCalculator.awards(
+            sessions: sessions, rules: [rule], workplace: workplace, calendar: calendar
+        )
+        XCTAssertEqual(awards.count, 1)
+        XCTAssertEqual(awards.first?.amount, 70_000)
+    }
+
+    func testFourDaysDoNotUnlockWeeklyFiveDayBonus() {
+        let workplace = Workplace(name: "Warehouse")
+        let rule = IncentiveRule(workplaceID: workplace.id, name: "5-day",
+                                 period: .weekly, requiredAttendanceDays: 5, amount: 80_000)
+        let sessions = (11...14).map { completedSession($0, workplaceID: workplace.id) }
+        XCTAssertTrue(WorkIncentiveCalculator.awards(
+            sessions: sessions, rules: [rule], workplace: workplace, calendar: calendar
+        ).isEmpty)
+    }
+
 }
