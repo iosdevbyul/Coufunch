@@ -1,6 +1,16 @@
 import Foundation
 
 enum ActualPayReconciliation {
+    static func weeklyBonusBelongsToMonth(
+        periodStart: Date, selectedMonth: Date, calendar: Calendar
+    ) -> Bool {
+        guard let month = calendar.dateInterval(of: .month, for: selectedMonth),
+              let week = calendar.dateInterval(of: .weekOfYear, for: periodStart) else {
+            return false
+        }
+        return month.contains(week.end.addingTimeInterval(-1))
+    }
+
     /// Each actual deposit replaces its shift estimate. A bonus is removed from
     /// the remaining estimate only when the user explicitly confirms inclusion.
     static func total(estimatedMonthlyNet: Decimal,
