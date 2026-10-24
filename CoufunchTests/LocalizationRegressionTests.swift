@@ -4,7 +4,8 @@ import XCTest
 
 final class LocalizationRegressionTests: XCTestCase {
     private func catalog() throws -> [String: Any] {
-        let url = try XCTUnwrap(Bundle.main.url(forResource: "Localizable", withExtension: "xcstrings"))
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("Coufunch/Localizable.xcstrings")
         let data = try Data(contentsOf: url)
         let root = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         return try XCTUnwrap(root["strings"] as? [String: Any])
