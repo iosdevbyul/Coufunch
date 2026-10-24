@@ -12,7 +12,13 @@ enum PaydayReminderDate {
             let parts = calendar.dateComponents([.year, .month, .day, .weekday], from: day)
             guard let year = parts.year, let month = parts.month,
                   let date = parts.day, let weekday = parts.weekday else { return nil }
-            guard loadedYears.contains(year) else { return nil }
+            // Missing holiday data must not silently prevent a reminder.
+        // Weekend skipping still applies; holiday accuracy requires a loaded year.
+        if !loadedYears.contains(year) {
+            if weekday != 1 && weekday != 7 {
+                return calendar.date(bySettingHour: 10, minute: 0, second: 0, of: day)
+            }
+        }
             let key = String(format: "%04d-%02d-%02d", year, month, date)
             if weekday != 1 && weekday != 7 && !holidays.contains(key) {
                 return calendar.date(bySettingHour: 10, minute: 0, second: 0, of: day)
@@ -77,7 +83,11 @@ enum PaydayReminderScheduler {
             let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
             let request = UNNotificationRequest(identifier: prefix + key,
                                                 content: content, trigger: trigger)
-            try? await center.add(request)
+            do {
+                try await center.add(request)
+            } catch {
+                NSLog("Coufunch reminder scheduling failed: %@", String(describing: error))
+            }
         }
     }
 }
