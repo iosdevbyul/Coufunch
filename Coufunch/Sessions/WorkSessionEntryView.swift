@@ -169,13 +169,13 @@ struct WorkSessionEntryView: View {
             .background(CoufunchColor.background)
             .navigationTitle(editingSession == nil ? "Add Work Session" : "Edit Work Session")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { save() }
                         .fontWeight(.semibold)
                         .disabled(workplaceID == nil)
                         .accessibilityLabel("Save Work Session")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel", action: onSaved)
                 }
             }

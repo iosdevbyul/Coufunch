@@ -6,6 +6,7 @@ struct WorkFinanceView: View {
     @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.modelContext) private var modelContext
     @Query private var receivedPay: [ReceivedPayRecord]
+    @State private var editingSessionID: UUID?
     @State private var receiptAmount = ""
     @State private var receiptBasis: ReceivedPayBasis = .net
     @State private var receiptNote = ""
@@ -49,18 +50,21 @@ struct WorkFinanceView: View {
             holidayDates: holidayStore.dates)
     }
 
-    private var selectedReceipts: [ReceivedPayRecord] {
-        guard let interval = Calendar.current.dateInterval(of: .month, for: selectedMonth) else { return [] }
-        return receivedPay.filter { interval.contains($0.monthStart) }
-            .sorted { $0.createdAt < $1.createdAt }
+    private var actualBySession: [UUID: Decimal] {
+        var result: [UUID: Decimal] = [:]
+        for record in receivedPay.sorted(by: { $0.createdAt < $1.createdAt })
+        where record.basis == .net {
+            if let id = record.sessionID { result[id] = record.amount }
+        }
+        return result
     }
 
-    private var receivedGross: Decimal {
-        selectedReceipts.filter { $0.basis == .gross }.reduce(Decimal.zero) { $0 + $1.amount }
-    }
-
-    private var receivedNet: Decimal {
-        selectedReceipts.filter { $0.basis == .net }.reduce(Decimal.zero) { $0 + $1.amount }
+    private var reconciledNet: Decimal {
+        ActualPayReconciliation.total(
+            estimatedMonthlyNet: estimatedTakeHome.net,
+            shiftGross: audit.entries.map { (id: $0.id, gross: $0.grossTotal) },
+            actualBySession: actualBySession
+        )
     }
 
     private var simulationResult: WorkdaySimulationResult? {
@@ -106,10 +110,12 @@ struct WorkFinanceView: View {
                             Text("Estimated Gross Pay").font(WakTypography.screenTitle)
                             Text(money(summary.total)).font(.title.bold()).foregroundStyle(CoufunchColor.primary)
                             Divider()
-                            Text("Estimated Take-Home Pay").font(WakTypography.screenTitle)
-                            Text(money(estimatedTakeHome.net))
+                            Text("Estimated / Actual Take-Home Pay").font(WakTypography.screenTitle)
+                            Text(money(reconciledNet))
                                 .font(.title2.bold())
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
+                            Text("Entered actual deposits replace estimates for those shifts; other shifts remain estimated.")
+                                .font(.caption).foregroundStyle(.secondary)
                             Text("Estimated using the 2026 employee social insurance rate (9.717383%). Actual deductions, tax, and eligibility may differ.")
                                 .font(.caption).foregroundStyle(.secondary)
                             row("Completed days", "\(summary.completedDays)")
@@ -154,6 +160,17 @@ struct WorkFinanceView: View {
                                     row("Overtime premium", money(item.overtimePremium))
                                     row("Holiday premium", money(item.holidayPremium))
                                     row("Shift gross", money(item.grossTotal))
+                                    if let actual = actualBySession[item.id] {
+                                        row("Actual received", money(actual))
+                                    }
+                                    Button(actualBySession[item.id] == nil ? "Enter Actual Pay" : "Edit Actual Pay") {
+                                        editingSessionID = item.id
+                                        receiptAmount = actualBySession[item.id].map {
+                                            NSDecimalNumber(decimal: $0).stringValue
+                                        } ?? ""
+                                        receiptError = nil
+                                    }
+                                    .buttonStyle(.bordered)
                                     Divider()
                                 }
                             }
@@ -180,56 +197,6 @@ struct WorkFinanceView: View {
                                 Text(String(format: String(localized: "%d shift(s) without sufficient pay data."), forecast.unpricedCount))
                                     .font(.caption).foregroundStyle(.orange)
                             }
-                        }
-                    }
-
-                    CoufunchCard {
-                        VStack(alignment: .leading, spacing: WakSpacing.medium) {
-                            Text("Actual Payments").font(WakTypography.screenTitle)
-                            Text("Record gross or take-home deposits separately. Only gross receipts can be compared to the estimated gross amount.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                            ForEach(selectedReceipts) { receipt in
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text(money(receipt.amount))
-                                        Text(LocalizedStringKey(receipt.basis == .gross ? "Gross received" : "Net received"))
-                                            .font(.caption).foregroundStyle(.secondary)
-                                        if !receipt.note.isEmpty {
-                                            Text(receipt.note).font(.caption).foregroundStyle(.secondary)
-                                        }
-                                    }
-                                    Spacer()
-                                    Button(role: .destructive) { remove(receipt) } label: {
-                                        Image(systemName: "trash")
-                                    }
-                                    .accessibilityLabel("Delete payment record")
-                                }
-                            }
-                            row("Gross receipts", money(receivedGross))
-                            row("Net receipts", money(receivedNet))
-                            if selectedReceipts.contains(where: { $0.basis == .gross }) {
-                                row("Gross difference (received − estimated)",
-                                    money(receivedGross - summary.total))
-                            } else {
-                                Text("No gross payment recorded; gross difference is unavailable.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-
-                            Picker("Received as", selection: $receiptBasis) {
-                                Text("Take-home / net").tag(ReceivedPayBasis.net)
-                                Text("Before deductions / gross").tag(ReceivedPayBasis.gross)
-                            }
-                            .pickerStyle(.segmented)
-                            TextField("Amount received (KRW)", text: $receiptAmount)
-                                .keyboardType(.decimalPad)
-                                .textFieldStyle(.roundedBorder)
-                            TextField("Payment note (optional)", text: $receiptNote)
-                                .textFieldStyle(.roundedBorder)
-                            if let receiptError {
-                                Text(LocalizedStringKey(receiptError)).font(.footnote).foregroundStyle(.red)
-                            }
-                            Button("Add Payment") { addReceipt() }
-                                .buttonStyle(.borderedProminent)
                         }
                     }
 
@@ -301,6 +268,32 @@ struct WorkFinanceView: View {
         .background(CoufunchColor.background)
         .navigationTitle(LocalizedStringKey(screen == .pay ? "Pay & Allowances" : "Work Strategy"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: Binding(
+            get: { editingSessionID != nil },
+            set: { if !$0 { editingSessionID = nil } }
+        )) {
+            NavigationStack {
+                Form {
+                    TextField("Actual received (KRW)", text: $receiptAmount)
+                        .keyboardType(.numberPad)
+                    if let receiptError {
+                        Text(LocalizedStringKey(receiptError)).foregroundStyle(.red)
+                    }
+                    if editingSessionID.flatMap({ actualBySession[$0] }) != nil {
+                        Button("Remove Actual Pay", role: .destructive) { clearActual() }
+                    }
+                }
+                .navigationTitle("Actual Received Pay")
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Cancel") { editingSessionID = nil }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Save") { saveActual() }
+                    }
+                }
+            }
+        }
         .onAppear { simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id }
         .task(id: Calendar.current.component(.year, from: selectedMonth)) {
             let year = Calendar.current.component(.year, from: selectedMonth)
@@ -309,19 +302,27 @@ struct WorkFinanceView: View {
         }
     }
 
-    private func addReceipt() {
-        guard let amount = Decimal(string: receiptAmount, locale: Locale(identifier: "en_US_POSIX")),
+    private func saveActual() {
+        guard let id = editingSessionID,
+              let amount = Decimal(string: receiptAmount, locale: Locale(identifier: "en_US_POSIX")),
               amount >= 0,
-              let month = Calendar.current.dateInterval(of: .month, for: selectedMonth)?.start else {
+              let entry = audit.entries.first(where: { $0.id == id }),
+              let month = Calendar.current.dateInterval(of: .month, for: entry.start)?.start else {
             receiptError = "Enter a valid non-negative payment amount."
             return
         }
-        modelContext.insert(ReceivedPayRecord(monthStart: month, amount: amount,
-                                               basis: receiptBasis, note: receiptNote))
+        let existing = receivedPay.filter { $0.sessionID == id }
+        if let first = existing.first {
+            first.amount = amount
+            first.basis = .net
+            for duplicate in existing.dropFirst() { modelContext.delete(duplicate) }
+        } else {
+            modelContext.insert(ReceivedPayRecord(monthStart: month, amount: amount,
+                                                   basis: .net, sessionID: id))
+        }
         do {
             try modelContext.save()
-            receiptAmount = ""
-            receiptNote = ""
+            editingSessionID = nil
             receiptError = nil
         } catch {
             modelContext.rollback()
@@ -329,10 +330,12 @@ struct WorkFinanceView: View {
         }
     }
 
-    private func remove(_ receipt: ReceivedPayRecord) {
-        modelContext.delete(receipt)
+    private func clearActual() {
+        guard let id = editingSessionID else { return }
+        for record in receivedPay where record.sessionID == id { modelContext.delete(record) }
         do {
             try modelContext.save()
+            editingSessionID = nil
             receiptError = nil
         } catch {
             modelContext.rollback()

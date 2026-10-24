@@ -13,7 +13,7 @@ enum PaydayReminderDate {
             guard let year = parts.year, let month = parts.month,
                   let date = parts.day, let weekday = parts.weekday else { return nil }
             guard loadedYears.contains(year) else { return nil }
-            let key = String(format: "%04d-%02d-%02d", year, month, date)
+        let key = String(format: "%04d-%02d-%02d", year, month, date)
             if weekday != 1 && weekday != 7 && !holidays.contains(key) {
                 return calendar.date(bySettingHour: 10, minute: 0, second: 0, of: day)
             }
@@ -49,7 +49,10 @@ enum PaydayReminderScheduler {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized ||
-              settings.authorizationStatus == .provisional else { return }
+              settings.authorizationStatus == .provisional else {
+            NSLog("Coufunch payday reminders not scheduled: notification authorization unavailable")
+            return
+        }
 
         let pending = await center.pendingNotificationRequests()
         center.removePendingNotificationRequests(withIdentifiers:
@@ -66,6 +69,9 @@ enum PaydayReminderScheduler {
                 let day = calendar.startOfDay(for: due)
                 return (String(Int(day.timeIntervalSince1970)), due)
             }
+        if upcoming.isEmpty {
+            NSLog("Coufunch payday reminders: no eligible future pay dates; check completed shifts and loaded holiday years")
+        }
         // A single reminder per pay date, even if multiple completed shifts map to it.
         var seen = Set<String>()
         for (key, date) in upcoming.sorted(by: { $0.1 < $1.1 }) where seen.insert(key).inserted {
@@ -77,7 +83,11 @@ enum PaydayReminderScheduler {
             let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
             let request = UNNotificationRequest(identifier: prefix + key,
                                                 content: content, trigger: trigger)
-            try? await center.add(request)
+            do {
+                try await center.add(request)
+            } catch {
+                NSLog("Coufunch reminder scheduling failed: %@", String(describing: error))
+            }
         }
     }
 }
