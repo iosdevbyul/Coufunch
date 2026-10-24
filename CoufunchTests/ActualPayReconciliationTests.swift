@@ -45,6 +45,26 @@ final class ActualPayReconciliationTests: XCTestCase {
         XCTAssertEqual(cleared, baseline)
     }
 
+    func testWeeklyBonusIncludedVsSeparate() {
+        let id = UUID()
+        let gross: Decimal = 108000
+        let shiftNet = EstimatedTakeHomeCalculator.calculate(gross: gross, shifts: []).net
+        let bonusNet = EstimatedTakeHomeCalculator.calculate(gross: 80000, shifts: []).net
+        let base = shiftNet + bonusNet
+        let shift = [(id: id, gross: gross)]
+        let actual: [UUID: Decimal] = [id: 175000]
+        let included = ActualPayReconciliation.total(
+            estimatedMonthlyNet: base, shiftGross: shift,
+            actualBySession: actual, bonusNetBySession: [id: bonusNet],
+            bonusInclusionBySession: [id: .included])
+        let excluded = ActualPayReconciliation.total(
+            estimatedMonthlyNet: base, shiftGross: shift,
+            actualBySession: actual, bonusNetBySession: [id: bonusNet],
+            bonusInclusionBySession: [id: .excluded])
+        XCTAssertEqual(included, 175000)
+        XCTAssertEqual(excluded, 175000 + bonusNet)
+    }
+
     func testUnknownSessionDoesNotChangeMonthlyTotal() {
         XCTAssertEqual(ActualPayReconciliation.total(
             estimatedMonthlyNet: 123_456, shiftGross: [],
