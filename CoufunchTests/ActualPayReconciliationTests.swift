@@ -102,6 +102,7 @@ final class ActualPayRecordContinuityTests: XCTestCase {
         let schema = Schema([ReceivedPayRecord.self])
         let store = directory.appendingPathComponent("Payments.sqlite")
         let sessionID = UUID()
+        let depositDate = Date(timeIntervalSince1970: 1_781_234_567)
         let month = Date(timeIntervalSince1970: 1_780_000_000)
 
         do {
@@ -111,7 +112,8 @@ final class ActualPayRecordContinuityTests: XCTestCase {
             context.insert(ReceivedPayRecord(monthStart: month,
                 amount: 110_000, basis: .net, note: "Legacy bank deposit"))
             context.insert(ReceivedPayRecord(monthStart: month,
-                amount: 97_850, basis: .net, sessionID: sessionID))
+                amount: 97_850, basis: .net, sessionID: sessionID,
+                depositedAt: depositDate))
             try context.save()
         }
         do {
@@ -121,6 +123,8 @@ final class ActualPayRecordContinuityTests: XCTestCase {
             XCTAssertEqual(records.count, 2)
             XCTAssertEqual(records.first(where: { $0.sessionID == nil })?.note, "Legacy bank deposit")
             XCTAssertEqual(records.first(where: { $0.sessionID == sessionID })?.amount, 97_850)
+            XCTAssertEqual(records.first(where: { $0.sessionID == sessionID })?.depositedAt, depositDate)
+            XCTAssertNil(records.first(where: { $0.sessionID == nil })?.depositedAt)
         }
     }
 }
