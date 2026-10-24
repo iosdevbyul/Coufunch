@@ -2440,6 +2440,66 @@
           }
         }
       }
+    },
+    "A weekly allowance is estimated for this workweek. Does the entered deposit include it?": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 근무 주간에 주휴수당 지급이 예상됩니다. 입력한 입금액에 주휴수당이 포함되어 있나요?"
+          }
+        }
+      }
+    },
+    "Weekly allowance included?": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주휴수당 포함 여부"
+          }
+        }
+      }
+    },
+    "Yes, included": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "네, 포함되어 있어요"
+          }
+        }
+      }
+    },
+    "No, paid separately": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "아니요, 별도로 지급돼요"
+          }
+        }
+      }
+    },
+    "Not sure yet": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "아직 모르겠어요"
+          }
+        }
+      }
+    },
+    "Bonus inclusion is unconfirmed. The estimated allowance remains in the total until confirmed.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "포함 여부가 확인되지 않아 예상 주휴수당을 합계에 유지합니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
