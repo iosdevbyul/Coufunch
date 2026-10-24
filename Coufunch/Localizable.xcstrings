@@ -2340,6 +2340,86 @@
           }
         }
       }
+    },
+    "Estimated / Actual Take-Home Pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예상 / 실제 실수령 합계"
+          }
+        }
+      }
+    },
+    "Actual received": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 수령액"
+          }
+        }
+      }
+    },
+    "Enter Actual Pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 수령액 입력"
+          }
+        }
+      }
+    },
+    "Edit Actual Pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 수령액 수정"
+          }
+        }
+      }
+    },
+    "Actual received (KRW)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 수령액(원)"
+          }
+        }
+      }
+    },
+    "Actual Received Pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 수령액"
+          }
+        }
+      }
+    },
+    "Remove Actual Pay": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 수령액 삭제"
+          }
+        }
+      }
+    },
+    "Entered actual deposits replace estimates for those shifts; other shifts remain estimated.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 입금액을 입력한 근무일은 해당 금액으로 대체하며, 나머지는 예상 금액을 사용합니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
