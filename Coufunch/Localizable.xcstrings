@@ -2420,6 +2420,26 @@
           }
         }
       }
+    },
+    "Previous Payment Records": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이전 수령 기록"
+          }
+        }
+      }
+    },
+    "Older monthly payment records are preserved for reference and are not counted again in the shift-based total.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이전에 입력한 월별 수령 기록은 참고용으로 보존하며, 근무별 합계에 중복 반영하지 않습니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
