@@ -8,6 +8,7 @@ struct WorkFinanceView: View {
     @Query private var receivedPay: [ReceivedPayRecord]
     @State private var editingSessionID: UUID?
     @State private var receiptAmount = ""
+    @State private var bonusInclusion: BonusInclusion = .unknown
     @State private var receiptError: String?
     enum Screen { case pay, strategy }
     let screen: Screen
@@ -63,11 +64,51 @@ struct WorkFinanceView: View {
             .sorted { $0.createdAt < $1.createdAt }
     }
 
+    /// Weekly awards are associated with the last completed shift in the
+    /// qualifying week. This is an estimate, not a verified bank payment date.
+    private var weeklyBonusGrossBySession: [UUID: Decimal] {
+        var result: [UUID: Decimal] = [:]
+        for workplace in workplaces {
+            var calendar = Calendar.current
+            calendar.firstWeekday = workplace.weekStartWeekday
+            let awards = WorkIncentiveCalculator.awards(
+                sessions: sessions, rules: rules, workplace: workplace, calendar: calendar
+            )
+            for award in awards {
+                guard let rule = rules.first(where: { $0.id == award.ruleID }),
+                      rule.period == .weekly,
+                      let week = calendar.dateInterval(of: .weekOfYear, for: award.periodStart),
+                      let lastShift = sessions.filter({
+                          $0.workplaceID == workplace.id && $0.status == .completed &&
+                          week.contains($0.startAt)
+                      }).max(by: { $0.startAt < $1.startAt }) else { continue }
+                result[lastShift.id, default: 0] += award.amount
+            }
+        }
+        return result
+    }
+
+    private var weeklyBonusNetBySession: [UUID: Decimal] {
+        weeklyBonusGrossBySession.mapValues { gross in
+            EstimatedTakeHomeCalculator.calculate(gross: gross, shifts: []).net
+        }
+    }
+
+    private var bonusInclusionBySession: [UUID: BonusInclusion] {
+        var result: [UUID: BonusInclusion] = [:]
+        for receipt in receivedPay where receipt.basis == .net {
+            if let id = receipt.sessionID { result[id] = receipt.bonusInclusion }
+        }
+        return result
+    }
+
     private var reconciledNet: Decimal {
         ActualPayReconciliation.total(
             estimatedMonthlyNet: estimatedTakeHome.net,
             shiftGross: audit.entries.map { (id: $0.id, gross: $0.grossTotal) },
-            actualBySession: actualBySession
+            actualBySession: actualBySession,
+            bonusNetBySession: weeklyBonusNetBySession,
+            bonusInclusionBySession: bonusInclusionBySession
         )
     }
 
@@ -173,6 +214,7 @@ struct WorkFinanceView: View {
                                             NSDecimalNumber(decimal: $0).stringValue
                                         } ?? ""
                                         receiptError = nil
+                                        bonusInclusion = bonusInclusionBySession[item.id] ?? .unknown
                                     }
                                     .buttonStyle(.bordered)
                                     Divider()
@@ -302,6 +344,22 @@ struct WorkFinanceView: View {
                 Form {
                     TextField("Actual received (KRW)", text: $receiptAmount)
                         .keyboardType(.numberPad)
+                    if let id = editingSessionID,
+                       let bonus = weeklyBonusGrossBySession[id], bonus > 0 {
+                        Section {
+                            Text("A weekly allowance is estimated for this workweek. Does the entered deposit include it?")
+                            Picker("Weekly allowance included?", selection: $bonusInclusion) {
+                                Text("Yes, included").tag(BonusInclusion.included)
+                                Text("No, paid separately").tag(BonusInclusion.excluded)
+                                Text("Not sure yet").tag(BonusInclusion.unknown)
+                            }
+                            .pickerStyle(.inline)
+                            if bonusInclusion == .unknown {
+                                Text("Bonus inclusion is unconfirmed. The estimated allowance remains in the total until confirmed.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                     if let receiptError {
                         Text(LocalizedStringKey(receiptError)).foregroundStyle(.red)
                     }
@@ -341,10 +399,12 @@ struct WorkFinanceView: View {
         if let first = existing.first {
             first.amount = amount
             first.basis = .net
+            first.bonusInclusion = bonusInclusion
             for duplicate in existing.dropFirst() { modelContext.delete(duplicate) }
         } else {
             modelContext.insert(ReceivedPayRecord(monthStart: month, amount: amount,
-                                                   basis: .net, sessionID: id))
+                                                   basis: .net, sessionID: id,
+                                                   bonusInclusion: bonusInclusion))
         }
         do {
             try modelContext.save()
