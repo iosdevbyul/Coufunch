@@ -8,12 +8,24 @@ enum ReceivedPayBasis: String, Codable, CaseIterable {
     case net
 }
 
+enum BonusInclusion: String, Codable, CaseIterable {
+    case unknown
+    case included
+    case excluded
+}
+
 @Model
 final class ReceivedPayRecord {
     @Attribute(.unique) var id: UUID
     var monthStart: Date
     var workplaceID: UUID?
     var sessionID: UUID?
+    var bonusInclusionRaw: String = "unknown"
+
+    var bonusInclusion: BonusInclusion {
+        get { BonusInclusion(rawValue: bonusInclusionRaw) ?? .unknown }
+        set { bonusInclusionRaw = newValue.rawValue }
+    }
     var amount: Decimal
     var basisRaw: String
     var note: String
@@ -25,11 +37,13 @@ final class ReceivedPayRecord {
     }
 
     init(id: UUID = UUID(), monthStart: Date, workplaceID: UUID? = nil,
-         amount: Decimal, basis: ReceivedPayBasis, note: String = "", sessionID: UUID? = nil) {
+         amount: Decimal, basis: ReceivedPayBasis, note: String = "", sessionID: UUID? = nil,
+         bonusInclusion: BonusInclusion = .unknown) {
         self.id = id
         self.monthStart = monthStart
         self.workplaceID = workplaceID
         self.sessionID = sessionID
+        self.bonusInclusionRaw = bonusInclusion.rawValue
         self.amount = amount
         self.basisRaw = basis.rawValue
         self.note = note
