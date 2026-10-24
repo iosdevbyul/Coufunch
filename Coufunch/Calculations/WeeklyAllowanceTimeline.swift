@@ -43,10 +43,9 @@ enum WeeklyAllowanceTimeline {
                     receipts.filter { $0.sessionID == shift.id && $0.basis == .net }
                         .max(by: { $0.createdAt < $1.createdAt })
                 }
-                let expected = lastShift.flatMap {
-                    PaydayReminderDate.nextBusinessDay(
-                        after: $0.startAt, holidays: holidays, loadedYears: loadedYears)
-                }
+                // The employer's bonus payment policy is not yet configured.
+                // Do not infer a bonus payday from the final shift's daily payday.
+                let expected: Date? = nil
                 result.append(WeeklyAllowanceTimelineEntry(
                     id: "\(workplace.id.uuidString)-\(award.ruleID.uuidString)-\(award.periodStart.timeIntervalSince1970)",
                     workplaceName: workplace.name,
