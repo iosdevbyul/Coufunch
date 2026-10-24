@@ -30,6 +30,8 @@ final class ReceivedPayRecord {
     var basisRaw: String
     var note: String
     var createdAt: Date
+    // Nil for historical records where the actual bank deposit date was not recorded.
+    var depositedAt: Date?
 
     var basis: ReceivedPayBasis {
         get { ReceivedPayBasis(rawValue: basisRaw) ?? .net }
@@ -38,7 +40,7 @@ final class ReceivedPayRecord {
 
     init(id: UUID = UUID(), monthStart: Date, workplaceID: UUID? = nil,
          amount: Decimal, basis: ReceivedPayBasis, note: String = "", sessionID: UUID? = nil,
-         bonusInclusion: BonusInclusion = .unknown) {
+         bonusInclusion: BonusInclusion = .unknown, depositedAt: Date? = nil) {
         self.id = id
         self.monthStart = monthStart
         self.workplaceID = workplaceID
@@ -48,5 +50,6 @@ final class ReceivedPayRecord {
         self.basisRaw = basis.rawValue
         self.note = note
         self.createdAt = .now
+        self.depositedAt = depositedAt
     }
 }
