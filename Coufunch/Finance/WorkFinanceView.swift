@@ -114,6 +114,8 @@ struct WorkFinanceView: View {
                             Text(money(reconciledNet))
                                 .font(.title2.bold())
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
+                            Text("Entered actual deposits replace estimates for those shifts; other shifts remain estimated.")
+                                .font(.caption).foregroundStyle(.secondary)
                             Text("Estimated using the 2026 employee social insurance rate (9.717383%). Actual deductions, tax, and eligibility may differ.")
                                 .font(.caption).foregroundStyle(.secondary)
                             row("Completed days", "\(summary.completedDays)")
