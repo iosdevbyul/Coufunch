@@ -8,8 +8,6 @@ struct WorkFinanceView: View {
     @Query private var receivedPay: [ReceivedPayRecord]
     @State private var editingSessionID: UUID?
     @State private var receiptAmount = ""
-    @State private var receiptBasis: ReceivedPayBasis = .net
-    @State private var receiptNote = ""
     @State private var receiptError: String?
     enum Screen { case pay, strategy }
     let screen: Screen
@@ -57,6 +55,12 @@ struct WorkFinanceView: View {
             if let id = record.sessionID { result[id] = record.amount }
         }
         return result
+    }
+
+    private var legacyReceipts: [ReceivedPayRecord] {
+        guard let interval = Calendar.current.dateInterval(of: .month, for: selectedMonth) else { return [] }
+        return receivedPay.filter { $0.sessionID == nil && interval.contains($0.monthStart) }
+            .sorted { $0.createdAt < $1.createdAt }
     }
 
     private var reconciledNet: Decimal {
@@ -196,6 +200,28 @@ struct WorkFinanceView: View {
                             if forecast.unpricedCount > 0 {
                                 Text(String(format: String(localized: "%d shift(s) without sufficient pay data."), forecast.unpricedCount))
                                     .font(.caption).foregroundStyle(.orange)
+                            }
+                        }
+                    }
+
+                    if !legacyReceipts.isEmpty {
+                        CoufunchCard {
+                            VStack(alignment: .leading, spacing: WakSpacing.medium) {
+                                Text("Previous Payment Records").font(WakTypography.screenTitle)
+                                Text("Older monthly payment records are preserved for reference and are not counted again in the shift-based total.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                ForEach(legacyReceipts) { receipt in
+                                    HStack {
+                                        Text(receipt.monthStart, format: .dateTime.year().month())
+                                        Spacer()
+                                        Text(money(receipt.amount))
+                                        Text(receipt.basis == .net ? "Net" : "Gross")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    if !receipt.note.isEmpty {
+                                        Text(receipt.note).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
                             }
                         }
                     }
