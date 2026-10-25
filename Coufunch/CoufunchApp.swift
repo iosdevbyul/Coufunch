@@ -58,8 +58,8 @@ private struct CoufunchRootView: View {
                         await holidayStore.load(year: year + 1)
                         await PaydayReminderScheduler.synchronize(
                             sessions: sessions, holidays: holidayStore.dates,
-                            loadedYears: holidayStore.loadedYears,
-                            workplaces: workplaces, rules: rules
+                            workplaces: workplaces, rules: rules,
+                            loadedYears: holidayStore.loadedYears
                         )
                     }
                 }
