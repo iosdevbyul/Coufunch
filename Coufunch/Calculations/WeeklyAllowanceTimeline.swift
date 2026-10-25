@@ -12,7 +12,7 @@ struct WeeklyAllowanceTimelineEntry: Identifiable {
 }
 
 /// Read-only payment timeline. Earned dates and bank deposit dates are separate.
-/// An expected payday is shown only when verified holiday-year data is loaded.
+/// Six-day special allowances use the following Tuesday; other awards remain unconfigured.
 enum WeeklyAllowanceTimeline {
     static func entries(
         sessions: [WorkSession],
@@ -46,7 +46,10 @@ enum WeeklyAllowanceTimeline {
                 }
                 // The employer's bonus payment policy is not yet configured.
                 // Do not infer a bonus payday from the final shift's daily payday.
-                let expected: Date? = nil
+                let expected: Date? = rule.requiredAttendanceDays == 6
+                    ? SpecialAllowancePayday.followingTuesday(
+                        weekStart: award.periodStart, calendar: calendar)
+                    : nil
                 let awardID = "\(workplace.id.uuidString)-\(award.ruleID.uuidString)-\(award.periodStart.timeIntervalSince1970)"
                 let separateReceipt = receipts.filter {
                     $0.allowanceAwardID == awardID && $0.basis == .net
