@@ -3010,6 +3010,36 @@
           }
         }
       }
+    },
+    "Employment Context Month": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고용 정보 적용 월"
+          }
+        }
+      }
+    },
+    "Employment answers are stored separately for each workplace and month. Previous global answers are not reused.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고용 정보는 사업장과 월별로 따로 저장됩니다. 이전 공통 설정값은 자동으로 적용하지 않습니다."
+          }
+        }
+      }
+    },
+    "Employment answers are stored by workplace and month. Confirm actual insurance enrollment with the employer.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고용 정보는 사업장·월별로 저장됩니다. 실제 보험 가입 여부는 사업장에 확인하세요."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
