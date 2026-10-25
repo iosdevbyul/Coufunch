@@ -65,7 +65,7 @@ struct WorkFinanceView: View {
 
     private var legacyReceipts: [ReceivedPayRecord] {
         guard let interval = Calendar.current.dateInterval(of: .month, for: selectedMonth) else { return [] }
-        return receivedPay.filter { $0.sessionID == nil && interval.contains($0.monthStart) }
+        return receivedPay.filter { $0.sessionID == nil && $0.allowanceAwardID == nil && interval.contains($0.monthStart) }
             .sorted { $0.createdAt < $1.createdAt }
     }
 
@@ -325,6 +325,7 @@ struct WorkFinanceView: View {
                                             allowanceError = nil
                                         }
                                         .buttonStyle(.bordered)
+                                        .disabled(item.inclusion == .included)
                                     }
                                     Divider()
                                 }
