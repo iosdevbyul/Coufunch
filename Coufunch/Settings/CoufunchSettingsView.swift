@@ -15,6 +15,8 @@ struct CoufunchSettingsView: View {
     @AppStorage("insurance.healthEnrollment") private var healthEnrollment = "unknown"
     @AppStorage("insurance.pensionBase") private var pensionBase = ""
     @AppStorage("insurance.healthBase") private var healthBase = ""
+    @AppStorage("insurance.previousMonthEmployment") private var previousMonthEmployment = "unknown"
+    @AppStorage("insurance.startedOnFirstDay") private var startedOnFirstDay = "unknown"
 
     var body: some View {
         Form {
@@ -60,6 +62,18 @@ struct CoufunchSettingsView: View {
                     Text("Enrolled").tag("enrolled")
                     Text("Not Enrolled").tag("notEnrolled")
                 }
+                Picker("Employed in Previous Month", selection: $previousMonthEmployment) {
+                    Text("Unknown").tag("unknown")
+                    Text("Yes").tag("yes")
+                    Text("No").tag("no")
+                }
+                Picker("Started Employment on Day One", selection: $startedOnFirstDay) {
+                    Text("Unknown").tag("unknown")
+                    Text("Yes").tag("yes")
+                    Text("No").tag("no")
+                }
+                Text("These answers help screen health insurance eligibility using completed attendance days. Confirm your enrollment with your employer.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 Picker("Health Insurance Enrollment", selection: $healthEnrollment) {
                     Text("Unknown").tag("unknown")
                     Text("Enrolled").tag("enrolled")

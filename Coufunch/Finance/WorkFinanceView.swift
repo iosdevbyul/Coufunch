@@ -29,6 +29,8 @@ struct WorkFinanceView: View {
     @AppStorage("insurance.healthEnrollment") private var healthEnrollment = "unknown"
     @AppStorage("insurance.pensionBase") private var pensionBase = ""
     @AppStorage("insurance.healthBase") private var healthBase = ""
+    @AppStorage("insurance.previousMonthEmployment") private var previousMonthEmployment = "unknown"
+    @AppStorage("insurance.startedOnFirstDay") private var startedOnFirstDay = "unknown"
     @State private var simulationWorkplaceID: UUID?
     @State private var simulationDate = Date()
 
@@ -37,6 +39,26 @@ struct WorkFinanceView: View {
             breaks: breaks, workplaces: workplaces, settings: settings,
             rules: rules, manual: manual, calendar: .current,
             holidayDates: holidayStore.dates)
+    }
+
+    private var healthEligibilityPreview: [MonthlyHealthEligibilityResult] {
+        func answer(_ raw: String) -> Bool? {
+            switch raw {
+            case "yes": return true
+            case "no": return false
+            default: return nil
+            }
+        }
+        return workplaces.map { workplace in
+            MonthlyHealthEligibilityScreening.evaluate(
+                month: selectedMonth,
+                workplaceID: workplace.id,
+                sessions: sessions,
+                employedPreviousMonth: answer(previousMonthEmployment),
+                startedOnFirstDay: answer(startedOnFirstDay),
+                calendar: .current
+            )
+        }
     }
 
     private var insurancePreview: DailyWorkerInsuranceBreakdown {
@@ -217,6 +239,18 @@ struct WorkFinanceView: View {
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
                             Divider()
                             Text("Insurance Profile Preview").font(.headline)
+                            ForEach(Array(healthEligibilityPreview.enumerated()), id: \.offset) { item in
+                                HStack {
+                                    Text("Health Eligibility Screening")
+                                    Spacer()
+                                    Text("\(item.element.attendanceDays) days")
+                                    Text(item.element.screening == .enrolled ? "Likely eligible" :
+                                         item.element.screening == .notEnrolled ? "Not eligible by screening" : "Needs confirmation")
+                                }
+                                .font(.caption)
+                            }
+                            Text("Screening is informational and does not override employer-confirmed enrollment.")
+                                .font(.caption).foregroundStyle(.secondary)
                             row("Employment Insurance", money(insurancePreview.employment))
                             if let pension = insurancePreview.pension {
                                 row("National Pension", money(pension))
