@@ -2600,6 +2600,86 @@
           }
         }
       }
+    },
+    "Separately received allowance (net)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "별도 입금된 주휴수당(실수령)"
+          }
+        }
+      }
+    },
+    "Record Separate Allowance": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "별도 주휴수당 입력"
+          }
+        }
+      }
+    },
+    "Edit Separate Allowance": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "별도 주휴수당 수정"
+          }
+        }
+      }
+    },
+    "Separate allowance received (KRW)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "별도 주휴수당 수령액(원)"
+          }
+        }
+      }
+    },
+    "Enter the net amount actually deposited separately. This replaces the estimated net allowance in its earned month.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "별도로 입금된 실제 실수령액을 입력하세요. 발생 월의 예상 주휴수당 실수령액을 대체합니다."
+          }
+        }
+      }
+    },
+    "Remove Separate Allowance": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "별도 주휴수당 삭제"
+          }
+        }
+      }
+    },
+    "Separate Weekly Allowance": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "별도 주휴수당"
+          }
+        }
+      }
+    },
+    "Enter a valid amount. Allowance already included in a shift cannot be recorded separately.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "올바른 금액을 입력하세요. 일급에 포함된 주휴수당은 별도로 입력할 수 없습니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

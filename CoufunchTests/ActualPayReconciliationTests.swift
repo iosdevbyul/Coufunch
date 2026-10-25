@@ -103,6 +103,7 @@ final class ActualPayRecordContinuityTests: XCTestCase {
         let store = directory.appendingPathComponent("Payments.sqlite")
         let sessionID = UUID()
         let depositDate = Date(timeIntervalSince1970: 1_781_234_567)
+        let awardID = "test-workplace-test-rule-2026-week"
         let month = Date(timeIntervalSince1970: 1_780_000_000)
 
         do {
@@ -114,17 +115,22 @@ final class ActualPayRecordContinuityTests: XCTestCase {
             context.insert(ReceivedPayRecord(monthStart: month,
                 amount: 97_850, basis: .net, sessionID: sessionID,
                 depositedAt: depositDate))
+            context.insert(ReceivedPayRecord(monthStart: month,
+                amount: 72_220, basis: .net, depositedAt: depositDate,
+                allowanceAwardID: awardID))
             try context.save()
         }
         do {
             let container = try ModelContainer(for: schema,
                 configurations: [ModelConfiguration(schema: schema, url: store)])
             let records = try container.mainContext.fetch(FetchDescriptor<ReceivedPayRecord>())
-            XCTAssertEqual(records.count, 2)
+            XCTAssertEqual(records.count, 3)
             XCTAssertEqual(records.first(where: { $0.sessionID == nil })?.note, "Legacy bank deposit")
             XCTAssertEqual(records.first(where: { $0.sessionID == sessionID })?.amount, 97_850)
             XCTAssertEqual(records.first(where: { $0.sessionID == sessionID })?.depositedAt, depositDate)
-            XCTAssertNil(records.first(where: { $0.sessionID == nil })?.depositedAt)
+            XCTAssertNil(records.first(where: { $0.sessionID == nil && $0.allowanceAwardID == nil })?.depositedAt)
+            XCTAssertEqual(records.first(where: { $0.allowanceAwardID == awardID })?.amount, 72_220)
+            XCTAssertEqual(records.first(where: { $0.allowanceAwardID == awardID })?.depositedAt, depositDate)
         }
     }
 }

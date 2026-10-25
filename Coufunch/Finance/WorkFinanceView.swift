@@ -7,6 +7,10 @@ struct WorkFinanceView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var receivedPay: [ReceivedPayRecord]
     @State private var editingSessionID: UUID?
+    @State private var editingAllowanceID: String?
+    @State private var allowanceAmount = ""
+    @State private var allowanceDepositDate = Date()
+    @State private var allowanceError: String?
     @State private var receiptAmount = ""
     @State private var depositDate = Date()
     @State private var bonusInclusion: BonusInclusion = .unknown
@@ -61,7 +65,7 @@ struct WorkFinanceView: View {
 
     private var legacyReceipts: [ReceivedPayRecord] {
         guard let interval = Calendar.current.dateInterval(of: .month, for: selectedMonth) else { return [] }
-        return receivedPay.filter { $0.sessionID == nil && interval.contains($0.monthStart) }
+        return receivedPay.filter { $0.sessionID == nil && $0.allowanceAwardID == nil && interval.contains($0.monthStart) }
             .sorted { $0.createdAt < $1.createdAt }
     }
 
@@ -121,13 +125,22 @@ struct WorkFinanceView: View {
     }
 
     private var reconciledNet: Decimal {
-        ActualPayReconciliation.total(
+        let reconciled = ActualPayReconciliation.total(
             estimatedMonthlyNet: estimatedTakeHome.net,
             shiftGross: audit.entries.map { (id: $0.id, gross: $0.grossTotal) },
             actualBySession: actualBySession,
             bonusNetBySession: weeklyBonusNetBySession,
             bonusInclusionBySession: bonusInclusionBySession
         )
+        // A separate deposit replaces the estimated net allowance; it is not
+        // added on top of the existing monthly estimate.
+        return weeklyAllowanceTimeline.reduce(reconciled) { sum, item in
+            guard let actual = item.separatelyReceivedNet,
+                  item.inclusion != .included else { return sum }
+            let estimated = EstimatedTakeHomeCalculator.calculate(
+                gross: item.amount, shifts: []).net
+            return sum - estimated + actual
+        }
     }
 
     private var simulationResult: WorkdaySimulationResult? {
@@ -289,6 +302,9 @@ struct WorkFinanceView: View {
                                             Text(item.earnedAt, format: .dateTime.year().month().day())
                                         }
                                         .font(.subheadline)
+                                        if let separate = item.separatelyReceivedNet {
+                                            row("Separately received allowance (net)", money(separate))
+                                        }
                                         if let deposited = item.actualDepositAt {
                                             HStack {
                                                 Text("Confirmed included deposit date").foregroundStyle(.secondary)
@@ -302,6 +318,14 @@ struct WorkFinanceView: View {
                                                  : "Allowance deposit date is unconfirmed.")
                                                 .font(.caption).foregroundStyle(.secondary)
                                         }
+                                        Button(item.separatelyReceivedNet == nil ? "Record Separate Allowance" : "Edit Separate Allowance") {
+                                            editingAllowanceID = item.id
+                                            allowanceAmount = item.separatelyReceivedNet.map { NSDecimalNumber(decimal: $0).stringValue } ?? ""
+                                            allowanceDepositDate = receivedPay.first(where: { $0.allowanceAwardID == item.id })?.depositedAt ?? Date()
+                                            allowanceError = nil
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .disabled(item.inclusion == .included)
                                     }
                                     Divider()
                                 }
@@ -444,6 +468,39 @@ struct WorkFinanceView: View {
                 }
             }
         }
+        .sheet(isPresented: Binding(
+            get: { editingAllowanceID != nil },
+            set: { if !$0 { editingAllowanceID = nil } }
+        )) {
+            NavigationStack {
+                Form {
+                    TextField("Separate allowance received (KRW)", text: $allowanceAmount)
+                        .keyboardType(.numberPad)
+                    DatePicker("Bank deposit date", selection: $allowanceDepositDate,
+                               displayedComponents: .date)
+                    Text("Enter the net amount actually deposited separately. This replaces the estimated net allowance in its earned month.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    if let allowanceError {
+                        Text(LocalizedStringKey(allowanceError)).foregroundStyle(.red)
+                    }
+                    if let id = editingAllowanceID,
+                       receivedPay.contains(where: { $0.allowanceAwardID == id }) {
+                        Button("Remove Separate Allowance", role: .destructive) {
+                            removeSeparateAllowance()
+                        }
+                    }
+                }
+                .navigationTitle("Separate Weekly Allowance")
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Cancel") { editingAllowanceID = nil }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Save") { saveSeparateAllowance() }
+                    }
+                }
+            }
+        }
         .onAppear { simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id }
         .task(id: Calendar.current.component(.year, from: selectedMonth)) {
             let year = Calendar.current.component(.year, from: selectedMonth)
@@ -494,6 +551,52 @@ struct WorkFinanceView: View {
         } catch {
             modelContext.rollback()
             receiptError = "Unable to delete the payment record."
+        }
+    }
+
+    private func saveSeparateAllowance() {
+        guard let id = editingAllowanceID,
+              let item = weeklyAllowanceTimeline.first(where: { $0.id == id }),
+              item.inclusion != .included,
+              let amount = Decimal(string: allowanceAmount, locale: Locale(identifier: "en_US_POSIX")),
+              amount >= 0,
+              let month = Calendar.current.dateInterval(of: .month, for: item.earnedAt)?.start else {
+            allowanceError = "Enter a valid amount. Allowance already included in a shift cannot be recorded separately."
+            return
+        }
+        let existing = receivedPay.filter { $0.allowanceAwardID == id }
+        if let first = existing.first {
+            first.amount = amount
+            first.depositedAt = allowanceDepositDate
+            first.basis = .net
+            for duplicate in existing.dropFirst() { modelContext.delete(duplicate) }
+        } else {
+            modelContext.insert(ReceivedPayRecord(
+                monthStart: month, amount: amount, basis: .net,
+                depositedAt: allowanceDepositDate, allowanceAwardID: id))
+        }
+        do {
+            try modelContext.save()
+            editingAllowanceID = nil
+            allowanceError = nil
+        } catch {
+            modelContext.rollback()
+            allowanceError = "Unable to save the payment record."
+        }
+    }
+
+    private func removeSeparateAllowance() {
+        guard let id = editingAllowanceID else { return }
+        for record in receivedPay where record.allowanceAwardID == id {
+            modelContext.delete(record)
+        }
+        do {
+            try modelContext.save()
+            editingAllowanceID = nil
+            allowanceError = nil
+        } catch {
+            modelContext.rollback()
+            allowanceError = "Unable to delete the payment record."
         }
     }
 
