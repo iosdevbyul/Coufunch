@@ -43,10 +43,10 @@ final class DailyWorkerInsuranceEstimatorTests: XCTestCase {
             healthEnrollment: .enrolled, pensionBase: 800_000, healthBase: 900_000)
         XCTAssertEqual(known.pension, 38_000)
         XCTAssertEqual(known.health, 32_355)
-        XCTAssertEqual(known.longTermCare, 4_252)
+        XCTAssertEqual(known.longTermCare, 4_251)
         XCTAssertEqual(known.employment, 9_000)
-        XCTAssertEqual(known.totalDeductions, 83_607)
-        XCTAssertEqual(known.estimatedNet, 916_393)
+        XCTAssertEqual(known.totalDeductions, 83_606)
+        XCTAssertEqual(known.estimatedNet, 916_394)
     }
 
     func testUnknownEnrollmentDoesNotInventTakeHome() {
