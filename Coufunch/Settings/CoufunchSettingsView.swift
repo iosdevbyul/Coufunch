@@ -99,7 +99,7 @@ struct CoufunchSettingsView: View {
         await holidays.load(year: year)
         await holidays.load(year: year + 1)
         await PaydayReminderScheduler.synchronize(sessions: sessions,
-            holidays: holidays.dates, loadedYears: holidays.loadedYears,
-            workplaces: workplaces, rules: rules)
+            holidays: holidays.dates, workplaces: workplaces, rules: rules,
+            loadedYears: holidays.loadedYears)
     }
 }
