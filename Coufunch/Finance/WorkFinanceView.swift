@@ -41,7 +41,13 @@ struct WorkFinanceView: View {
             holidayDates: holidayStore.dates)
     }
 
-    private var healthEligibilityPreview: [MonthlyHealthEligibilityResult] {
+    private struct WorkplaceHealthScreening: Identifiable {
+        let id: UUID
+        let workplaceName: String
+        let result: MonthlyHealthEligibilityResult
+    }
+
+    private var healthEligibilityPreview: [WorkplaceHealthScreening] {
         func answer(_ raw: String) -> Bool? {
             switch raw {
             case "yes": return true
@@ -50,7 +56,7 @@ struct WorkFinanceView: View {
             }
         }
         return workplaces.map { workplace in
-            MonthlyHealthEligibilityScreening.evaluate(
+            let result = MonthlyHealthEligibilityScreening.evaluate(
                 month: selectedMonth,
                 workplaceID: workplace.id,
                 sessions: sessions,
@@ -58,6 +64,7 @@ struct WorkFinanceView: View {
                 startedOnFirstDay: answer(startedOnFirstDay),
                 calendar: .current
             )
+            return WorkplaceHealthScreening(id: workplace.id, workplaceName: workplace.name, result: result)
         }
     }
 
@@ -239,17 +246,21 @@ struct WorkFinanceView: View {
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
                             Divider()
                             Text("Insurance Profile Preview").font(.headline)
-                            ForEach(Array(healthEligibilityPreview.enumerated()), id: \.offset) { item in
-                                HStack {
-                                    Text("Health Eligibility Screening")
-                                    Spacer()
-                                    Text("\(item.element.attendanceDays) days")
-                                    Text(item.element.screening == .enrolled ? "Likely eligible" :
-                                         item.element.screening == .notEnrolled ? "Not eligible by screening" : "Needs confirmation")
+                            ForEach(healthEligibilityPreview) { item in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(item.workplaceName).font(.subheadline.bold())
+                                    HStack {
+                                        Text("Health Eligibility Screening")
+                                        Spacer()
+                                        Text("\(item.result.attendanceDays) days")
+                                    }
+                                    Text(item.result.screening == .enrolled ? "Likely eligible" :
+                                         item.result.screening == .notEnrolled ? "Not eligible by screening" : "Needs confirmation")
+                                        .foregroundStyle(.secondary)
                                 }
                                 .font(.caption)
                             }
-                            Text("Screening is informational and does not override employer-confirmed enrollment.")
+                            Text("Employment answers are shared across workplaces and months. Confirm each workplace's employment history and actual enrollment with the employer.")
                                 .font(.caption).foregroundStyle(.secondary)
                             row("Employment Insurance", money(insurancePreview.employment))
                             if let pension = insurancePreview.pension {
