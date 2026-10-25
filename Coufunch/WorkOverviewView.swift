@@ -9,6 +9,7 @@ struct WorkOverviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var workBreaks: [WorkBreak]
     @Query private var sessions: [WorkSession]
+    @Query private var rules: [IncentiveRule]
     @Query private var workplaces: [Workplace]
     @State private var displayedMonth = Date()
     @State private var selectedDate: Date?
@@ -47,6 +48,7 @@ struct WorkOverviewView: View {
         await holidayStore.load(year: year + 1)
         await PaydayReminderScheduler.synchronize(
             sessions: sessions, holidays: holidayStore.dates,
+            workplaces: workplaces, rules: rules,
             loadedYears: holidayStore.loadedYears
         )
     }

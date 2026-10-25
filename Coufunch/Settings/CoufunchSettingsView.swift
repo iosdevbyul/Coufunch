@@ -7,6 +7,7 @@ struct CoufunchSettingsView: View {
     @AppStorage("paydayRemindersEnabled") private var remindersEnabled = false
     @StateObject private var holidays = KoreanPublicHolidayStore()
     @Query private var sessions: [WorkSession]
+    @Query private var rules: [IncentiveRule]
     @State private var isUpdating = false
     @State private var permissionMessage: String?
     @State private var weeklyStartError: String?
@@ -98,6 +99,7 @@ struct CoufunchSettingsView: View {
         await holidays.load(year: year)
         await holidays.load(year: year + 1)
         await PaydayReminderScheduler.synchronize(sessions: sessions,
-            holidays: holidays.dates, loadedYears: holidays.loadedYears)
+            holidays: holidays.dates, workplaces: workplaces, rules: rules,
+            loadedYears: holidays.loadedYears)
     }
 }

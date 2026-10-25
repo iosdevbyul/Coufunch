@@ -290,7 +290,7 @@ struct WorkFinanceView: View {
                         CoufunchCard {
                             VStack(alignment: .leading, spacing: WakSpacing.medium) {
                                 Text("Weekly Allowance Timeline").font(WakTypography.screenTitle)
-                                Text("Earned date is not the bank payment date. An expected allowance payday is unavailable until an employer payment rule is configured.")
+                                Text("Earned date and actual deposit date are separate. Six-day special allowances are expected the following Tuesday.")
                                     .font(.caption).foregroundStyle(.secondary)
                                 ForEach(weeklyAllowanceTimeline) { item in
                                     VStack(alignment: .leading, spacing: 5) {
@@ -304,6 +304,14 @@ struct WorkFinanceView: View {
                                         .font(.subheadline)
                                         if let separate = item.separatelyReceivedNet {
                                             row("Separately received allowance (net)", money(separate))
+                                        }
+                                        if let expected = item.expectedPaymentAt {
+                                            HStack {
+                                                Text("Expected special allowance payday").foregroundStyle(.secondary)
+                                                Spacer()
+                                                Text(expected, format: .dateTime.year().month().day())
+                                            }
+                                            .font(.subheadline)
                                         }
                                         if let deposited = item.actualDepositAt {
                                             HStack {
