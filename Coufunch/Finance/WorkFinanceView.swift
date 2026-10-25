@@ -239,13 +239,13 @@ struct WorkFinanceView: View {
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
                             Divider()
                             Text("Insurance Profile Preview").font(.headline)
-                            ForEach(Array(healthEligibilityPreview.enumerated()), id: \.offset) { _, result in
+                            ForEach(Array(healthEligibilityPreview.enumerated()), id: \.offset) { item in
                                 HStack {
                                     Text("Health Eligibility Screening")
                                     Spacer()
-                                    Text("\(result.attendanceDays) days")
-                                    Text(result.screening == .enrolled ? "Likely eligible" :
-                                         result.screening == .notEnrolled ? "Not eligible by screening" : "Needs confirmation")
+                                    Text("\(item.element.attendanceDays) days")
+                                    Text(item.element.screening == .enrolled ? "Likely eligible" :
+                                         item.element.screening == .notEnrolled ? "Not eligible by screening" : "Needs confirmation")
                                 }
                                 .font(.caption)
                             }
