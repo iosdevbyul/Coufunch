@@ -188,8 +188,6 @@ private struct WorkplaceEmploymentContextEditor: View {
         .onChange(of: firstDay) { _, value in
             if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: firstDayKey) }
         }
-    }
-
         .onChange(of: pensionEnrollment) { _, value in
             if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.pensionEnrollment)) }
         }
@@ -202,6 +200,7 @@ private struct WorkplaceEmploymentContextEditor: View {
         .onChange(of: healthBase) { _, value in
             if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.healthBase)) }
         }
+    }
 
     private func load() {
         loadedMonthKey = ""
