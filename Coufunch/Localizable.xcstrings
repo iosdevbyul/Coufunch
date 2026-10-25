@@ -2900,6 +2900,106 @@
           }
         }
       }
+    },
+    "Employed in Previous Month": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전월 고용 여부"
+          }
+        }
+      }
+    },
+    "Started Employment on Day One": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "해당 월 1일 입사 여부"
+          }
+        }
+      }
+    },
+    "Yes": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예"
+          }
+        }
+      }
+    },
+    "No": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "아니요"
+          }
+        }
+      }
+    },
+    "These answers help screen health insurance eligibility using completed attendance days. Confirm your enrollment with your employer.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완료된 근무일수와 고용 정보를 바탕으로 건강보험 가입 조건을 검토합니다. 실제 가입 여부는 사업장에 확인하세요."
+          }
+        }
+      }
+    },
+    "Health Eligibility Screening": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "건강보험 가입 조건 검토"
+          }
+        }
+      }
+    },
+    "Likely eligible": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "가입 조건 충족 예상"
+          }
+        }
+      }
+    },
+    "Not eligible by screening": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "가입 조건 미충족 예상"
+          }
+        }
+      }
+    },
+    "Needs confirmation": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확인 필요"
+          }
+        }
+      }
+    },
+    "Screening is informational and does not override employer-confirmed enrollment.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 결과는 참고용이며 사업장에서 확인된 실제 가입 상태를 대체하지 않습니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
