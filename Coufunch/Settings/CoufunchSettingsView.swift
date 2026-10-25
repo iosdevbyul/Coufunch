@@ -11,10 +11,6 @@ struct CoufunchSettingsView: View {
     @State private var isUpdating = false
     @State private var permissionMessage: String?
     @State private var weeklyStartError: String?
-    @AppStorage("insurance.pensionEnrollment") private var pensionEnrollment = "unknown"
-    @AppStorage("insurance.healthEnrollment") private var healthEnrollment = "unknown"
-    @AppStorage("insurance.pensionBase") private var pensionBase = ""
-    @AppStorage("insurance.healthBase") private var healthBase = ""
     @State private var employmentMonth = Date()
 
     var body: some View {
@@ -134,6 +130,7 @@ private struct WorkplaceEmploymentContextEditor: View {
     @State private var healthEnrollment = "unknown"
     @State private var pensionBase = ""
     @State private var healthBase = ""
+    @State private var loadedMonthKey = ""
 
     private var previousKey: String {
         EmploymentContextStore.key(
@@ -186,32 +183,34 @@ private struct WorkplaceEmploymentContextEditor: View {
         .onAppear(perform: load)
         .onChange(of: month) { _, _ in load() }
         .onChange(of: previous) { _, value in
-            UserDefaults.standard.set(value, forKey: previousKey)
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: previousKey) }
         }
         .onChange(of: firstDay) { _, value in
-            UserDefaults.standard.set(value, forKey: firstDayKey)
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: firstDayKey) }
         }
     }
 
         .onChange(of: pensionEnrollment) { _, value in
-            UserDefaults.standard.set(value, forKey: insuranceKey(.pensionEnrollment))
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.pensionEnrollment)) }
         }
         .onChange(of: healthEnrollment) { _, value in
-            UserDefaults.standard.set(value, forKey: insuranceKey(.healthEnrollment))
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.healthEnrollment)) }
         }
         .onChange(of: pensionBase) { _, value in
-            UserDefaults.standard.set(value, forKey: insuranceKey(.pensionBase))
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.pensionBase)) }
         }
         .onChange(of: healthBase) { _, value in
-            UserDefaults.standard.set(value, forKey: insuranceKey(.healthBase))
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.healthBase)) }
         }
 
     private func load() {
+        loadedMonthKey = ""
         previous = UserDefaults.standard.string(forKey: previousKey) ?? "unknown"
         firstDay = UserDefaults.standard.string(forKey: firstDayKey) ?? "unknown"
         pensionEnrollment = UserDefaults.standard.string(forKey: insuranceKey(.pensionEnrollment)) ?? "unknown"
         healthEnrollment = UserDefaults.standard.string(forKey: insuranceKey(.healthEnrollment)) ?? "unknown"
         pensionBase = UserDefaults.standard.string(forKey: insuranceKey(.pensionBase)) ?? ""
         healthBase = UserDefaults.standard.string(forKey: insuranceKey(.healthBase)) ?? ""
+        loadedMonthKey = EmploymentContextStore.monthKey(month, calendar: .current)
     }
 }
