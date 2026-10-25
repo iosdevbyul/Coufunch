@@ -29,8 +29,7 @@ struct WorkFinanceView: View {
     @AppStorage("insurance.healthEnrollment") private var healthEnrollment = "unknown"
     @AppStorage("insurance.pensionBase") private var pensionBase = ""
     @AppStorage("insurance.healthBase") private var healthBase = ""
-    @AppStorage("insurance.previousMonthEmployment") private var previousMonthEmployment = "unknown"
-    @AppStorage("insurance.startedOnFirstDay") private var startedOnFirstDay = "unknown"
+
     @State private var simulationWorkplaceID: UUID?
     @State private var simulationDate = Date()
 
@@ -48,20 +47,17 @@ struct WorkFinanceView: View {
     }
 
     private var healthEligibilityPreview: [WorkplaceHealthScreening] {
-        func answer(_ raw: String) -> Bool? {
-            switch raw {
-            case "yes": return true
-            case "no": return false
-            default: return nil
-            }
-        }
         return workplaces.map { workplace in
             let result = MonthlyHealthEligibilityScreening.evaluate(
                 month: selectedMonth,
                 workplaceID: workplace.id,
                 sessions: sessions,
-                employedPreviousMonth: answer(previousMonthEmployment),
-                startedOnFirstDay: answer(startedOnFirstDay),
+                employedPreviousMonth: EmploymentContextStore.previousMonthEmployment(
+                    workplaceID: workplace.id, month: selectedMonth, calendar: .current
+                ),
+                startedOnFirstDay: EmploymentContextStore.startedOnFirstDay(
+                    workplaceID: workplace.id, month: selectedMonth, calendar: .current
+                ),
                 calendar: .current
             )
             return WorkplaceHealthScreening(id: workplace.id, workplaceName: workplace.name, result: result)
@@ -260,7 +256,7 @@ struct WorkFinanceView: View {
                                 }
                                 .font(.caption)
                             }
-                            Text("Employment answers are shared across workplaces and months. Confirm each workplace's employment history and actual enrollment with the employer.")
+                            Text("Employment answers are stored by workplace and month. Confirm actual insurance enrollment with the employer.")
                                 .font(.caption).foregroundStyle(.secondary)
                             row("Employment Insurance", money(insurancePreview.employment))
                             if let pension = insurancePreview.pension {
