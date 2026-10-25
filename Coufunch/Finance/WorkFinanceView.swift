@@ -25,6 +25,10 @@ struct WorkFinanceView: View {
     @Query private var rules: [IncentiveRule]
     @Query private var manual: [ManualIncentive]
     @State private var selectedMonth = Date()
+    @AppStorage("insurance.pensionEnrollment") private var pensionEnrollment = "unknown"
+    @AppStorage("insurance.healthEnrollment") private var healthEnrollment = "unknown"
+    @AppStorage("insurance.pensionBase") private var pensionBase = ""
+    @AppStorage("insurance.healthBase") private var healthBase = ""
     @State private var simulationWorkplaceID: UUID?
     @State private var simulationDate = Date()
 
@@ -33,6 +37,27 @@ struct WorkFinanceView: View {
             breaks: breaks, workplaces: workplaces, settings: settings,
             rules: rules, manual: manual, calendar: .current,
             holidayDates: holidayStore.dates)
+    }
+
+    private var insurancePreview: DailyWorkerInsuranceBreakdown {
+        func enrollment(_ raw: String) -> InsuranceEnrollment {
+            switch raw {
+            case "enrolled": return .enrolled
+            case "notEnrolled": return .notEnrolled
+            default: return .unknown
+            }
+        }
+        func base(_ raw: String) -> Decimal? {
+            guard let value = Decimal(string: raw), value >= 0 else { return nil }
+            return value
+        }
+        return DailyWorkerInsuranceEstimator.estimate(
+            gross: summary.total,
+            pensionEnrollment: enrollment(pensionEnrollment),
+            healthEnrollment: enrollment(healthEnrollment),
+            pensionBase: base(pensionBase),
+            healthBase: base(healthBase)
+        )
     }
 
     private var estimatedTakeHome: EstimatedTakeHomeResult {
@@ -190,6 +215,30 @@ struct WorkFinanceView: View {
                             Text(money(reconciledNet))
                                 .font(.title2.bold())
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
+                            Divider()
+                            Text("Insurance Profile Preview").font(.headline)
+                            row("Employment Insurance", money(insurancePreview.employment))
+                            if let pension = insurancePreview.pension {
+                                row("National Pension", money(pension))
+                            } else {
+                                row("National Pension", "Unknown")
+                            }
+                            if let health = insurancePreview.health,
+                               let care = insurancePreview.longTermCare {
+                                row("Health Insurance", money(health))
+                                row("Long-Term Care Insurance", money(care))
+                            } else {
+                                row("Health Insurance", "Unknown")
+                                row("Long-Term Care Insurance", "Unknown")
+                            }
+                            if let net = insurancePreview.estimatedNet {
+                                row("Profile-Based Estimated Net", money(net))
+                            } else {
+                                Text("Profile-based net estimate unavailable: confirm enrollment and contribution bases in Settings.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Text("Preview only. No income tax included. Recorded deposits and existing reconciliation are unchanged.")
+                                .font(.caption).foregroundStyle(.secondary)
                             Text("Entered actual deposits replace estimates for those shifts; other shifts remain estimated.")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text("Estimated using the 2026 employee social insurance rate (9.717383%). Actual deductions, tax, and eligibility may differ.")
