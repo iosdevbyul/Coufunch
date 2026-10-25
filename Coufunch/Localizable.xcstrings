@@ -2720,6 +2720,186 @@
           }
         }
       }
+    },
+    "Insurance Estimate Profile": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보험료 예상 계산 설정"
+          }
+        }
+      }
+    },
+    "National Pension Enrollment": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국민연금 가입 여부"
+          }
+        }
+      }
+    },
+    "Health Insurance Enrollment": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "건강보험 가입 여부"
+          }
+        }
+      }
+    },
+    "Unknown": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확인되지 않음"
+          }
+        }
+      }
+    },
+    "Enrolled": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "가입"
+          }
+        }
+      }
+    },
+    "Not Enrolled": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "미가입"
+          }
+        }
+      }
+    },
+    "Pension Contribution Base (KRW)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국민연금 기준소득월액 (원)"
+          }
+        }
+      }
+    },
+    "Health Contribution Base (KRW)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "건강보험 보수월액 (원)"
+          }
+        }
+      }
+    },
+    "Insurance Profile Preview": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보험료 예상 내역"
+          }
+        }
+      }
+    },
+    "Employment Insurance": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고용보험"
+          }
+        }
+      }
+    },
+    "National Pension": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국민연금"
+          }
+        }
+      }
+    },
+    "Health Insurance": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "건강보험"
+          }
+        }
+      }
+    },
+    "Long-Term Care Insurance": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "장기요양보험"
+          }
+        }
+      }
+    },
+    "Profile-Based Estimated Net": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 기반 예상 실수령액"
+          }
+        }
+      }
+    },
+    "These settings only affect the separate insurance preview. They do not change recorded bank deposits or existing pay reconciliation.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 설정은 보험료 예상 계산에만 적용되며 실제 입금 기록과 기존 급여 정산에는 영향을 주지 않습니다."
+          }
+        }
+      }
+    },
+    "Enter employer-reported monthly contribution bases. Leave unknown values blank.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사업장에서 신고한 월 보험료 산정 기준액을 입력하세요. 모르면 비워 두세요."
+          }
+        }
+      }
+    },
+    "Profile-based net estimate unavailable: confirm enrollment and contribution bases in Settings.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정에서 보험 가입 여부와 산정 기준액을 확인해야 예상 실수령액을 계산할 수 있습니다."
+          }
+        }
+      }
+    },
+    "Preview only. No income tax included. Recorded deposits and existing reconciliation are unchanged.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예상 계산 전용이며 소득세는 포함되지 않습니다. 실제 입금 내역과 기존 정산은 변경되지 않습니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
