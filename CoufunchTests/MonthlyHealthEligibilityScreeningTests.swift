@@ -49,4 +49,30 @@ final class MonthlyHealthEligibilityScreeningTests: XCTestCase {
         XCTAssertEqual(result.attendanceDays, 7)
         XCTAssertEqual(result.screening, .notEnrolled)
     }
+    func testMonthBoundaryAndEarlyDepartureDoNotInflateAttendance() {
+        let workplaceID = UUID()
+        let month = calendar.date(from: DateComponents(year: 2026, month: 10, day: 1))!
+        let september = calendar.date(from: DateComponents(year: 2026, month: 9, day: 30, hour: 9))!
+        let earlier = WorkSession(
+            workplaceID: workplaceID, startAt: september,
+            endAt: september.addingTimeInterval(8 * 3600), status: .completed
+        )
+        let octoberDays = (1...7).map { session($0, workplaceID: workplaceID) }
+        let earlyStart = calendar.date(from: DateComponents(year: 2026, month: 10, day: 8, hour: 9))!
+        let early = WorkSession(
+            workplaceID: workplaceID, startAt: earlyStart,
+            endAt: earlyStart.addingTimeInterval(3 * 3600),
+            status: .completed,
+            scheduledEndAt: earlyStart.addingTimeInterval(8 * 3600)
+        )
+        let result = MonthlyHealthEligibilityScreening.evaluate(
+            month: month, workplaceID: workplaceID,
+            sessions: [earlier, early] + octoberDays,
+            employedPreviousMonth: true, startedOnFirstDay: nil,
+            calendar: calendar
+        )
+        XCTAssertEqual(result.attendanceDays, 7)
+        XCTAssertEqual(result.screening, .notEnrolled)
+    }
+
 }
