@@ -41,6 +41,7 @@ enum PaydayReminderScheduler {
     }
 
     static func synchronize(sessions: [WorkSession], holidays: Set<String>,
+                            workplaces: [Workplace] = [], rules: [IncentiveRule] = [],
                             loadedYears: Set<Int>, now: Date = .now) async {
         guard UserDefaults.standard.bool(forKey: "paydayRemindersEnabled") else {
             await cancelAll()
@@ -69,8 +70,29 @@ enum PaydayReminderScheduler {
                 let day = calendar.startOfDay(for: due)
                 return (String(Int(day.timeIntervalSince1970)), due)
             }
-        if upcoming.isEmpty {
+        let specialDates = SpecialAllowancePayday.dueDates(
+            sessions: sessions, workplaces: workplaces, rules: rules, calendar: calendar
+        ).filter { $0 > now }
+        if upcoming.isEmpty && specialDates.isEmpty {
             NSLog("Coufunch payday reminders: no eligible future pay dates; check completed shifts and loaded holiday years")
+        }
+        var specialSeen = Set<String>()
+        for due in specialDates.sorted() {
+            let day = calendar.startOfDay(for: due)
+            let key = String(Int(day.timeIntervalSince1970))
+            guard specialSeen.insert(key).inserted else { continue }
+            let content = UNMutableNotificationContent()
+            content.title = String(localized: "Special Allowance Payday")
+            content.body = String(localized: "You worked six days last week. Today is the expected special allowance payday.")
+            content.sound = .default
+            let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: due)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
+            do {
+                try await center.add(UNNotificationRequest(
+                    identifier: prefix + "special." + key, content: content, trigger: trigger))
+            } catch {
+                NSLog("Coufunch special allowance reminder scheduling failed: %@", String(describing: error))
+            }
         }
         // A single reminder per pay date, even if multiple completed shifts map to it.
         var seen = Set<String>()
