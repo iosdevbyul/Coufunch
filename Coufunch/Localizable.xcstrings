@@ -2680,6 +2680,46 @@
           }
         }
       }
+    },
+    "Special Allowance Payday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "특근수당 지급 예정일"
+          }
+        }
+      }
+    },
+    "You worked six days last week. Today is the expected special allowance payday.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지난주에 6일 근무했어요. 오늘은 특근수당이 들어올 예정인 날입니다."
+          }
+        }
+      }
+    },
+    "Earned date and actual deposit date are separate. Six-day special allowances are expected the following Tuesday.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수당 발생일과 실제 입금일은 별도입니다. 주 6일 특근수당은 다음 주 화요일에 지급될 예정입니다."
+          }
+        }
+      }
+    },
+    "Expected special allowance payday": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "특근수당 예상 지급일"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
