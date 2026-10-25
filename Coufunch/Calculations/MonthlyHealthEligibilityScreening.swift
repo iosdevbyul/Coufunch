@@ -20,9 +20,12 @@ enum MonthlyHealthEligibilityScreening {
         guard let interval = calendar.dateInterval(of: .month, for: month) else {
             return MonthlyHealthEligibilityResult(attendanceDays: 0, screening: .unknown)
         }
-        let attendance = WorkAttendance.uniqueDays(
-            of: sessions, workplaceID: workplaceID, calendar: calendar
-        ).filter { interval.contains($0) }
+        // Insurance attendance differs from bonus-qualified attendance:
+        // a completed early-departure shift still represents a worked day.
+        let attendance = Set(sessions.filter {
+            $0.workplaceID == workplaceID && $0.status == .completed &&
+            interval.contains($0.startAt)
+        }.map { calendar.startOfDay(for: $0.startAt) })
         let screening = DailyWorkerHealthEligibility.evaluate(
             DailyWorkerInsuranceContext(
                 month: month,
