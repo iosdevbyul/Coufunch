@@ -11,6 +11,10 @@ struct CoufunchSettingsView: View {
     @State private var isUpdating = false
     @State private var permissionMessage: String?
     @State private var weeklyStartError: String?
+    @AppStorage("insurance.pensionEnrollment") private var pensionEnrollment = "unknown"
+    @AppStorage("insurance.healthEnrollment") private var healthEnrollment = "unknown"
+    @AppStorage("insurance.pensionBase") private var pensionBase = ""
+    @AppStorage("insurance.healthBase") private var healthBase = ""
 
     var body: some View {
         Form {
@@ -46,6 +50,27 @@ struct CoufunchSettingsView: View {
                 Text("Weekly 5-day and 6-day bonuses use this period. Monthly 15-day bonuses continue to use calendar months.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+
+            Section("Insurance Estimate Profile") {
+                Text("These settings only affect the separate insurance preview. They do not change recorded bank deposits or existing pay reconciliation.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Picker("National Pension Enrollment", selection: $pensionEnrollment) {
+                    Text("Unknown").tag("unknown")
+                    Text("Enrolled").tag("enrolled")
+                    Text("Not Enrolled").tag("notEnrolled")
+                }
+                Picker("Health Insurance Enrollment", selection: $healthEnrollment) {
+                    Text("Unknown").tag("unknown")
+                    Text("Enrolled").tag("enrolled")
+                    Text("Not Enrolled").tag("notEnrolled")
+                }
+                TextField("Pension Contribution Base (KRW)", text: $pensionBase)
+                    .keyboardType(.numberPad)
+                TextField("Health Contribution Base (KRW)", text: $healthBase)
+                    .keyboardType(.numberPad)
+                Text("Enter employer-reported monthly contribution bases. Leave unknown values blank.")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
 
             Section("Notifications") {
