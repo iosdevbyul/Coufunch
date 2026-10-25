@@ -110,6 +110,16 @@ struct WorkFinanceView: View {
         return result
     }
 
+    private var weeklyAllowanceTimeline: [WeeklyAllowanceTimelineEntry] {
+        WeeklyAllowanceTimeline.entries(
+            sessions: sessions, workplaces: workplaces, rules: rules,
+            receipts: receivedPay, holidays: holidayStore.dates,
+            loadedYears: holidayStore.loadedYears, calendar: .current
+        ).filter {
+            Calendar.current.isDate($0.earnedAt, equalTo: selectedMonth, toGranularity: .month)
+        }
+    }
+
     private var reconciledNet: Decimal {
         ActualPayReconciliation.total(
             estimatedMonthlyNet: estimatedTakeHome.net,
@@ -259,6 +269,42 @@ struct WorkFinanceView: View {
                             if forecast.unpricedCount > 0 {
                                 Text(String(format: String(localized: "%d shift(s) without sufficient pay data."), forecast.unpricedCount))
                                     .font(.caption).foregroundStyle(.orange)
+                            }
+                        }
+                    }
+
+                    if !weeklyAllowanceTimeline.isEmpty {
+                        CoufunchCard {
+                            VStack(alignment: .leading, spacing: WakSpacing.medium) {
+                                Text("Weekly Allowance Timeline").font(WakTypography.screenTitle)
+                                Text("Earned date is not the bank payment date. An expected allowance payday is unavailable until an employer payment rule is configured.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                ForEach(weeklyAllowanceTimeline) { item in
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(item.workplaceName).font(.headline)
+                                        row("Estimated weekly allowance (gross)", money(item.amount))
+                                        HStack {
+                                            Text("Allowance earned").foregroundStyle(.secondary)
+                                            Spacer()
+                                            Text(item.earnedAt, format: .dateTime.year().month().day())
+                                        }
+                                        .font(.subheadline)
+                                        if let deposited = item.actualDepositAt {
+                                            HStack {
+                                                Text("Confirmed included deposit date").foregroundStyle(.secondary)
+                                                Spacer()
+                                                Text(deposited, format: .dateTime.year().month().day())
+                                            }
+                                            .font(.subheadline)
+                                        } else {
+                                            Text(item.inclusion == .excluded
+                                                 ? "Allowance marked as separately paid; deposit not yet recorded."
+                                                 : "Allowance deposit date is unconfirmed.")
+                                                .font(.caption).foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    Divider()
+                                }
                             }
                         }
                     }

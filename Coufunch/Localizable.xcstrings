@@ -2530,6 +2530,76 @@
           }
         }
       }
+    },
+    "Weekly Allowance Timeline": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주휴수당 지급 내역"
+          }
+        }
+      }
+    },
+    "Earned date is not the bank payment date. An expected allowance payday is unavailable until an employer payment rule is configured.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수당 발생일과 실제 입금일은 다릅니다. 사업장 지급 규칙이 설정되기 전에는 예상 지급일을 표시하지 않습니다."
+          }
+        }
+      }
+    },
+    "Estimated weekly allowance (gross)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예상 주휴수당(세전)"
+          }
+        }
+      }
+    },
+    "Allowance earned": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주휴수당 발생일"
+          }
+        }
+      }
+    },
+    "Confirmed included deposit date": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주휴수당 포함 확인 입금일"
+          }
+        }
+      }
+    },
+    "Allowance marked as separately paid; deposit not yet recorded.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주휴수당 별도 지급으로 표시됨 · 입금일 미기록"
+          }
+        }
+      }
+    },
+    "Allowance deposit date is unconfirmed.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주휴수당 입금일 미확인"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
