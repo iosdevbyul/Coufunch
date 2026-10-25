@@ -3000,6 +3000,16 @@
           }
         }
       }
+    },
+    "Employment answers are shared across workplaces and months. Confirm each workplace's employment history and actual enrollment with the employer.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고용 관련 답변은 현재 모든 사업장과 월에 공통으로 적용됩니다. 사업장별 고용 이력과 실제 보험 가입 여부를 반드시 확인하세요."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
