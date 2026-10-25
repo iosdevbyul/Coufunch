@@ -15,8 +15,7 @@ struct CoufunchSettingsView: View {
     @AppStorage("insurance.healthEnrollment") private var healthEnrollment = "unknown"
     @AppStorage("insurance.pensionBase") private var pensionBase = ""
     @AppStorage("insurance.healthBase") private var healthBase = ""
-    @AppStorage("insurance.previousMonthEmployment") private var previousMonthEmployment = "unknown"
-    @AppStorage("insurance.startedOnFirstDay") private var startedOnFirstDay = "unknown"
+    @State private var employmentMonth = Date()
 
     var body: some View {
         Form {
@@ -62,17 +61,14 @@ struct CoufunchSettingsView: View {
                     Text("Enrolled").tag("enrolled")
                     Text("Not Enrolled").tag("notEnrolled")
                 }
-                Picker("Employed in Previous Month", selection: $previousMonthEmployment) {
-                    Text("Unknown").tag("unknown")
-                    Text("Yes").tag("yes")
-                    Text("No").tag("no")
+                DatePicker("Employment Context Month", selection: $employmentMonth, displayedComponents: .date)
+                ForEach(workplaces) { workplace in
+                    WorkplaceEmploymentContextEditor(
+                        workplace: workplace,
+                        month: employmentMonth
+                    )
                 }
-                Picker("Started Employment on Day One", selection: $startedOnFirstDay) {
-                    Text("Unknown").tag("unknown")
-                    Text("Yes").tag("yes")
-                    Text("No").tag("no")
-                }
-                Text("These answers help screen health insurance eligibility using completed attendance days. Confirm your enrollment with your employer.")
+                Text("Employment answers are stored separately for each workplace and month. Previous global answers are not reused.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Picker("Health Insurance Enrollment", selection: $healthEnrollment) {
                     Text("Unknown").tag("unknown")
@@ -140,5 +136,55 @@ struct CoufunchSettingsView: View {
         await PaydayReminderScheduler.synchronize(sessions: sessions,
             holidays: holidays.dates, workplaces: workplaces, rules: rules,
             loadedYears: holidays.loadedYears)
+    }
+}
+
+private struct WorkplaceEmploymentContextEditor: View {
+    let workplace: Workplace
+    let month: Date
+    @State private var previous = "unknown"
+    @State private var firstDay = "unknown"
+
+    private var previousKey: String {
+        EmploymentContextStore.key(
+            workplaceID: workplace.id, month: month,
+            field: "previousMonth", calendar: .current
+        )
+    }
+
+    private var firstDayKey: String {
+        EmploymentContextStore.key(
+            workplaceID: workplace.id, month: month,
+            field: "startedOnFirstDay", calendar: .current
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(workplace.name).font(.headline)
+            Picker("Employed in Previous Month", selection: $previous) {
+                Text("Unknown").tag("unknown")
+                Text("Yes").tag("yes")
+                Text("No").tag("no")
+            }
+            Picker("Started Employment on Day One", selection: $firstDay) {
+                Text("Unknown").tag("unknown")
+                Text("Yes").tag("yes")
+                Text("No").tag("no")
+            }
+        }
+        .onAppear(perform: load)
+        .onChange(of: month) { _, _ in load() }
+        .onChange(of: previous) { _, value in
+            UserDefaults.standard.set(value, forKey: previousKey)
+        }
+        .onChange(of: firstDay) { _, value in
+            UserDefaults.standard.set(value, forKey: firstDayKey)
+        }
+    }
+
+    private func load() {
+        previous = UserDefaults.standard.string(forKey: previousKey) ?? "unknown"
+        firstDay = UserDefaults.standard.string(forKey: firstDayKey) ?? "unknown"
     }
 }
