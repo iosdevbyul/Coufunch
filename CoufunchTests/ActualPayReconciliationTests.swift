@@ -125,7 +125,7 @@ final class ActualPayRecordContinuityTests: XCTestCase {
                 configurations: [ModelConfiguration(schema: schema, url: store)])
             let records = try container.mainContext.fetch(FetchDescriptor<ReceivedPayRecord>())
             XCTAssertEqual(records.count, 3)
-            XCTAssertEqual(records.first(where: { $0.sessionID == nil })?.note, "Legacy bank deposit")
+            XCTAssertEqual(records.first(where: { $0.sessionID == nil && $0.allowanceAwardID == nil })?.note, "Legacy bank deposit")
             XCTAssertEqual(records.first(where: { $0.sessionID == sessionID })?.amount, 97_850)
             XCTAssertEqual(records.first(where: { $0.sessionID == sessionID })?.depositedAt, depositDate)
             XCTAssertNil(records.first(where: { $0.sessionID == nil && $0.allowanceAwardID == nil })?.depositedAt)
