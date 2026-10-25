@@ -8,6 +8,7 @@ struct WeeklyAllowanceTimelineEntry: Identifiable {
     let expectedPaymentAt: Date?
     let actualDepositAt: Date?
     let inclusion: BonusInclusion
+    let separatelyReceivedNet: Decimal?
 }
 
 /// Read-only payment timeline. Earned dates and bank deposit dates are separate.
@@ -46,6 +47,10 @@ enum WeeklyAllowanceTimeline {
                 // The employer's bonus payment policy is not yet configured.
                 // Do not infer a bonus payday from the final shift's daily payday.
                 let expected: Date? = nil
+                let awardID = "\(workplace.id.uuidString)-\(award.ruleID.uuidString)-\(award.periodStart.timeIntervalSince1970)"
+                let separateReceipt = receipts.filter {
+                    $0.allowanceAwardID == awardID && $0.basis == .net
+                }.max(by: { $0.createdAt < $1.createdAt })
                 result.append(WeeklyAllowanceTimelineEntry(
                     id: "\(workplace.id.uuidString)-\(award.ruleID.uuidString)-\(award.periodStart.timeIntervalSince1970)",
                     workplaceName: workplace.name,
@@ -53,7 +58,8 @@ enum WeeklyAllowanceTimeline {
                     earnedAt: earnedAt,
                     expectedPaymentAt: expected,
                     actualDepositAt: receipt?.bonusInclusion == .included ? receipt?.depositedAt : nil,
-                    inclusion: receipt?.bonusInclusion ?? .unknown
+                    inclusion: receipt?.bonusInclusion ?? .unknown,
+                    separatelyReceivedNet: separateReceipt?.amount
                 ))
             }
         }
