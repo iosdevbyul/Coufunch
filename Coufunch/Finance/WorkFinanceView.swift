@@ -10,6 +10,7 @@ struct WorkFinanceView: View {
     @State private var receiptAmount = ""
     @State private var depositDate = Date()
     @State private var bonusInclusion: BonusInclusion = .unknown
+    @State private var receiptIncludedTypes: Set<String> = []
     @State private var receiptError: String?
     enum Screen { case pay, strategy }
     let screen: Screen
@@ -344,6 +345,29 @@ struct WorkFinanceView: View {
         return result
     }
 
+    private func allowanceType(for name: String, period: IncentivePeriod, days: Int) -> String? {
+        if period == .monthly && days == 15 { return "winner" }
+        if period == .weekly && days == 5 { return "weekly" }
+        if period == .weekly && days == 6 { return "special" }
+        return nil
+    }
+
+    private func estimatedIncludedBonuses(for sessionID: UUID, types: Set<String>) -> Decimal {
+        guard let session = sessions.first(where: { $0.id == sessionID }) else { return 0 }
+        let day = Calendar.current.startOfDay(for: session.startAt)
+        let relevant = earnedIncentives.filter { Calendar.current.isDate($0.day, inSameDayAs: day) }
+        return relevant.reduce(Decimal.zero) { total, item in
+            guard let workplace = workplaces.first(where: { $0.id == session.workplaceID }),
+                  let rule = rules.first(where: {
+                      $0.name == item.name && $0.workplaceID == workplace.id
+                  }),
+                  let type = allowanceType(for: rule.name, period: rule.period,
+                                           days: rule.requiredAttendanceDays),
+                  types.contains(type) else { return total }
+            return total + item.amount
+        }
+    }
+
     private var weeklyAllowanceTimeline: [WeeklyAllowanceTimelineEntry] {
         WeeklyAllowanceTimeline.entries(
             sessions: sessions, workplaces: workplaces, rules: rules,
@@ -355,20 +379,28 @@ struct WorkFinanceView: View {
     }
 
     private var reconciledNet: Decimal {
-        let reconciled = ActualPayReconciliation.total(
+        // Replace each recorded shift estimate. Explicitly included earned
+        // incentives are removed once so they cannot be counted twice.
+        let base = ActualPayReconciliation.total(
             estimatedMonthlyNet: estimatedTakeHome.net,
             shiftGross: audit.entries.map { (id: $0.id, gross: $0.grossTotal) },
             actualBySession: actualBySession,
             bonusNetBySession: weeklyBonusNetBySession,
             bonusInclusionBySession: bonusInclusionBySession
         )
-        // A separate deposit replaces the estimated net allowance; it is not
-        // added on top of the existing monthly estimate.
-        return weeklyAllowanceTimeline.reduce(reconciled) { sum, item in
+        let typedBonusAdjustment = receivedPay.filter {
+            $0.basis == .net && $0.sessionID != nil && !$0.includedBonusTypes.isEmpty
+        }.reduce(Decimal.zero) { result, receipt in
+            guard let id = receipt.sessionID else { return result }
+            let gross = estimatedIncludedBonuses(for: id, types: receipt.includedBonusTypes)
+            let estimated = EstimatedTakeHomeCalculator.calculate(gross: gross, shifts: []).net
+            // Old single bonus picker is disabled for newly edited receipts.
+            return result - estimated
+        }
+        return weeklyAllowanceTimeline.reduce(base + typedBonusAdjustment) { sum, item in
             guard let actual = item.separatelyReceivedNet,
                   item.inclusion != .included else { return sum }
-            let estimated = EstimatedTakeHomeCalculator.calculate(
-                gross: item.amount, shifts: []).net
+            let estimated = EstimatedTakeHomeCalculator.calculate(gross: item.amount, shifts: []).net
             return sum - estimated + actual
         }
     }
@@ -600,7 +632,8 @@ struct WorkFinanceView: View {
                                             NSDecimalNumber(decimal: $0).stringValue
                                         } ?? ""
                                         receiptError = nil
-                                        bonusInclusion = bonusInclusionBySession[item.id] ?? .unknown
+                                        bonusInclusion = .unknown
+                                        receiptIncludedTypes = receivedPay.first(where: { $0.sessionID == item.id })?.includedBonusTypes ?? []
                                         depositDate = receivedPay.first(where: { $0.sessionID == item.id })?.depositedAt ?? Date()
                                     }
                                     .buttonStyle(.bordered)
@@ -774,21 +807,21 @@ struct WorkFinanceView: View {
                     DatePicker("Bank deposit date", selection: $depositDate, displayedComponents: .date)
                     Text("The deposit date is recorded separately from the work date and does not change which month earned pay belongs to.")
                         .font(.caption).foregroundStyle(.secondary)
-                    if let id = editingSessionID,
-                       let bonus = weeklyBonusGrossBySession[id], bonus > 0 {
-                        Section {
-                            Text("A weekly allowance is estimated for this workweek. Does the entered deposit include it?")
-                            Picker("Weekly allowance included?", selection: $bonusInclusion) {
-                                Text("Yes, included").tag(BonusInclusion.included)
-                                Text("No, paid separately").tag(BonusInclusion.excluded)
-                                Text("Not sure yet").tag(BonusInclusion.unknown)
-                            }
-                            .pickerStyle(.inline)
-                            if bonusInclusion == .unknown {
-                                Text("Bonus inclusion is unconfirmed. The estimated allowance remains in the total until confirmed.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
+                    Section("Included in actual deposit") {
+                        Toggle("Includes weekly allowance (5 days)", isOn: Binding(
+                            get: { receiptIncludedTypes.contains("weekly") },
+                            set: { if $0 { receiptIncludedTypes.insert("weekly") } else { receiptIncludedTypes.remove("weekly") } }
+                        ))
+                        Toggle("Includes special allowance (6 days)", isOn: Binding(
+                            get: { receiptIncludedTypes.contains("special") },
+                            set: { if $0 { receiptIncludedTypes.insert("special") } else { receiptIncludedTypes.remove("special") } }
+                        ))
+                        Toggle("Includes Winner Promotion (15 days)", isOn: Binding(
+                            get: { receiptIncludedTypes.contains("winner") },
+                            set: { if $0 { receiptIncludedTypes.insert("winner") } else { receiptIncludedTypes.remove("winner") } }
+                        ))
+                        Text("Choose only allowances included in this bank deposit. Unchecked allowances stay in the estimate.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                     if let receiptError {
                         Text(LocalizedStringKey(receiptError)).foregroundStyle(.red)
@@ -844,14 +877,16 @@ struct WorkFinanceView: View {
         if let first = existing.first {
             first.amount = amount
             first.basis = .net
-            first.bonusInclusion = bonusInclusion
+            first.bonusInclusion = .unknown
+            first.includedBonusTypes = receiptIncludedTypes
             first.depositedAt = depositDate
             for duplicate in existing.dropFirst() { modelContext.delete(duplicate) }
         } else {
             modelContext.insert(ReceivedPayRecord(monthStart: month, amount: amount,
                                                    basis: .net, sessionID: id,
-                                                   bonusInclusion: bonusInclusion,
-                                                   depositedAt: depositDate))
+                                                   bonusInclusion: .unknown,
+                                                   depositedAt: depositDate,
+                                                   includedBonusTypes: receiptIncludedTypes))
         }
         do {
             try modelContext.save()
