@@ -4,7 +4,7 @@ Coufunch is a SwiftUI iPhone app for managing work sessions, pay and incentives 
 
 ## Current status
 
-Phase 1: iOS project bootstrap. The monthly calendar and navigation are UI scaffolds; pay calculation, persistence, shift editing and onboarding are not yet implemented.
+Core features implemented: workplace onboarding, work-session timeline and persistence, gross/pay premium and incentive estimates, public holidays with offline cache, payroll audit/reconciliation, insurance eligibility estimates, Korean localization, payday notifications and app icon assets. Automated CI and unit tests are present. **Physical iPhone acceptance and actual employer-pay validation remain outstanding.**
 
 ## Requirements and setup
 
@@ -19,7 +19,7 @@ xcodegen generate
 open Coufunch.xcodeproj
 ```
 
-Select the Coufunch scheme and run on an iPhone simulator.
+Select the Coufunch scheme and run on an iPhone simulator. Before accepting the app for real use, complete [final iPhone acceptance](docs/final-iphone-acceptance.md) on a physical device.
 
 ## Confirmed product design
 
