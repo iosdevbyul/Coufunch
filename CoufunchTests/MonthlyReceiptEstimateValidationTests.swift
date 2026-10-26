@@ -29,11 +29,13 @@ final class MonthlyReceiptEstimateValidationTests: XCTestCase {
     private func evaluate(
         workplace: UUID, receipts: [ReceivedPayRecord],
         hasIncentives: Bool = false,
+        fullMonthConfirmed: Bool = true,
         profileNet: Decimal? = 920_000
     ) -> MonthlyReceiptEstimateValidation? {
         MonthlyReceiptEstimateValidation.calculate(
             month: month, workplaceID: workplace, receipts: receipts,
             gross: 1_000_000, hasIncentives: hasIncentives,
+            fullMonthConfirmed: fullMonthConfirmed,
             profileNet: profileNet, calendar: calendar
         )
     }
@@ -65,6 +67,14 @@ final class MonthlyReceiptEstimateValidationTests: XCTestCase {
         let only = receipt(workplace: workplace, bonusInclusion: .unknown)
         XCTAssertNil(evaluate(workplace: workplace, receipts: [only], hasIncentives: true))
         XCTAssertNotNil(evaluate(workplace: workplace, receipts: [only], hasIncentives: false))
+    }
+
+    func testUnconfirmedMonthlyReceiptCannotBeCompared() {
+        let workplace = UUID()
+        XCTAssertNil(evaluate(
+            workplace: workplace, receipts: [receipt(workplace: workplace)],
+            fullMonthConfirmed: false
+        ))
     }
 
     func testGrossDailyAndSeparateAllowanceCannotBeCompared() {
