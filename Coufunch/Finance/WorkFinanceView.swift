@@ -9,6 +9,7 @@ struct WorkFinanceView: View {
     @Query private var receivedPay: [ReceivedPayRecord]
     @State private var editingSessionID: UUID?
     @State private var receiptAmount = ""
+    @State private var receiptGrossAmount = ""
     @State private var depositDate = Date()
     @State private var bonusInclusion: BonusInclusion = .unknown
     @State private var receiptIncludedTypes: Set<String> = []
@@ -230,7 +231,11 @@ struct WorkFinanceView: View {
         guard workplaces.count == 1, let workplace = workplaces.first else { return nil }
         return DailyWorkerInsuranceEstimator.estimate(
             gross: summary.total,
-            pensionEnrollment: MonthlyInsuranceProfileStore.enrollment(
+            pensionEnrollment: summary.completedDays >= 8 ? .enrolled : .notEnrolled,
+            healthEnrollment: summary.completedDays >= 8 ? .enrolled : .notEnrolled,
+            pensionBase: summary.total,
+            healthBase: summary.total
+            /* pensionEnrollment: MonthlyInsuranceProfileStore.enrollment(
                 workplaceID: workplace.id, month: selectedMonth,
                 field: .pensionEnrollment, calendar: .current
             ),
@@ -245,7 +250,7 @@ struct WorkFinanceView: View {
             healthBase: MonthlyInsuranceProfileStore.contributionBase(
                 workplaceID: workplace.id, month: selectedMonth,
                 field: .healthBase, calendar: .current
-            )
+            ) */
         )
     }
 
@@ -504,6 +509,8 @@ struct WorkFinanceView: View {
                             Text("Employment answers are stored by workplace and month. Confirm actual insurance enrollment with the employer.")
                                 .font(.caption).foregroundStyle(.secondary)
                             if let insurancePreview {
+                                Text("8일 이상 근무 기준 예상 보험료·추징액 (실제 가입·부과액과 다를 수 있음)")
+                                    .font(.caption).foregroundStyle(.secondary)
                                 row("Employment Insurance", money(insurancePreview.employment))
                                 if let pension = insurancePreview.pension {
                                     row("National Pension", money(pension))
@@ -640,6 +647,7 @@ struct WorkFinanceView: View {
                                         receiptAmount = actualBySession[item.id].map {
                                             NSDecimalNumber(decimal: $0).stringValue
                                         } ?? ""
+                                        receiptGrossAmount = receivedPay.first(where: { $0.sessionID == item.id })?.grossAmount.map { NSDecimalNumber(decimal: $0).stringValue } ?? ""
                                         receiptError = nil
                                         bonusInclusion = .unknown
                                         receiptIncludedTypes = receivedPay.first(where: { $0.sessionID == item.id })?.includedBonusTypes ?? []
@@ -811,7 +819,9 @@ struct WorkFinanceView: View {
         )) {
             NavigationStack {
                 Form {
-                    TextField("Actual received (KRW)", text: $receiptAmount)
+                    TextField("Actual net received (required, KRW)", text: $receiptAmount)
+                        .keyboardType(.numberPad)
+                    TextField("Actual gross before deductions (optional, KRW)", text: $receiptGrossAmount)
                         .keyboardType(.numberPad)
                     DatePicker("Bank deposit date", selection: $depositDate, displayedComponents: .date)
                     Text("The deposit date is recorded separately from the work date and does not change which month earned pay belongs to.")
@@ -909,14 +919,19 @@ struct WorkFinanceView: View {
         guard let id = editingSessionID,
               let amount = Decimal(string: receiptAmount, locale: Locale(identifier: "en_US_POSIX")),
               amount >= 0,
+              (receiptGrossAmount.isEmpty || (
+                  Decimal(string: receiptGrossAmount, locale: Locale(identifier: "en_US_POSIX")) ?? -1
+              ) >= 0),
               let entry = audit.entries.first(where: { $0.id == id }),
               let month = Calendar.current.dateInterval(of: .month, for: entry.start)?.start else {
             receiptError = "Enter a valid non-negative payment amount."
             return
         }
+        let grossAmount = receiptGrossAmount.isEmpty ? nil : Decimal(string: receiptGrossAmount, locale: Locale(identifier: "en_US_POSIX"))
         let existing = receivedPay.filter { $0.sessionID == id }
         if let first = existing.first {
             first.amount = amount
+            first.grossAmount = grossAmount
             first.basis = .net
             first.bonusInclusion = .unknown
             first.includedBonusTypes = receiptIncludedTypes
@@ -927,7 +942,8 @@ struct WorkFinanceView: View {
                                                    basis: .net, sessionID: id,
                                                    bonusInclusion: .unknown,
                                                    depositedAt: depositDate,
-                                                   includedBonusTypes: receiptIncludedTypes))
+                                                   includedBonusTypes: receiptIncludedTypes,
+                                                   grossAmount: grossAmount))
         }
         do {
             try modelContext.save()
