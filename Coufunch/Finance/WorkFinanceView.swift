@@ -666,12 +666,24 @@ struct WorkFinanceView: View {
                 }
             }
         }
-        .onAppear { simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id }
+        .onAppear {
+            simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id
+            loadReceiptConfirmation()
+        }
+        .onChange(of: selectedMonth) { _, _ in loadReceiptConfirmation() }
+        .onChange(of: workplaces.map(\.id)) { _, _ in loadReceiptConfirmation() }
         .task(id: Calendar.current.component(.year, from: selectedMonth)) {
             let year = Calendar.current.component(.year, from: selectedMonth)
             await holidayStore.load(year: year)
             await holidayStore.load(year: year + 1)
         }
+    }
+
+    private func loadReceiptConfirmation() {
+        confirmationKeyLoaded = currentConfirmationKey
+        confirmedFullMonth = currentConfirmationKey.map {
+            UserDefaults.standard.bool(forKey: $0)
+        } ?? false
     }
 
     private func saveActual() {
