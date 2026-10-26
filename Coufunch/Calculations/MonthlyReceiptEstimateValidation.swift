@@ -19,10 +19,12 @@ struct MonthlyReceiptEstimateValidation {
         receipts: [ReceivedPayRecord],
         gross: Decimal,
         hasIncentives: Bool,
+        fullMonthConfirmed: Bool,
         profileNet: Decimal?,
         calendar: Calendar
     ) -> MonthlyReceiptEstimateValidation? {
-        guard let interval = calendar.dateInterval(of: .month, for: month) else {
+        guard fullMonthConfirmed,
+              let interval = calendar.dateInterval(of: .month, for: month) else {
             return nil
         }
         let scoped = receipts.filter { interval.contains($0.monthStart) }
