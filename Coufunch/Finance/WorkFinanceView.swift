@@ -235,22 +235,6 @@ struct WorkFinanceView: View {
             healthEnrollment: summary.completedDays >= 8 ? .enrolled : .notEnrolled,
             pensionBase: summary.total,
             healthBase: summary.total
-            /* pensionEnrollment: MonthlyInsuranceProfileStore.enrollment(
-                workplaceID: workplace.id, month: selectedMonth,
-                field: .pensionEnrollment, calendar: .current
-            ),
-            healthEnrollment: MonthlyInsuranceProfileStore.enrollment(
-                workplaceID: workplace.id, month: selectedMonth,
-                field: .healthEnrollment, calendar: .current
-            ),
-            pensionBase: MonthlyInsuranceProfileStore.contributionBase(
-                workplaceID: workplace.id, month: selectedMonth,
-                field: .pensionBase, calendar: .current
-            ),
-            healthBase: MonthlyInsuranceProfileStore.contributionBase(
-                workplaceID: workplace.id, month: selectedMonth,
-                field: .healthBase, calendar: .current
-            ) */
         )
     }
 
