@@ -25,6 +25,8 @@ struct WorkFinanceView: View {
     @Query private var rules: [IncentiveRule]
     @Query private var manual: [ManualIncentive]
     @State private var selectedMonth = Date()
+    @State private var confirmationKeyLoaded: String?
+    @State private var confirmedFullMonth = false
     @State private var simulationWorkplaceID: UUID?
     @State private var simulationDate = Date()
 
@@ -87,6 +89,25 @@ struct WorkFinanceView: View {
         guard let insurancePreview else { return nil }
         return InsuranceEstimateComparison.calculate(
             gross: summary.total, profile: insurancePreview
+        )
+    }
+
+    private var currentConfirmationKey: String? {
+        guard workplaces.count == 1, let workplace = workplaces.first else { return nil }
+        return "payroll.validation.\(workplace.id.uuidString).\(EmploymentContextStore.monthKey(selectedMonth, calendar: .current)).fullMonthConfirmed"
+    }
+
+    private var receiptEstimateValidation: MonthlyReceiptEstimateValidation? {
+        guard workplaces.count == 1, let workplace = workplaces.first else { return nil }
+        return MonthlyReceiptEstimateValidation.calculate(
+            month: selectedMonth,
+            workplaceID: workplace.id,
+            receipts: receivedPay,
+            gross: summary.total,
+            hasIncentives: summary.automaticIncentives != 0 || summary.manualIncentives != 0,
+            fullMonthConfirmed: confirmationKeyLoaded == currentConfirmationKey && confirmedFullMonth,
+            profileNet: insurancePreview?.estimatedNet,
+            calendar: .current
         )
     }
 
@@ -245,6 +266,36 @@ struct WorkFinanceView: View {
                             Text(money(reconciledNet))
                                 .font(.title2.bold())
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
+                            Divider()
+                            if let key = currentConfirmationKey {
+                                Toggle("I confirm this receipt covers the entire month", isOn: Binding(
+                                    get: { confirmationKeyLoaded == key && confirmedFullMonth },
+                                    set: { confirmed in
+                                        confirmationKeyLoaded = key
+                                        confirmedFullMonth = confirmed
+                                        UserDefaults.standard.set(confirmed, forKey: key)
+                                    }
+                                ))
+                                .font(.footnote)
+                            }
+                            if let validation = receiptEstimateValidation {
+                                Divider()
+                                Text("Monthly Receipt Accuracy Check").font(.headline)
+                                row("Confirmed Monthly Net Receipt", money(validation.actualNet))
+                                row("Flat-Rate Estimate Error", money(validation.flatRateError))
+                                if let profileError = validation.profileError {
+                                    row("Insurance Profile Estimate Error", money(profileError))
+                                } else {
+                                    row("Insurance Profile Estimate Error", "Unknown")
+                                }
+                                Text("Estimate minus actual deposit. Positive values mean the estimate is too high. Only one full-month net receipt with matching workplace and bonus coverage can be compared.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                Text("Income tax is not included in either estimate. This check does not alter recorded deposits or reconciliation.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                Text("Monthly accuracy check unavailable: record one complete monthly net receipt for a single workplace, including any bonuses, without separate shift or allowance receipts.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
                             Divider()
                             Text("Insurance Profile Preview").font(.headline)
                             ForEach(healthEligibilityPreview) { item in
@@ -615,12 +666,24 @@ struct WorkFinanceView: View {
                 }
             }
         }
-        .onAppear { simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id }
+        .onAppear {
+            simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id
+            loadReceiptConfirmation()
+        }
+        .onChange(of: selectedMonth) { _, _ in loadReceiptConfirmation() }
+        .onChange(of: workplaces.map(\.id)) { _, _ in loadReceiptConfirmation() }
         .task(id: Calendar.current.component(.year, from: selectedMonth)) {
             let year = Calendar.current.component(.year, from: selectedMonth)
             await holidayStore.load(year: year)
             await holidayStore.load(year: year + 1)
         }
+    }
+
+    private func loadReceiptConfirmation() {
+        confirmationKeyLoaded = currentConfirmationKey
+        confirmedFullMonth = currentConfirmationKey.map {
+            UserDefaults.standard.bool(forKey: $0)
+        } ?? false
     }
 
     private func saveActual() {

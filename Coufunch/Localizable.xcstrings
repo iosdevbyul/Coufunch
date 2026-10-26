@@ -3080,6 +3080,86 @@
           }
         }
       }
+    },
+    "Monthly Receipt Accuracy Check": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "월간 실입금액 정확도 비교"
+          }
+        }
+      }
+    },
+    "Confirmed Monthly Net Receipt": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확인된 월간 실수령액"
+          }
+        }
+      }
+    },
+    "Flat-Rate Estimate Error": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고정 공제율 예상 오차"
+          }
+        }
+      }
+    },
+    "Insurance Profile Estimate Error": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보험 설정 기반 예상 오차"
+          }
+        }
+      }
+    },
+    "Estimate minus actual deposit. Positive values mean the estimate is too high. Only one full-month net receipt with matching workplace and bonus coverage can be compared.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예상액에서 실제 입금액을 뺀 차이입니다. 양수면 예상액이 실제보다 큽니다. 같은 사업장의 수당을 포함한 월 전체 실수령 기록이 하나만 있을 때 비교합니다."
+          }
+        }
+      }
+    },
+    "Income tax is not included in either estimate. This check does not alter recorded deposits or reconciliation.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "두 예상액 모두 소득세가 포함되지 않습니다. 비교 결과는 기존 입금 기록이나 급여 정산에 영향을 주지 않습니다."
+          }
+        }
+      }
+    },
+    "Monthly accuracy check unavailable: record one complete monthly net receipt for a single workplace, including any bonuses, without separate shift or allowance receipts.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "월간 정확도를 비교할 수 없습니다. 한 사업장의 수당을 포함한 월 전체 순입금 기록을 하나 등록하고 일별·수당별 별도 입금 기록이 없는지 확인하세요."
+          }
+        }
+      }
+    },
+    "I confirm this receipt covers the entire month": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 입금 기록이 해당 월 전체 급여임을 확인했습니다"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
