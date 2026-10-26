@@ -83,6 +83,13 @@ struct WorkFinanceView: View {
         )
     }
 
+    private var insuranceComparison: InsuranceEstimateComparison? {
+        guard let insurancePreview else { return nil }
+        return InsuranceEstimateComparison.calculate(
+            gross: summary.total, profile: insurancePreview
+        )
+    }
+
     private var estimatedTakeHome: EstimatedTakeHomeResult {
         EstimatedTakeHomeCalculator.calculate(
             gross: summary.total,
@@ -270,6 +277,12 @@ struct WorkFinanceView: View {
                                 } else {
                                     row("Health Insurance", "Unknown")
                                     row("Long-Term Care Insurance", "Unknown")
+                                }
+                                if let comparison = insuranceComparison,
+                                   let difference = comparison.deductionDifference {
+                                    row("Difference from Flat-Rate Deductions", money(difference))
+                                    Text("Positive amounts mean the profile estimate deducts more than the existing flat-rate estimate. This comparison does not alter recorded payments.")
+                                        .font(.caption).foregroundStyle(.secondary)
                                 }
                                 if let net = insurancePreview.estimatedNet {
                                     row("Profile-Based Estimated Net", money(net))
