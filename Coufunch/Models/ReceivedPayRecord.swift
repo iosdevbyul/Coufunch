@@ -33,6 +33,8 @@ final class ReceivedPayRecord {
         set { includedBonusTypesRaw = newValue.sorted().joined(separator: ",") }
     }
     var amount: Decimal
+    // Optional pre-deduction amount for a net actual receipt.
+    var grossAmount: Decimal?
     var basisRaw: String
     var note: String
     var createdAt: Date
@@ -49,7 +51,8 @@ final class ReceivedPayRecord {
     init(id: UUID = UUID(), monthStart: Date, workplaceID: UUID? = nil,
          amount: Decimal, basis: ReceivedPayBasis, note: String = "", sessionID: UUID? = nil,
          bonusInclusion: BonusInclusion = .unknown, depositedAt: Date? = nil,
-         allowanceAwardID: String? = nil, includedBonusTypes: Set<String> = []) {
+         allowanceAwardID: String? = nil, includedBonusTypes: Set<String> = [],
+         grossAmount: Decimal? = nil) {
         self.id = id
         self.monthStart = monthStart
         self.workplaceID = workplaceID
@@ -57,6 +60,7 @@ final class ReceivedPayRecord {
         self.bonusInclusionRaw = bonusInclusion.rawValue
         self.includedBonusTypesRaw = includedBonusTypes.sorted().joined(separator: ",")
         self.amount = amount
+        self.grossAmount = grossAmount
         self.basisRaw = basis.rawValue
         self.note = note
         self.createdAt = .now

@@ -6,9 +6,11 @@ import WakTrainerDesignSystem
 struct WorkFinanceView: View {
     @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var appLocale
     @Query private var receivedPay: [ReceivedPayRecord]
     @State private var editingSessionID: UUID?
     @State private var receiptAmount = ""
+    @State private var receiptGrossAmount = ""
     @State private var depositDate = Date()
     @State private var bonusInclusion: BonusInclusion = .unknown
     @State private var receiptIncludedTypes: Set<String> = []
@@ -230,22 +232,10 @@ struct WorkFinanceView: View {
         guard workplaces.count == 1, let workplace = workplaces.first else { return nil }
         return DailyWorkerInsuranceEstimator.estimate(
             gross: summary.total,
-            pensionEnrollment: MonthlyInsuranceProfileStore.enrollment(
-                workplaceID: workplace.id, month: selectedMonth,
-                field: .pensionEnrollment, calendar: .current
-            ),
-            healthEnrollment: MonthlyInsuranceProfileStore.enrollment(
-                workplaceID: workplace.id, month: selectedMonth,
-                field: .healthEnrollment, calendar: .current
-            ),
-            pensionBase: MonthlyInsuranceProfileStore.contributionBase(
-                workplaceID: workplace.id, month: selectedMonth,
-                field: .pensionBase, calendar: .current
-            ),
-            healthBase: MonthlyInsuranceProfileStore.contributionBase(
-                workplaceID: workplace.id, month: selectedMonth,
-                field: .healthBase, calendar: .current
-            )
+            pensionEnrollment: summary.completedDays >= 8 ? .enrolled : .notEnrolled,
+            healthEnrollment: summary.completedDays >= 8 ? .enrolled : .notEnrolled,
+            pensionBase: summary.total,
+            healthBase: summary.total
         )
     }
 
@@ -423,6 +413,15 @@ struct WorkFinanceView: View {
                                          workplaces: workplaces, rules: rules, calendar: .current)
     }
 
+    private func localizedBonusName(_ name: String) -> String {
+        switch name {
+        case "5-day weekly bonus": return appLocale.language.languageCode?.identifier == "ko" ? "주 5일 근무 주휴수당" : name
+        case "6-day weekly bonus": return appLocale.language.languageCode?.identifier == "ko" ? "주 6일 근무 특근수당" : name
+        case "15-day monthly bonus": return appLocale.language.languageCode?.identifier == "ko" ? "월 15일 위너프로모션" : name
+        default: return name
+        }
+    }
+
     private func money(_ amount: Decimal) -> String {
         NSDecimalNumber(decimal: amount).intValue.formatted(.currency(code: "KRW"))
     }
@@ -504,6 +503,8 @@ struct WorkFinanceView: View {
                             Text("Employment answers are stored by workplace and month. Confirm actual insurance enrollment with the employer.")
                                 .font(.caption).foregroundStyle(.secondary)
                             if let insurancePreview {
+                                Text("8일 이상 근무 기준 예상 보험료·추징액 (실제 가입·부과액과 다를 수 있음)")
+                                    .font(.caption).foregroundStyle(.secondary)
                                 row("Employment Insurance", money(insurancePreview.employment))
                                 if let pension = insurancePreview.pension {
                                     row("National Pension", money(pension))
@@ -579,6 +580,12 @@ struct WorkFinanceView: View {
                                 Label("급여 내역 CSV 파일 공유", systemImage: "square.and.arrow.up")
                             }
                             .disabled(audit.entries.isEmpty && earnedIncentives.isEmpty)
+                            Button {
+                                exportPayrollText()
+                            } label: {
+                                Label("급여 내역 TXT 공유", systemImage: "text.alignleft")
+                            }
+                            .disabled(audit.entries.isEmpty && earnedIncentives.isEmpty)
                             if let payrollCSVError {
                                 Text(payrollCSVError)
                                     .font(.caption).foregroundStyle(.red)
@@ -599,7 +606,7 @@ struct WorkFinanceView: View {
                                 ForEach(earnedIncentives.filter {
                                     Calendar.current.isDate($0.day, inSameDayAs: selectedPayrollDay)
                                 }) { bonus in
-                                    row(bonus.name, money(bonus.amount))
+                                    row(localizedBonusName(bonus.name), money(bonus.amount))
                                 }
                             }
                             ForEach(visibleAuditEntries) { item in
@@ -617,7 +624,7 @@ struct WorkFinanceView: View {
                                     let awards = assignedIncentives(for: item)
                                     let incentiveGross = awards.reduce(Decimal.zero) { $0 + $1.amount }
                                     ForEach(awards) { bonus in
-                                        row(bonus.name, money(bonus.amount))
+                                        row(localizedBonusName(bonus.name), money(bonus.amount))
                                     }
                                     row("Shift gross (including earned incentives)", money(item.grossTotal + incentiveGross))
                                     row("Shift estimated net (including earned incentives)",
@@ -640,6 +647,7 @@ struct WorkFinanceView: View {
                                         receiptAmount = actualBySession[item.id].map {
                                             NSDecimalNumber(decimal: $0).stringValue
                                         } ?? ""
+                                        receiptGrossAmount = receivedPay.first(where: { $0.sessionID == item.id })?.grossAmount.map { NSDecimalNumber(decimal: $0).stringValue } ?? ""
                                         receiptError = nil
                                         bonusInclusion = .unknown
                                         receiptIncludedTypes = receivedPay.first(where: { $0.sessionID == item.id })?.includedBonusTypes ?? []
@@ -811,7 +819,9 @@ struct WorkFinanceView: View {
         )) {
             NavigationStack {
                 Form {
-                    TextField("Actual received (KRW)", text: $receiptAmount)
+                    TextField("Actual net received (required, KRW)", text: $receiptAmount)
+                        .keyboardType(.numberPad)
+                    TextField("Actual gross before deductions (optional, KRW)", text: $receiptGrossAmount)
                         .keyboardType(.numberPad)
                     DatePicker("Bank deposit date", selection: $depositDate, displayedComponents: .date)
                     Text("The deposit date is recorded separately from the work date and does not change which month earned pay belongs to.")
@@ -872,14 +882,17 @@ struct WorkFinanceView: View {
     private func exportPayrollCSV() {
         let calendar = Calendar.current
         let bonusRows = earnedIncentives.map {
-            (date: $0.day, name: $0.name, amount: $0.amount)
+            (date: $0.day, name: localizedBonusName($0.name), amount: $0.amount)
         }
         let content = PayrollAuditCSV.readable(report: audit, calendar: calendar,
-                                               incentives: bonusRows)
+                                               incentives: bonusRows,
+                                               actualNetBySession: actualBySession,
+                                               totalNet: reconciledNet,
+                                               locale: appLocale)
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM"
         formatter.calendar = calendar
-        let filename = "Coufunch_급여내역_\(formatter.string(from: selectedMonth)).csv"
+        let filename = "Coufunch_\(appLocale.language.languageCode?.identifier == "ko" ? "급여내역" : "Payroll")_\(formatter.string(from: selectedMonth)).csv"
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("CoufunchPayrollExports", isDirectory: true)
         do {
@@ -898,6 +911,59 @@ struct WorkFinanceView: View {
         }
     }
 
+    private func exportPayrollText() {
+        let calendar = Calendar.current
+        let korean = appLocale.language.languageCode?.identifier == "ko"
+        func l(_ ko: String, _ en: String) -> String { korean ? ko : en }
+        let date = DateFormatter()
+        date.locale = appLocale
+        date.dateFormat = "yyyy-MM-dd"
+        date.timeZone = calendar.timeZone
+        let month = DateFormatter()
+        month.dateFormat = "yyyy-MM"
+        let lines = audit.entries.sorted(by: { $0.start < $1.start }).map { entry in
+            let actual = actualBySession[entry.id]
+            let net = actual ?? EstimatedTakeHomeCalculator.calculate(gross: entry.grossTotal, shifts: []).net
+            return "\(date.string(from: entry.start)) | \(entry.workplaceName) | \(l("세전", "Gross")) \(money(entry.grossTotal)) | \(l("세후", "Net")) \(money(net)) (\(actual == nil ? l("예상", "Estimated") : l("실제", "Actual")))"
+        }
+        let awards = earnedIncentives.sorted(by: { $0.day < $1.day }).map { bonus in
+            let net = EstimatedTakeHomeCalculator.calculate(gross: bonus.amount, shifts: []).net
+            return "\(date.string(from: bonus.day)) | \(localizedBonusName(bonus.name)) | \(l("세전", "Gross")) +\(money(bonus.amount)) | \(l("세후 예상", "Estimated net")) +\(money(net))"
+        }
+        let content = ([
+            "\(l("쿠펀치 급여 내역", "Coufunch Payroll Report")) (\(month.string(from: selectedMonth)))",
+            "--------------------------------",
+            "\(l("완료 근무", "Completed days")): \(summary.completedDays)\(korean ? "일" : "")",
+            "\(l("기본급", "Base pay")): \(money(summary.basePay))",
+            "\(l("야간수당", "Night premium")): \(money(summary.nightPremium))",
+            "\(l("연장수당", "Overtime premium")): \(money(summary.overtimePremium))",
+            "\(l("휴일수당", "Holiday premium")): \(money(summary.holidayPremium))",
+            "\(l("자동 인센티브", "Automatic incentives")): \(money(summary.automaticIncentives))",
+            "\(l("수동 인센티브", "Manual incentives")): \(money(summary.manualIncentives))",
+            "\(l("세전 총액", "Gross total")): \(money(summary.total))",
+            "\(l("세후 합계 (실제 입력 우선, 나머지 예상)", "Net total (actual first, estimated otherwise)")): \(money(reconciledNet))",
+            "\(l("일평균 세전", "Average daily gross")): \(money(summary.dailyAverage))",
+            "--------------------------------",
+            l("근무별 내역 (세전 / 세후)", "Shift details (gross / net)"),
+        ] + lines + ["", l("인센티브", "Incentives")] + awards + [
+            "", l("※ 실제 입력된 금액은 실제로, 미입력 금액은 예상으로 표기합니다.", "Actual amounts are labeled Actual; missing amounts are labeled Estimated."),
+            l("※ 수당 세후 예상은 참고용이며, 세후 합계에 중복 합산하지 않습니다.", "Estimated net bonuses are informational and are not added again to the net total.")
+        ]).joined(separator: "\n") + "\n"
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CoufunchPayrollExports", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let url = directory.appendingPathComponent(
+                "Coufunch_\(l("급여내역", "Payroll"))_\(month.string(from: selectedMonth)).txt"
+            )
+            try Data(content.utf8).write(to: url, options: .atomic)
+            payrollCSVError = nil
+            payrollCSVAttachment = PayrollCSVAttachment(url: url)
+        } catch {
+            payrollCSVError = "급여 TXT 파일을 생성하지 못했습니다."
+        }
+    }
+
     private func loadReceiptConfirmation() {
         confirmationKeyLoaded = currentConfirmationKey
         confirmedFullMonth = currentConfirmationKey.map {
@@ -909,14 +975,19 @@ struct WorkFinanceView: View {
         guard let id = editingSessionID,
               let amount = Decimal(string: receiptAmount, locale: Locale(identifier: "en_US_POSIX")),
               amount >= 0,
+              (receiptGrossAmount.isEmpty || (
+                  Decimal(string: receiptGrossAmount, locale: Locale(identifier: "en_US_POSIX")) ?? -1
+              ) >= 0),
               let entry = audit.entries.first(where: { $0.id == id }),
               let month = Calendar.current.dateInterval(of: .month, for: entry.start)?.start else {
             receiptError = "Enter a valid non-negative payment amount."
             return
         }
+        let grossAmount = receiptGrossAmount.isEmpty ? nil : Decimal(string: receiptGrossAmount, locale: Locale(identifier: "en_US_POSIX"))
         let existing = receivedPay.filter { $0.sessionID == id }
         if let first = existing.first {
             first.amount = amount
+            first.grossAmount = grossAmount
             first.basis = .net
             first.bonusInclusion = .unknown
             first.includedBonusTypes = receiptIncludedTypes
@@ -927,7 +998,8 @@ struct WorkFinanceView: View {
                                                    basis: .net, sessionID: id,
                                                    bonusInclusion: .unknown,
                                                    depositedAt: depositDate,
-                                                   includedBonusTypes: receiptIncludedTypes))
+                                                   includedBonusTypes: receiptIncludedTypes,
+                                                   grossAmount: grossAmount))
         }
         do {
             try modelContext.save()
