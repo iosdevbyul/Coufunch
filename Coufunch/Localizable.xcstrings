@@ -3060,6 +3060,26 @@
           }
         }
       }
+    },
+    "Difference from Flat-Rate Deductions": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기존 고정 공제율 대비 공제액 차이"
+          }
+        }
+      }
+    },
+    "Positive amounts mean the profile estimate deducts more than the existing flat-rate estimate. This comparison does not alter recorded payments.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "양수는 보험 설정 기반 예상 공제액이 기존 고정 공제율보다 크다는 뜻입니다. 이 비교는 기록된 실제 입금액을 변경하지 않습니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
