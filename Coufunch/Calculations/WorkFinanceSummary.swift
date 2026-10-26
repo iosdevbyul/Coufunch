@@ -13,9 +13,10 @@ struct MonthlyPaySummary {
     var total: Decimal { basePay + nightPremium + overtimePremium + holidayPremium + automaticIncentives + manualIncentives }
     var dailyAverage: Decimal {
         guard completedDays > 0 else { return 0 }
-        return NSDecimalNumber(decimal: total)
-            .dividing(by: NSDecimalNumber(value: completedDays))
-            .decimalValue
+        // Pay is displayed in whole KRW. Divide integral won amounts directly
+        // to avoid Decimal/NSDecimalNumber division returning zero on device.
+        let grossWon = NSDecimalNumber(decimal: total).int64Value
+        return Decimal(grossWon / Int64(completedDays))
     }
 }
 
