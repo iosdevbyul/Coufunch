@@ -76,7 +76,7 @@ enum PayrollAuditCSV {
             ]
             return (item.date, values.joined(separator: ","))
         }
-        let lines = (shiftRows + bonusRows).sorted { $0.0 < $1.0 }.map(\.1)
+        let lines = (shiftRows + bonusRows).sorted { $0.0 < $1.0 }.map { $0.1 }
         let gross = report.shiftGross + incentives.reduce(Decimal.zero) { $0 + $1.amount }
         let summary = ["", "합계", "", "", "", "", "", "", "", "", "", "", "",
                        number(gross)].joined(separator: ",")
