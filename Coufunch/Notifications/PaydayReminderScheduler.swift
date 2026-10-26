@@ -15,7 +15,7 @@ enum PaydayReminderDate {
             guard loadedYears.contains(year) else { return nil }
         let key = String(format: "%04d-%02d-%02d", year, month, date)
             if weekday != 1 && weekday != 7 && !holidays.contains(key) {
-                return calendar.date(bySettingHour: 10, minute: 0, second: 0, of: day)
+                return calendar.date(bySettingHour: 14, minute: 0, second: 0, of: day)
             }
             guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { return nil }
             day = next
@@ -99,7 +99,7 @@ enum PaydayReminderScheduler {
         for (key, date) in upcoming.sorted(by: { $0.1 < $1.1 }) where seen.insert(key).inserted {
             let content = UNMutableNotificationContent()
             content.title = String(localized: "Payday Reminder")
-            content.body = String(localized: "Today is payday. Check your payment details.")
+            content.body = String(localized: "Today is payday.")
             content.sound = .default
             let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
             let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)

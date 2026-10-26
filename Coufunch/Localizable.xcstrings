@@ -3160,6 +3160,16 @@
           }
         }
       }
+    },
+    "Today is payday.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘은 급여일입니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
