@@ -23,6 +23,36 @@ final class PayrollAuditCSVTests: XCTestCase {
         XCTAssertEqual(csv.split(separator: "\n").count, 2)
     }
 
+    func testReadableExportUsesActualNetWhenAvailableAndEstimatedOtherwise() {
+        let start = Date(timeIntervalSince1970: 1_792_000_000)
+        let first = PayrollAuditEntry(
+            id: UUID(), workplaceName: "센터",
+            start: start, end: start.addingTimeInterval(3600),
+            paidMinutes: 60, nightMinutes: 0, dailyOvertimeMinutes: 0,
+            basePay: 100_000, nightPremium: 0, overtimePremium: 0,
+            holidayPremium: 0, grossTotal: 100_000
+        )
+        let second = PayrollAuditEntry(
+            id: UUID(), workplaceName: "센터",
+            start: start.addingTimeInterval(86_400),
+            end: start.addingTimeInterval(90_000),
+            paidMinutes: 60, nightMinutes: 0, dailyOvertimeMinutes: 0,
+            basePay: 100_000, nightPremium: 0, overtimePremium: 0,
+            holidayPremium: 0, grossTotal: 100_000
+        )
+        let csv = PayrollAuditCSV.readable(
+            report: PayrollAuditReport(entries: [first, second], excluded: 0),
+            calendar: .current,
+            incentives: [],
+            actualNetBySession: [first.id: 93_000],
+            totalNet: 183_000
+        )
+        XCTAssertTrue(csv.contains("세후금액(원),세후구분"))
+        XCTAssertTrue(csv.contains("100000,93000,실제"))
+        XCTAssertTrue(csv.contains("100000,") && csv.contains(",예상"))
+        XCTAssertTrue(csv.contains("200000,183000,실제입력 반영"))
+    }
+
     func testEmptyReportHasHeaderWithoutSyntheticRecords() {
         let csv = PayrollAuditCSV.make(
             report: PayrollAuditReport(entries: [], excluded: 2),
