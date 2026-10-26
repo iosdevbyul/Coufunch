@@ -33,6 +33,35 @@ final class WorkFinanceSummaryTests: XCTestCase {
         XCTAssertEqual(summary.total, 340_000)
     }
 
+    func testDailyAverageIncludesIncentivesAndUsesCompletedDays() {
+        let summary = MonthlyPaySummary(
+            completedDays: 15,
+            basePay: 1_238_400,
+            nightPremium: 387_000,
+            overtimePremium: 0,
+            holidayPremium: 41_280,
+            automaticIncentives: 310_000,
+            manualIncentives: 0,
+            skippedSessions: 0
+        )
+        XCTAssertEqual(summary.total, 1_976_680)
+        XCTAssertEqual(NSDecimalNumber(decimal: summary.dailyAverage).intValue, 131_778)
+    }
+
+    func testDailyAverageIsZeroWithoutCompletedDays() {
+        let summary = MonthlyPaySummary(
+            completedDays: 0,
+            basePay: 0,
+            nightPremium: 0,
+            overtimePremium: 0,
+            holidayPremium: 0,
+            automaticIncentives: 0,
+            manualIncentives: 0,
+            skippedSessions: 0
+        )
+        XCTAssertEqual(summary.dailyAverage, 0)
+    }
+
     func testStrategyCountsSameDayOnlyOnce() {
         let workplace = Workplace(name: "Workplace")
         let records = [

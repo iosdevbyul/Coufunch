@@ -11,7 +11,13 @@ struct MonthlyPaySummary {
     let skippedSessions: Int
 
     var total: Decimal { basePay + nightPremium + overtimePremium + holidayPremium + automaticIncentives + manualIncentives }
-    var dailyAverage: Decimal { completedDays > 0 ? total / Decimal(completedDays) : 0 }
+    var dailyAverage: Decimal {
+        guard completedDays > 0 else { return 0 }
+        // Pay is displayed in whole KRW. Divide integral won amounts directly
+        // to avoid Decimal/NSDecimalNumber division returning zero on device.
+        let grossWon = NSDecimalNumber(decimal: total).int64Value
+        return Decimal(grossWon / Int64(completedDays))
+    }
 }
 
 struct NextWorkdayOpportunity: Identifiable {
