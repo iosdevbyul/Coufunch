@@ -25,6 +25,8 @@ struct WorkFinanceView: View {
     @Query private var rules: [IncentiveRule]
     @Query private var manual: [ManualIncentive]
     @State private var selectedMonth = Date()
+    @State private var confirmationKeyLoaded: String?
+    @State private var confirmedFullMonth = false
     @State private var simulationWorkplaceID: UUID?
     @State private var simulationDate = Date()
 
@@ -90,6 +92,11 @@ struct WorkFinanceView: View {
         )
     }
 
+    private var currentConfirmationKey: String? {
+        guard workplaces.count == 1, let workplace = workplaces.first else { return nil }
+        return "payroll.validation.\(workplace.id.uuidString).\(EmploymentContextStore.monthKey(selectedMonth, calendar: .current)).fullMonthConfirmed"
+    }
+
     private var receiptEstimateValidation: MonthlyReceiptEstimateValidation? {
         guard workplaces.count == 1, let workplace = workplaces.first else { return nil }
         return MonthlyReceiptEstimateValidation.calculate(
@@ -98,6 +105,7 @@ struct WorkFinanceView: View {
             receipts: receivedPay,
             gross: summary.total,
             hasIncentives: summary.automaticIncentives != 0 || summary.manualIncentives != 0,
+            fullMonthConfirmed: confirmationKeyLoaded == currentConfirmationKey && confirmedFullMonth,
             profileNet: insurancePreview?.estimatedNet,
             calendar: .current
         )
@@ -259,6 +267,17 @@ struct WorkFinanceView: View {
                                 .font(.title2.bold())
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
                             Divider()
+                            if let key = currentConfirmationKey {
+                                Toggle("I confirm this receipt covers the entire month", isOn: Binding(
+                                    get: { confirmationKeyLoaded == key && confirmedFullMonth },
+                                    set: { confirmed in
+                                        confirmationKeyLoaded = key
+                                        confirmedFullMonth = confirmed
+                                        UserDefaults.standard.set(confirmed, forKey: key)
+                                    }
+                                ))
+                                .font(.footnote)
+                            }
                             if let validation = receiptEstimateValidation {
                                 Divider()
                                 Text("Monthly Receipt Accuracy Check").font(.headline)
