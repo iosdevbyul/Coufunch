@@ -412,6 +412,15 @@ struct WorkFinanceView: View {
                                          workplaces: workplaces, rules: rules, calendar: .current)
     }
 
+    private func localizedBonusName(_ name: String) -> String {
+        switch name {
+        case "5-day weekly bonus": return String(localized: "5-day weekly bonus")
+        case "6-day weekly bonus": return String(localized: "6-day weekly bonus")
+        case "15-day monthly bonus": return String(localized: "15-day monthly bonus")
+        default: return name
+        }
+    }
+
     private func money(_ amount: Decimal) -> String {
         NSDecimalNumber(decimal: amount).intValue.formatted(.currency(code: "KRW"))
     }
@@ -570,6 +579,12 @@ struct WorkFinanceView: View {
                                 Label("급여 내역 CSV 파일 공유", systemImage: "square.and.arrow.up")
                             }
                             .disabled(audit.entries.isEmpty && earnedIncentives.isEmpty)
+                            Button {
+                                exportPayrollText()
+                            } label: {
+                                Label("급여 내역 TXT 공유", systemImage: "text.alignleft")
+                            }
+                            .disabled(audit.entries.isEmpty && earnedIncentives.isEmpty)
                             if let payrollCSVError {
                                 Text(payrollCSVError)
                                     .font(.caption).foregroundStyle(.red)
@@ -590,7 +605,7 @@ struct WorkFinanceView: View {
                                 ForEach(earnedIncentives.filter {
                                     Calendar.current.isDate($0.day, inSameDayAs: selectedPayrollDay)
                                 }) { bonus in
-                                    row(bonus.name, money(bonus.amount))
+                                    row(localizedBonusName(bonus.name), money(bonus.amount))
                                 }
                             }
                             ForEach(visibleAuditEntries) { item in
@@ -608,7 +623,7 @@ struct WorkFinanceView: View {
                                     let awards = assignedIncentives(for: item)
                                     let incentiveGross = awards.reduce(Decimal.zero) { $0 + $1.amount }
                                     ForEach(awards) { bonus in
-                                        row(bonus.name, money(bonus.amount))
+                                        row(localizedBonusName(bonus.name), money(bonus.amount))
                                     }
                                     row("Shift gross (including earned incentives)", money(item.grossTotal + incentiveGross))
                                     row("Shift estimated net (including earned incentives)",
@@ -866,7 +881,7 @@ struct WorkFinanceView: View {
     private func exportPayrollCSV() {
         let calendar = Calendar.current
         let bonusRows = earnedIncentives.map {
-            (date: $0.day, name: $0.name, amount: $0.amount)
+            (date: $0.day, name: localizedBonusName($0.name), amount: $0.amount)
         }
         let content = PayrollAuditCSV.readable(report: audit, calendar: calendar,
                                                incentives: bonusRows)
@@ -889,6 +904,52 @@ struct WorkFinanceView: View {
             payrollCSVAttachment = PayrollCSVAttachment(url: url)
         } catch {
             payrollCSVError = "급여 CSV 파일을 생성하지 못했습니다."
+        }
+    }
+
+    private func exportPayrollText() {
+        let calendar = Calendar.current
+        let date = DateFormatter()
+        date.locale = Locale(identifier: "ko_KR")
+        date.dateFormat = "yyyy-MM-dd"
+        date.timeZone = calendar.timeZone
+        let month = DateFormatter()
+        month.dateFormat = "yyyy-MM"
+        let lines = audit.entries.sorted(by: { $0.start < $1.start }).map { entry in
+            "\(date.string(from: entry.start)) | \(entry.workplaceName) | \(money(entry.grossTotal))"
+        }
+        let awards = earnedIncentives.sorted(by: { $0.day < $1.day }).map { bonus in
+            "\(date.string(from: bonus.day)) | \(localizedBonusName(bonus.name)) | +\(money(bonus.amount))"
+        }
+        let content = ([
+            "쿠펀치 급여 내역 (\(month.string(from: selectedMonth)))",
+            "--------------------------------",
+            "완료 근무: \(summary.completedDays)일",
+            "기본급: \(money(summary.basePay))",
+            "야간수당: \(money(summary.nightPremium))",
+            "연장수당: \(money(summary.overtimePremium))",
+            "휴일수당: \(money(summary.holidayPremium))",
+            "자동 인센티브: \(money(summary.automaticIncentives))",
+            "수동 인센티브: \(money(summary.manualIncentives))",
+            "세전 총액: \(money(summary.total))",
+            "일평균 세전: \(money(summary.dailyAverage))",
+            "--------------------------------",
+            "근무별 내역 (세전)",
+        ] + lines + ["", "인센티브"] + awards + [
+            "", "※ 예상 금액이며 실제 입금액 및 보험료와 다를 수 있습니다."
+        ]).joined(separator: "\n") + "\n"
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CoufunchPayrollExports", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let url = directory.appendingPathComponent(
+                "Coufunch_급여내역_\(month.string(from: selectedMonth)).txt"
+            )
+            try Data(content.utf8).write(to: url, options: .atomic)
+            payrollCSVError = nil
+            payrollCSVAttachment = PayrollCSVAttachment(url: url)
+        } catch {
+            payrollCSVError = "급여 TXT 파일을 생성하지 못했습니다."
         }
     }
 
