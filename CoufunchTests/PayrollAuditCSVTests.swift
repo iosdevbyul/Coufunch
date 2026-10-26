@@ -45,12 +45,36 @@ final class PayrollAuditCSVTests: XCTestCase {
             calendar: .current,
             incentives: [],
             actualNetBySession: [first.id: 93_000],
-            totalNet: 183_000
+            totalNet: 183_000,
+            locale: Locale(identifier: "ko_KR")
         )
         XCTAssertTrue(csv.contains("세후금액(원),세후구분"))
         XCTAssertTrue(csv.contains("100000,93000,실제"))
         XCTAssertTrue(csv.contains("100000,") && csv.contains(",예상"))
         XCTAssertTrue(csv.contains("200000,183000,실제입력 반영"))
+    }
+
+    func testEnglishExportHeadersAndNetLabels() {
+        let start = Date(timeIntervalSince1970: 1_792_000_000)
+        let entry = PayrollAuditEntry(
+            id: UUID(), workplaceName: "Center",
+            start: start, end: start.addingTimeInterval(3600),
+            paidMinutes: 60, nightMinutes: 0, dailyOvertimeMinutes: 0,
+            basePay: 100_000, nightPremium: 0, overtimePremium: 0,
+            holidayPremium: 0, grossTotal: 100_000
+        )
+        let csv = PayrollAuditCSV.readable(
+            report: PayrollAuditReport(entries: [entry], excluded: 0),
+            calendar: .current,
+            incentives: [],
+            actualNetBySession: [entry.id: 93_000],
+            totalNet: 93_000,
+            locale: Locale(identifier: "en_US")
+        )
+        XCTAssertTrue(csv.contains("Date,Type,Workplace / Bonus"))
+        XCTAssertTrue(csv.contains("Net Pay (KRW),Net Pay Source"))
+        XCTAssertTrue(csv.contains("100000,93000,Actual"))
+        XCTAssertFalse(csv.contains("세후"))
     }
 
     func testEmptyReportHasHeaderWithoutSyntheticRecords() {
