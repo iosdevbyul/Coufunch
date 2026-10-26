@@ -25,6 +25,44 @@ struct WorkFinanceView: View {
     @Query private var rules: [IncentiveRule]
     @Query private var manual: [ManualIncentive]
     @State private var selectedMonth = Date()
+    @State private var payrollDetailMode: PayrollDetailMode = .list
+    @State private var selectedPayrollDay = Date()
+
+    private enum PayrollDetailMode: String, CaseIterable {
+        case list, calendar
+    }
+
+    private var visibleAuditEntries: [PayrollAuditEntry] {
+        payrollDetailMode == .list ? audit.entries : audit.entries.filter {
+            Calendar.current.isDate($0.start, inSameDayAs: selectedPayrollDay)
+        }
+    }
+
+    private struct MonthlyBonusRow: Identifiable {
+        let id: String
+        let workplaceName: String
+        let ruleName: String
+        let earnedAt: Date
+        let amount: Decimal
+    }
+
+    private var monthlyBonuses: [MonthlyBonusRow] {
+        var rows: [MonthlyBonusRow] = []
+        for workplace in workplaces {
+            let awards = WorkIncentiveCalculator.awards(
+                sessions: sessions, rules: rules, workplace: workplace, calendar: .current)
+            for award in awards {
+                guard let rule = rules.first(where: { $0.id == award.ruleID }),
+                      rule.period == .monthly,
+                      Calendar.current.isDate(award.periodStart, equalTo: selectedMonth, toGranularity: .month) else { continue }
+                rows.append(MonthlyBonusRow(
+                    id: "\(workplace.id)-\(award.ruleID)-\(award.periodStart.timeIntervalSince1970)",
+                    workplaceName: workplace.name, ruleName: rule.name,
+                    earnedAt: award.periodStart, amount: award.amount))
+            }
+        }
+        return rows.sorted { $0.earnedAt > $1.earnedAt }
+    }
     @State private var confirmationKeyLoaded: String?
     @State private var confirmedFullMonth = false
     @State private var simulationWorkplaceID: UUID?
@@ -121,12 +159,6 @@ struct WorkFinanceView: View {
     private var audit: PayrollAuditReport {
         PayrollAuditCalculator.report(month: selectedMonth, sessions: sessions,
             breaks: breaks, workplaces: workplaces, settings: settings, calendar: .current,
-            holidayDates: holidayStore.dates)
-    }
-
-    private var forecast: PayForecast {
-        PayForecastCalculator.calculate(month: selectedMonth, sessions: sessions,
-            breaks: breaks, settings: settings, calendar: .current,
             holidayDates: holidayStore.dates)
     }
 
@@ -264,7 +296,7 @@ struct WorkFinanceView: View {
                             Divider()
                             Text("Estimated / Actual Take-Home Pay").font(WakTypography.screenTitle)
                             Text(money(reconciledNet))
-                                .font(.title2.bold())
+                                .font(.title.bold())
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
                             Divider()
                             if let key = currentConfirmationKey {
@@ -367,7 +399,23 @@ struct WorkFinanceView: View {
                     }
                     CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
-                            Text("Payroll Audit").font(WakTypography.screenTitle)
+                            HStack {
+                                Text("Payroll Audit").font(WakTypography.screenTitle)
+                                Spacer()
+                                Picker("Detail display", selection: $payrollDetailMode) {
+                                    Image(systemName: "list.bullet").tag(PayrollDetailMode.list)
+                                    Image(systemName: "calendar").tag(PayrollDetailMode.calendar)
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(width: 120)
+                                .accessibilityLabel("Payroll detail display mode")
+                            }
+                            if payrollDetailMode == .calendar {
+                                DatePicker("Select work date", selection: $selectedPayrollDay,
+                                           in: (Calendar.current.dateInterval(of: .month, for: selectedMonth)?.start ?? selectedMonth)...(Calendar.current.dateInterval(of: .month, for: selectedMonth)?.end.addingTimeInterval(-1) ?? selectedMonth),
+                                           displayedComponents: .date)
+                                    .datePickerStyle(.graphical)
+                            }
                             ShareLink(item: PayrollAuditCSV.make(report: audit, calendar: .current)) {
                                 Label("Share Payroll CSV", systemImage: "square.and.arrow.up")
                             }
@@ -380,7 +428,11 @@ struct WorkFinanceView: View {
                                 Text("No completed shift breakdowns for this month.")
                                     .foregroundStyle(.secondary)
                             }
-                            ForEach(audit.entries) { item in
+                            if visibleAuditEntries.isEmpty && !audit.entries.isEmpty {
+                                Text("No completed shifts on the selected date.")
+                                    .foregroundStyle(.secondary)
+                            }
+                            ForEach(visibleAuditEntries) { item in
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(item.workplaceName).font(.headline)
                                     Text(item.start, format: .dateTime.month().day().hour().minute())
@@ -425,30 +477,23 @@ struct WorkFinanceView: View {
                         }
                     }
 
-                    CoufunchCard {
-                        VStack(alignment: .leading, spacing: WakSpacing.medium) {
-                            Text("Shift Pay Forecast").font(WakTypography.screenTitle)
-                            row("Completed shifts", "\(forecast.completedCount)")
-                            row("Completed shift pay", money(forecast.completedGross))
-                            row("Confirmed shifts", "\(forecast.confirmedCount)")
-                            row("Confirmed projected pay", money(forecast.confirmedGross))
-                            row("Applied shifts", "\(forecast.appliedCount)")
-                            row("Applied hypothetical pay", money(forecast.appliedGross))
-                            row("Completed + confirmed shifts", money(forecast.securedGross))
-                            row("Including applications (hypothetical)", money(forecast.possibleGross))
-                            if forecast.unpricedCount > 0 {
-                                Text(String(format: String(localized: "%d shift(s) without sufficient pay data."), forecast.unpricedCount))
-                                    .font(.caption).foregroundStyle(.orange)
-                            }
-                        }
-                    }
-
-                    if !weeklyAllowanceTimeline.isEmpty {
+                    if !weeklyAllowanceTimeline.isEmpty || !monthlyBonuses.isEmpty {
                         CoufunchCard {
                             VStack(alignment: .leading, spacing: WakSpacing.medium) {
-                                Text("Weekly Allowance Timeline").font(WakTypography.screenTitle)
-                                Text("Earned date and actual deposit date are separate. Six-day special allowances are expected the following Tuesday.")
+                                Text("Allowance & Incentive Payment Details").font(WakTypography.screenTitle)
+                                Text("Weekly allowances and monthly incentives are listed by their earned period. Payment dates are shown only when verified.")
                                     .font(.caption).foregroundStyle(.secondary)
+                                ForEach(monthlyBonuses) { bonus in
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(bonus.workplaceName).font(.headline)
+                                        row(bonus.ruleName, money(bonus.amount))
+                                        Text(bonus.earnedAt, format: .dateTime.year().month())
+                                            .font(.caption).foregroundStyle(.secondary)
+                                        Text("Monthly incentive deposit date is not confirmed.")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    Divider()
+                                }
                                 ForEach(weeklyAllowanceTimeline) { item in
                                     VStack(alignment: .leading, spacing: 5) {
                                         Text(item.workplaceName).font(.headline)
@@ -670,7 +715,10 @@ struct WorkFinanceView: View {
             simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id
             loadReceiptConfirmation()
         }
-        .onChange(of: selectedMonth) { _, _ in loadReceiptConfirmation() }
+        .onChange(of: selectedMonth) { _, date in
+            selectedPayrollDay = Calendar.current.dateInterval(of: .month, for: date)?.start ?? date
+            loadReceiptConfirmation()
+        }
         .onChange(of: workplaces.map(\.id)) { _, _ in loadReceiptConfirmation() }
         .task(id: Calendar.current.component(.year, from: selectedMonth)) {
             let year = Calendar.current.component(.year, from: selectedMonth)
