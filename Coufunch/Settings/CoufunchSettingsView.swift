@@ -11,10 +11,6 @@ struct CoufunchSettingsView: View {
     @State private var isUpdating = false
     @State private var permissionMessage: String?
     @State private var weeklyStartError: String?
-    @AppStorage("insurance.pensionEnrollment") private var pensionEnrollment = "unknown"
-    @AppStorage("insurance.healthEnrollment") private var healthEnrollment = "unknown"
-    @AppStorage("insurance.pensionBase") private var pensionBase = ""
-    @AppStorage("insurance.healthBase") private var healthBase = ""
     @State private var employmentMonth = Date()
 
     var body: some View {
@@ -56,11 +52,6 @@ struct CoufunchSettingsView: View {
             Section("Insurance Estimate Profile") {
                 Text("These settings only affect the separate insurance preview. They do not change recorded bank deposits or existing pay reconciliation.")
                     .font(.footnote).foregroundStyle(.secondary)
-                Picker("National Pension Enrollment", selection: $pensionEnrollment) {
-                    Text("Unknown").tag("unknown")
-                    Text("Enrolled").tag("enrolled")
-                    Text("Not Enrolled").tag("notEnrolled")
-                }
                 DatePicker("Employment Context Month", selection: $employmentMonth, displayedComponents: .date)
                 ForEach(workplaces) { workplace in
                     WorkplaceEmploymentContextEditor(
@@ -70,16 +61,7 @@ struct CoufunchSettingsView: View {
                 }
                 Text("Employment answers are stored separately for each workplace and month. Previous global answers are not reused.")
                     .font(.footnote).foregroundStyle(.secondary)
-                Picker("Health Insurance Enrollment", selection: $healthEnrollment) {
-                    Text("Unknown").tag("unknown")
-                    Text("Enrolled").tag("enrolled")
-                    Text("Not Enrolled").tag("notEnrolled")
-                }
-                TextField("Pension Contribution Base (KRW)", text: $pensionBase)
-                    .keyboardType(.numberPad)
-                TextField("Health Contribution Base (KRW)", text: $healthBase)
-                    .keyboardType(.numberPad)
-                Text("Enter employer-reported monthly contribution bases. Leave unknown values blank.")
+                Text("Insurance settings are saved separately for each workplace and month. Previous global settings are not reused.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
 
@@ -144,6 +126,11 @@ private struct WorkplaceEmploymentContextEditor: View {
     let month: Date
     @State private var previous = "unknown"
     @State private var firstDay = "unknown"
+    @State private var pensionEnrollment = "unknown"
+    @State private var healthEnrollment = "unknown"
+    @State private var pensionBase = ""
+    @State private var healthBase = ""
+    @State private var loadedMonthKey = ""
 
     private var previousKey: String {
         EmploymentContextStore.key(
@@ -156,6 +143,12 @@ private struct WorkplaceEmploymentContextEditor: View {
         EmploymentContextStore.key(
             workplaceID: workplace.id, month: month,
             field: "startedOnFirstDay", calendar: .current
+        )
+    }
+
+    private func insuranceKey(_ field: MonthlyInsuranceProfileStore.Field) -> String {
+        MonthlyInsuranceProfileStore.key(
+            workplaceID: workplace.id, month: month, field: field, calendar: .current
         )
     }
 
@@ -172,19 +165,51 @@ private struct WorkplaceEmploymentContextEditor: View {
                 Text("Yes").tag("yes")
                 Text("No").tag("no")
             }
+            Picker("National Pension Enrollment", selection: $pensionEnrollment) {
+                Text("Unknown").tag("unknown")
+                Text("Enrolled").tag("enrolled")
+                Text("Not Enrolled").tag("notEnrolled")
+            }
+            Picker("Health Insurance Enrollment", selection: $healthEnrollment) {
+                Text("Unknown").tag("unknown")
+                Text("Enrolled").tag("enrolled")
+                Text("Not Enrolled").tag("notEnrolled")
+            }
+            TextField("Pension Contribution Base (KRW)", text: $pensionBase)
+                .keyboardType(.numberPad)
+            TextField("Health Contribution Base (KRW)", text: $healthBase)
+                .keyboardType(.numberPad)
         }
         .onAppear(perform: load)
         .onChange(of: month) { _, _ in load() }
         .onChange(of: previous) { _, value in
-            UserDefaults.standard.set(value, forKey: previousKey)
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: previousKey) }
         }
         .onChange(of: firstDay) { _, value in
-            UserDefaults.standard.set(value, forKey: firstDayKey)
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: firstDayKey) }
+        }
+        .onChange(of: pensionEnrollment) { _, value in
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.pensionEnrollment)) }
+        }
+        .onChange(of: healthEnrollment) { _, value in
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.healthEnrollment)) }
+        }
+        .onChange(of: pensionBase) { _, value in
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.pensionBase)) }
+        }
+        .onChange(of: healthBase) { _, value in
+            if loadedMonthKey == EmploymentContextStore.monthKey(month, calendar: .current) { UserDefaults.standard.set(value, forKey: insuranceKey(.healthBase)) }
         }
     }
 
     private func load() {
+        loadedMonthKey = ""
         previous = UserDefaults.standard.string(forKey: previousKey) ?? "unknown"
         firstDay = UserDefaults.standard.string(forKey: firstDayKey) ?? "unknown"
+        pensionEnrollment = UserDefaults.standard.string(forKey: insuranceKey(.pensionEnrollment)) ?? "unknown"
+        healthEnrollment = UserDefaults.standard.string(forKey: insuranceKey(.healthEnrollment)) ?? "unknown"
+        pensionBase = UserDefaults.standard.string(forKey: insuranceKey(.pensionBase)) ?? ""
+        healthBase = UserDefaults.standard.string(forKey: insuranceKey(.healthBase)) ?? ""
+        loadedMonthKey = EmploymentContextStore.monthKey(month, calendar: .current)
     }
 }

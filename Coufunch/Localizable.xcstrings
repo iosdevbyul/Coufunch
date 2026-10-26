@@ -3040,6 +3040,26 @@
           }
         }
       }
+    },
+    "Insurance settings are saved separately for each workplace and month. Previous global settings are not reused.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보험 가입 상태와 산정 기준액은 사업장과 월별로 따로 저장됩니다. 이전 공통 설정은 자동으로 적용하지 않습니다."
+          }
+        }
+      }
+    },
+    "A combined insurance estimate is unavailable for multiple workplaces. Review each workplace's monthly insurance profile separately.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "여러 사업장의 보험료를 합산해 추정할 수 없습니다. 사업장별 월간 보험 설정을 따로 확인하세요."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

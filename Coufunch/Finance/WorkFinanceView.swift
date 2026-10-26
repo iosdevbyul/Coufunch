@@ -25,11 +25,6 @@ struct WorkFinanceView: View {
     @Query private var rules: [IncentiveRule]
     @Query private var manual: [ManualIncentive]
     @State private var selectedMonth = Date()
-    @AppStorage("insurance.pensionEnrollment") private var pensionEnrollment = "unknown"
-    @AppStorage("insurance.healthEnrollment") private var healthEnrollment = "unknown"
-    @AppStorage("insurance.pensionBase") private var pensionBase = ""
-    @AppStorage("insurance.healthBase") private var healthBase = ""
-
     @State private var simulationWorkplaceID: UUID?
     @State private var simulationDate = Date()
 
@@ -64,24 +59,27 @@ struct WorkFinanceView: View {
         }
     }
 
-    private var insurancePreview: DailyWorkerInsuranceBreakdown {
-        func enrollment(_ raw: String) -> InsuranceEnrollment {
-            switch raw {
-            case "enrolled": return .enrolled
-            case "notEnrolled": return .notEnrolled
-            default: return .unknown
-            }
-        }
-        func base(_ raw: String) -> Decimal? {
-            guard let value = Decimal(string: raw), value >= 0 else { return nil }
-            return value
-        }
+    private var insurancePreview: DailyWorkerInsuranceBreakdown? {
+        // A combined payroll amount cannot be allocated to separate employers.
+        guard workplaces.count == 1, let workplace = workplaces.first else { return nil }
         return DailyWorkerInsuranceEstimator.estimate(
             gross: summary.total,
-            pensionEnrollment: enrollment(pensionEnrollment),
-            healthEnrollment: enrollment(healthEnrollment),
-            pensionBase: base(pensionBase),
-            healthBase: base(healthBase)
+            pensionEnrollment: MonthlyInsuranceProfileStore.enrollment(
+                workplaceID: workplace.id, month: selectedMonth,
+                field: .pensionEnrollment, calendar: .current
+            ),
+            healthEnrollment: MonthlyInsuranceProfileStore.enrollment(
+                workplaceID: workplace.id, month: selectedMonth,
+                field: .healthEnrollment, calendar: .current
+            ),
+            pensionBase: MonthlyInsuranceProfileStore.contributionBase(
+                workplaceID: workplace.id, month: selectedMonth,
+                field: .pensionBase, calendar: .current
+            ),
+            healthBase: MonthlyInsuranceProfileStore.contributionBase(
+                workplaceID: workplace.id, month: selectedMonth,
+                field: .healthBase, calendar: .current
+            )
         )
     }
 
@@ -258,24 +256,29 @@ struct WorkFinanceView: View {
                             }
                             Text("Employment answers are stored by workplace and month. Confirm actual insurance enrollment with the employer.")
                                 .font(.caption).foregroundStyle(.secondary)
-                            row("Employment Insurance", money(insurancePreview.employment))
-                            if let pension = insurancePreview.pension {
-                                row("National Pension", money(pension))
+                            if let insurancePreview {
+                                row("Employment Insurance", money(insurancePreview.employment))
+                                if let pension = insurancePreview.pension {
+                                    row("National Pension", money(pension))
+                                } else {
+                                    row("National Pension", "Unknown")
+                                }
+                                if let health = insurancePreview.health,
+                                   let care = insurancePreview.longTermCare {
+                                    row("Health Insurance", money(health))
+                                    row("Long-Term Care Insurance", money(care))
+                                } else {
+                                    row("Health Insurance", "Unknown")
+                                    row("Long-Term Care Insurance", "Unknown")
+                                }
+                                if let net = insurancePreview.estimatedNet {
+                                    row("Profile-Based Estimated Net", money(net))
+                                } else {
+                                    Text("Profile-based net estimate unavailable: confirm enrollment and contribution bases in Settings.")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
                             } else {
-                                row("National Pension", "Unknown")
-                            }
-                            if let health = insurancePreview.health,
-                               let care = insurancePreview.longTermCare {
-                                row("Health Insurance", money(health))
-                                row("Long-Term Care Insurance", money(care))
-                            } else {
-                                row("Health Insurance", "Unknown")
-                                row("Long-Term Care Insurance", "Unknown")
-                            }
-                            if let net = insurancePreview.estimatedNet {
-                                row("Profile-Based Estimated Net", money(net))
-                            } else {
-                                Text("Profile-based net estimate unavailable: confirm enrollment and contribution bases in Settings.")
+                                Text("A combined insurance estimate is unavailable for multiple workplaces. Review each workplace's monthly insurance profile separately.")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             Text("Preview only. No income tax included. Recorded deposits and existing reconciliation are unchanged.")
