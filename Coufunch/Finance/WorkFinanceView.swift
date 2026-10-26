@@ -414,9 +414,9 @@ struct WorkFinanceView: View {
 
     private func localizedBonusName(_ name: String) -> String {
         switch name {
-        case "5-day weekly bonus": return String(localized: "5-day weekly bonus")
-        case "6-day weekly bonus": return String(localized: "6-day weekly bonus")
-        case "15-day monthly bonus": return String(localized: "15-day monthly bonus")
+        case "5-day weekly bonus": return Locale.current.language.languageCode?.identifier == "ko" ? "주 5일 근무 주휴수당" : name
+        case "6-day weekly bonus": return Locale.current.language.languageCode?.identifier == "ko" ? "주 6일 근무 특근수당" : name
+        case "15-day monthly bonus": return Locale.current.language.languageCode?.identifier == "ko" ? "월 15일 위너프로모션" : name
         default: return name
         }
     }
@@ -886,11 +886,12 @@ struct WorkFinanceView: View {
         let content = PayrollAuditCSV.readable(report: audit, calendar: calendar,
                                                incentives: bonusRows,
                                                actualNetBySession: actualBySession,
-                                               totalNet: reconciledNet)
+                                               totalNet: reconciledNet,
+                                               locale: .current)
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM"
         formatter.calendar = calendar
-        let filename = "Coufunch_급여내역_\(formatter.string(from: selectedMonth)).csv"
+        let filename = "Coufunch_\(Locale.current.language.languageCode?.identifier == "ko" ? "급여내역" : "Payroll")_\(formatter.string(from: selectedMonth)).csv"
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("CoufunchPayrollExports", isDirectory: true)
         do {
@@ -911,8 +912,10 @@ struct WorkFinanceView: View {
 
     private func exportPayrollText() {
         let calendar = Calendar.current
+        let korean = Locale.current.language.languageCode?.identifier == "ko"
+        func l(_ ko: String, _ en: String) -> String { korean ? ko : en }
         let date = DateFormatter()
-        date.locale = Locale(identifier: "ko_KR")
+        date.locale = .current
         date.dateFormat = "yyyy-MM-dd"
         date.timeZone = calendar.timeZone
         let month = DateFormatter()
@@ -920,37 +923,37 @@ struct WorkFinanceView: View {
         let lines = audit.entries.sorted(by: { $0.start < $1.start }).map { entry in
             let actual = actualBySession[entry.id]
             let net = actual ?? EstimatedTakeHomeCalculator.calculate(gross: entry.grossTotal, shifts: []).net
-            return "\(date.string(from: entry.start)) | \(entry.workplaceName) | 세전 \(money(entry.grossTotal)) | 세후 \(money(net)) (\(actual == nil ? "예상" : "실제"))"
+            return "\(date.string(from: entry.start)) | \(entry.workplaceName) | \(l("세전", "Gross")) \(money(entry.grossTotal)) | \(l("세후", "Net")) \(money(net)) (\(actual == nil ? l("예상", "Estimated") : l("실제", "Actual")))"
         }
         let awards = earnedIncentives.sorted(by: { $0.day < $1.day }).map { bonus in
             let net = EstimatedTakeHomeCalculator.calculate(gross: bonus.amount, shifts: []).net
-            return "\(date.string(from: bonus.day)) | \(localizedBonusName(bonus.name)) | 세전 +\(money(bonus.amount)) | 세후 예상 +\(money(net))"
+            return "\(date.string(from: bonus.day)) | \(localizedBonusName(bonus.name)) | \(l("세전", "Gross")) +\(money(bonus.amount)) | \(l("세후 예상", "Estimated net")) +\(money(net))"
         }
         let content = ([
-            "쿠펀치 급여 내역 (\(month.string(from: selectedMonth)))",
+            "\(l("쿠펀치 급여 내역", "Coufunch Payroll Report")) (\(month.string(from: selectedMonth)))",
             "--------------------------------",
-            "완료 근무: \(summary.completedDays)일",
-            "기본급: \(money(summary.basePay))",
-            "야간수당: \(money(summary.nightPremium))",
-            "연장수당: \(money(summary.overtimePremium))",
-            "휴일수당: \(money(summary.holidayPremium))",
-            "자동 인센티브: \(money(summary.automaticIncentives))",
-            "수동 인센티브: \(money(summary.manualIncentives))",
-            "세전 총액: \(money(summary.total))",
-            "세후 합계 (실제 입력 우선, 나머지 예상): \(money(reconciledNet))",
-            "일평균 세전: \(money(summary.dailyAverage))",
+            "\(l("완료 근무", "Completed days")): \(summary.completedDays)\(korean ? "일" : "")",
+            "\(l("기본급", "Base pay")): \(money(summary.basePay))",
+            "\(l("야간수당", "Night premium")): \(money(summary.nightPremium))",
+            "\(l("연장수당", "Overtime premium")): \(money(summary.overtimePremium))",
+            "\(l("휴일수당", "Holiday premium")): \(money(summary.holidayPremium))",
+            "\(l("자동 인센티브", "Automatic incentives")): \(money(summary.automaticIncentives))",
+            "\(l("수동 인센티브", "Manual incentives")): \(money(summary.manualIncentives))",
+            "\(l("세전 총액", "Gross total")): \(money(summary.total))",
+            "\(l("세후 합계 (실제 입력 우선, 나머지 예상)", "Net total (actual first, estimated otherwise)")): \(money(reconciledNet))",
+            "\(l("일평균 세전", "Average daily gross")): \(money(summary.dailyAverage))",
             "--------------------------------",
-            "근무별 내역 (세전 / 세후)",
-        ] + lines + ["", "인센티브"] + awards + [
-            "", "※ 실제 입력된 금액은 실제로, 미입력 금액은 예상으로 표기합니다.",
-            "※ 수당 세후 예상은 참고용이며, 세후 합계에 중복 합산하지 않습니다."
+            l("근무별 내역 (세전 / 세후)", "Shift details (gross / net)"),
+        ] + lines + ["", l("인센티브", "Incentives")] + awards + [
+            "", l("※ 실제 입력된 금액은 실제로, 미입력 금액은 예상으로 표기합니다.", "Actual amounts are labeled Actual; missing amounts are labeled Estimated."),
+            l("※ 수당 세후 예상은 참고용이며, 세후 합계에 중복 합산하지 않습니다.", "Estimated net bonuses are informational and are not added again to the net total.")
         ]).joined(separator: "\n") + "\n"
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("CoufunchPayrollExports", isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let url = directory.appendingPathComponent(
-                "Coufunch_급여내역_\(month.string(from: selectedMonth)).txt"
+                "Coufunch_\(l("급여내역", "Payroll"))_\(month.string(from: selectedMonth)).txt"
             )
             try Data(content.utf8).write(to: url, options: .atomic)
             payrollCSVError = nil
