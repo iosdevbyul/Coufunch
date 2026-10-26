@@ -38,6 +38,121 @@ struct WorkFinanceView: View {
         }
     }
 
+    private struct EarnedIncentive: Identifiable {
+        let id: String
+        let day: Date
+        let name: String
+        let amount: Decimal
+    }
+
+    // Present awards on the qualifying attendance date; keep the existing
+    // month-end attribution in WorkFinanceSummary untouched.
+    private var earnedIncentives: [EarnedIncentive] {
+        var result: [EarnedIncentive] = []
+        let calendar = Calendar.current
+        for workplace in workplaces {
+            var workCalendar = calendar
+            workCalendar.firstWeekday = workplace.weekStartWeekday
+            let completedDates = Array(Set(sessions.filter {
+                $0.workplaceID == workplace.id && $0.status == .completed
+            }.map { workCalendar.startOfDay(for: $0.startAt) })).sorted()
+            for award in WorkIncentiveCalculator.awards(
+                sessions: sessions, rules: rules, workplace: workplace, calendar: workCalendar
+            ) {
+                guard let rule = rules.first(where: { $0.id == award.ruleID }) else { continue }
+                let component: Calendar.Component = rule.period == .weekly ? .weekOfYear :
+                    rule.period == .monthly ? .month : .day
+                guard let period = workCalendar.dateInterval(of: component, for: award.periodStart) else { continue }
+                let qualifyingDays = completedDates.filter { period.contains($0) }
+                guard qualifyingDays.count >= rule.requiredAttendanceDays else { continue }
+                let day = qualifyingDays[rule.requiredAttendanceDays - 1]
+                guard calendar.isDate(day, equalTo: selectedMonth, toGranularity: .month) else { continue }
+                result.append(EarnedIncentive(
+                    id: "\(workplace.id)-\(award.ruleID)-\(award.periodStart.timeIntervalSince1970)",
+                    day: day, name: rule.name, amount: award.amount))
+            }
+        }
+        for bonus in manual where calendar.isDate(bonus.earnedOn, equalTo: selectedMonth, toGranularity: .month) {
+            result.append(EarnedIncentive(id: "manual-\(bonus.id)", day: bonus.earnedOn,
+                                          name: bonus.name, amount: bonus.amount))
+        }
+        return result
+    }
+
+    private func incentiveTotal(on day: Date) -> Decimal {
+        earnedIncentives.filter { Calendar.current.isDate($0.day, inSameDayAs: day) }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+    }
+
+    private func shiftGross(on day: Date) -> Decimal {
+        audit.entries.filter { Calendar.current.isDate($0.start, inSameDayAs: day) }
+            .reduce(Decimal.zero) { $0 + $1.grossTotal }
+    }
+
+    private var selectedDayGross: Decimal {
+        shiftGross(on: selectedPayrollDay) + incentiveTotal(on: selectedPayrollDay)
+    }
+
+    private var selectedDayNet: Decimal {
+        EstimatedTakeHomeCalculator.calculate(gross: selectedDayGross, shifts: []).net
+    }
+
+    private var payrollCalendar: some View {
+        let calendar = Calendar.current
+        let interval = calendar.dateInterval(of: .month, for: selectedMonth)
+        let start = interval?.start ?? calendar.startOfDay(for: selectedMonth)
+        let dayCount = calendar.range(of: .day, in: .month, for: start)?.count ?? 30
+        let firstOffset = (calendar.component(.weekday, from: start) - calendar.firstWeekday + 7) % 7
+        return VStack(spacing: 8) {
+            HStack {
+                ForEach(0..<7, id: \.self) { weekday in
+                    let value = (weekday + calendar.firstWeekday - 1) % 7 + 1
+                    Text(calendar.shortStandaloneWeekdaySymbols[value - 1])
+                        .font(.caption2)
+                        .frame(maxWidth: .infinity)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 7), spacing: 7) {
+                ForEach(0..<(firstOffset + dayCount), id: \.self) { index in
+                    if index < firstOffset {
+                        Color.clear.frame(height: 44)
+                    } else {
+                        let day = calendar.date(byAdding: .day, value: index - firstOffset, to: start) ?? start
+                        let worked = audit.entries.contains { calendar.isDate($0.start, inSameDayAs: day) }
+                        let bonus = incentiveTotal(on: day) > 0
+                        let selected = calendar.isDate(day, inSameDayAs: selectedPayrollDay)
+                        Button {
+                            selectedPayrollDay = day
+                        } label: {
+                            VStack(spacing: 3) {
+                                Text("\(calendar.component(.day, from: day))")
+                                    .font(.subheadline.weight(selected ? .bold : .regular))
+                                HStack(spacing: 3) {
+                                    if worked { Circle().fill(CoufunchColor.primary).frame(width: 5, height: 5) }
+                                    if bonus { Circle().fill(.orange).frame(width: 5, height: 5) }
+                                }
+                                .frame(height: 6)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .background(selected ? CoufunchColor.primary.opacity(0.15) : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(day, format: .dateTime.year().month().day()))
+                        .accessibilityValue(worked ? "Worked day" : bonus ? "Incentive earned" : "")
+                    }
+                }
+            }
+            HStack(spacing: 12) {
+                Label("Worked", systemImage: "circle.fill").foregroundStyle(CoufunchColor.primary)
+                Label("Incentive earned", systemImage: "circle.fill").foregroundStyle(.orange)
+                Spacer()
+            }
+            .font(.caption)
+        }
+    }
+
     private struct MonthlyBonusRow: Identifiable {
         let id: String
         let workplaceName: String
@@ -350,16 +465,15 @@ struct WorkFinanceView: View {
                                 row("Employment Insurance", money(insurancePreview.employment))
                                 if let pension = insurancePreview.pension {
                                     row("National Pension", money(pension))
-                                } else {
-                                    row("National Pension", "Unknown")
                                 }
                                 if let health = insurancePreview.health,
                                    let care = insurancePreview.longTermCare {
                                     row("Health Insurance", money(health))
                                     row("Long-Term Care Insurance", money(care))
-                                } else {
-                                    row("Health Insurance", "Unknown")
-                                    row("Long-Term Care Insurance", "Unknown")
+                                }
+                                if insurancePreview.pension == nil || insurancePreview.health == nil {
+                                    Text("Pension or health premiums require confirmed enrollment and contribution bases in Settings.")
+                                        .font(.caption).foregroundStyle(.secondary)
                                 }
                                 if let comparison = insuranceComparison,
                                    let difference = comparison.deductionDifference {
@@ -411,10 +525,11 @@ struct WorkFinanceView: View {
                                 .accessibilityLabel("Payroll detail display mode")
                             }
                             if payrollDetailMode == .calendar {
-                                DatePicker("Select work date", selection: $selectedPayrollDay,
-                                           in: (Calendar.current.dateInterval(of: .month, for: selectedMonth)?.start ?? selectedMonth)...(Calendar.current.dateInterval(of: .month, for: selectedMonth)?.end.addingTimeInterval(-1) ?? selectedMonth),
-                                           displayedComponents: .date)
-                                    .datePickerStyle(.graphical)
+                                payrollCalendar
+                                row("Selected day gross (including incentives)", money(selectedDayGross))
+                                row("Selected day estimated net (including incentives)", money(selectedDayNet))
+                                Text("The net amount is a flat-rate estimate, not a confirmed deposit. Incentives appear on the day their attendance threshold is reached.")
+                                    .font(.caption).foregroundStyle(.secondary)
                             }
                             ShareLink(item: PayrollAuditCSV.make(report: audit, calendar: .current)) {
                                 Label("Share Payroll CSV", systemImage: "square.and.arrow.up")
@@ -432,6 +547,11 @@ struct WorkFinanceView: View {
                                 Text("No completed shifts on the selected date.")
                                     .foregroundStyle(.secondary)
                             }
+                            if payrollDetailMode == .calendar {
+                                ForEach(earnedIncentives.filter { Calendar.current.isDate($0.day, inSameDayAs: selectedPayrollDay) }) { bonus in
+                                    row(bonus.name, money(bonus.amount))
+                                }
+                            }
                             ForEach(visibleAuditEntries) { item in
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(item.workplaceName).font(.headline)
@@ -445,6 +565,7 @@ struct WorkFinanceView: View {
                                     row("Overtime premium", money(item.overtimePremium))
                                     row("Holiday premium", money(item.holidayPremium))
                                     row("Shift gross", money(item.grossTotal))
+                                    row("Shift estimated net", money(EstimatedTakeHomeCalculator.calculate(gross: item.grossTotal, shifts: []).net))
                                     if let actual = actualBySession[item.id] {
                                         row("Actual received", money(actual))
                                         if let date = receivedPay.first(where: { $0.sessionID == item.id })?.depositedAt {
@@ -469,7 +590,7 @@ struct WorkFinanceView: View {
                                     Divider()
                                 }
                             }
-                            row("Total shift gross", money(audit.shiftGross))
+
                             if audit.excluded > 0 {
                                 Text(String(format: String(localized: "%d completed shift(s) could not be calculated."), audit.excluded))
                                     .font(.caption).foregroundStyle(.orange)

@@ -3170,6 +3170,156 @@
           }
         }
       }
+    },
+    "Allowance & Incentive Payment Details": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수당 및 인센티브 지급 내역"
+          }
+        }
+      }
+    },
+    "Weekly allowances and monthly incentives are listed by their earned period. Payment dates are shown only when verified.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주휴수당과 월간 인센티브를 발생 기준 기간으로 표시합니다. 지급일은 확인된 경우에만 표시합니다."
+          }
+        }
+      }
+    },
+    "Monthly incentive deposit date is not confirmed.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "월간 인센티브 입금일이 확인되지 않았습니다."
+          }
+        }
+      }
+    },
+    "Detail display": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상세 표시 방식"
+          }
+        }
+      }
+    },
+    "Payroll detail display mode": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "급여 상세 표시 방식"
+          }
+        }
+      }
+    },
+    "Worked": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무"
+          }
+        }
+      }
+    },
+    "Incentive earned": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인센티브 발생"
+          }
+        }
+      }
+    },
+    "Worked day": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무한 날"
+          }
+        }
+      }
+    },
+    "Selected day gross (including incentives)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택일 세전 합계 (인센티브 포함)"
+          }
+        }
+      }
+    },
+    "Selected day estimated net (including incentives)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택일 예상 실수령액 (인센티브 포함)"
+          }
+        }
+      }
+    },
+    "The net amount is a flat-rate estimate, not a confirmed deposit. Incentives appear on the day their attendance threshold is reached.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실수령액은 정률 추정치이며 실제 입금액이 아닙니다. 인센티브는 근무일수 조건을 달성한 날 표시됩니다."
+          }
+        }
+      }
+    },
+    "Shift estimated net": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무별 예상 실수령액"
+          }
+        }
+      }
+    },
+    "Pension or health premiums require confirmed enrollment and contribution bases in Settings.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국민연금·건강보험료는 설정에서 가입 여부와 기준소득을 확인해야 계산할 수 있습니다."
+          }
+        }
+      }
+    },
+    "No completed shifts on the selected date.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택한 날짜에 완료된 근무가 없습니다."
+          }
+        }
+      }
+    },
+    "15-day monthly bonus": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "월 15일 근무 인센티브"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
