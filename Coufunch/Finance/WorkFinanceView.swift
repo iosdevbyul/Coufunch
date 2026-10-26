@@ -884,7 +884,9 @@ struct WorkFinanceView: View {
             (date: $0.day, name: localizedBonusName($0.name), amount: $0.amount)
         }
         let content = PayrollAuditCSV.readable(report: audit, calendar: calendar,
-                                               incentives: bonusRows)
+                                               incentives: bonusRows,
+                                               actualNetBySession: actualBySession,
+                                               totalNet: reconciledNet)
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM"
         formatter.calendar = calendar
@@ -916,10 +918,13 @@ struct WorkFinanceView: View {
         let month = DateFormatter()
         month.dateFormat = "yyyy-MM"
         let lines = audit.entries.sorted(by: { $0.start < $1.start }).map { entry in
-            "\(date.string(from: entry.start)) | \(entry.workplaceName) | \(money(entry.grossTotal))"
+            let actual = actualBySession[entry.id]
+            let net = actual ?? EstimatedTakeHomeCalculator.calculate(gross: entry.grossTotal, shifts: []).net
+            return "\(date.string(from: entry.start)) | \(entry.workplaceName) | 세전 \(money(entry.grossTotal)) | 세후 \(money(net)) (\(actual == nil ? "예상" : "실제"))"
         }
         let awards = earnedIncentives.sorted(by: { $0.day < $1.day }).map { bonus in
-            "\(date.string(from: bonus.day)) | \(localizedBonusName(bonus.name)) | +\(money(bonus.amount))"
+            let net = EstimatedTakeHomeCalculator.calculate(gross: bonus.amount, shifts: []).net
+            return "\(date.string(from: bonus.day)) | \(localizedBonusName(bonus.name)) | 세전 +\(money(bonus.amount)) | 세후 예상 +\(money(net))"
         }
         let content = ([
             "쿠펀치 급여 내역 (\(month.string(from: selectedMonth)))",
@@ -932,11 +937,13 @@ struct WorkFinanceView: View {
             "자동 인센티브: \(money(summary.automaticIncentives))",
             "수동 인센티브: \(money(summary.manualIncentives))",
             "세전 총액: \(money(summary.total))",
+            "세후 합계 (실제 입력 우선, 나머지 예상): \(money(reconciledNet))",
             "일평균 세전: \(money(summary.dailyAverage))",
             "--------------------------------",
-            "근무별 내역 (세전)",
+            "근무별 내역 (세전 / 세후)",
         ] + lines + ["", "인센티브"] + awards + [
-            "", "※ 예상 금액이며 실제 입금액 및 보험료와 다를 수 있습니다."
+            "", "※ 실제 입력된 금액은 실제로, 미입력 금액은 예상으로 표기합니다.",
+            "※ 수당 세후 예상은 참고용이며, 세후 합계에 중복 합산하지 않습니다."
         ]).joined(separator: "\n") + "\n"
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("CoufunchPayrollExports", isDirectory: true)
