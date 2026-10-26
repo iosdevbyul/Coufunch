@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import SwiftData
 import WakTrainerDesignSystem
 
@@ -11,6 +12,8 @@ struct WorkFinanceView: View {
     @State private var depositDate = Date()
     @State private var bonusInclusion: BonusInclusion = .unknown
     @State private var receiptIncludedTypes: Set<String> = []
+    @State private var payrollCSVAttachment: PayrollCSVAttachment?
+    @State private var payrollCSVError: String?
     @State private var receiptError: String?
     enum Screen { case pay, strategy }
     let screen: Screen
@@ -570,11 +573,17 @@ struct WorkFinanceView: View {
                                 Text("The net amount is a flat-rate estimate, not a confirmed deposit. Incentives appear on the day their attendance threshold is reached.")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
-                            ShareLink(item: PayrollAuditCSV.make(report: audit, calendar: .current)) {
-                                Label("Share Payroll CSV", systemImage: "square.and.arrow.up")
+                            Button {
+                                exportPayrollCSV()
+                            } label: {
+                                Label("급여 내역 CSV 파일 공유", systemImage: "square.and.arrow.up")
                             }
-                            .disabled(audit.entries.isEmpty)
-                            Text("Shares a CSV text breakdown outside this app only when you choose. It may contain workplace and shift details.")
+                            .disabled(audit.entries.isEmpty && earnedIncentives.isEmpty)
+                            if let payrollCSVError {
+                                Text(payrollCSVError)
+                                    .font(.caption).foregroundStyle(.red)
+                            }
+                            Text("근무 내역, 인센티브 및 세전 합계를 날짜순으로 정리한 CSV 파일입니다. Numbers 또는 Excel에서 열 수 있습니다.")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text("Completed shifts only. Compare these gross estimates with a gross payslip; bonuses and deductions are shown separately in the monthly summary.")
                                 .font(.footnote).foregroundStyle(.secondary)
@@ -841,6 +850,9 @@ struct WorkFinanceView: View {
                 }
             }
         }
+        .sheet(item: $payrollCSVAttachment) { file in
+            PayrollCSVShareSheet(items: [file.url])
+        }
         .onAppear {
             simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id
             loadReceiptConfirmation()
@@ -854,6 +866,35 @@ struct WorkFinanceView: View {
             let year = Calendar.current.component(.year, from: selectedMonth)
             await holidayStore.load(year: year)
             await holidayStore.load(year: year + 1)
+        }
+    }
+
+    private func exportPayrollCSV() {
+        let calendar = Calendar.current
+        let bonusRows = earnedIncentives.map {
+            (date: $0.day, name: $0.name, amount: $0.amount)
+        }
+        let content = PayrollAuditCSV.readable(report: audit, calendar: calendar,
+                                               incentives: bonusRows)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM"
+        formatter.calendar = calendar
+        let filename = "Coufunch_급여내역_\(formatter.string(from: selectedMonth)).csv"
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CoufunchPayrollExports", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(
+                at: directory, withIntermediateDirectories: true
+            )
+            let url = directory.appendingPathComponent(filename)
+            // UTF-8 BOM makes Korean headers reliably readable in Excel.
+            try (Data([0xEF, 0xBB, 0xBF]) + Data(content.utf8)).write(
+                to: url, options: .atomic
+            )
+            payrollCSVError = nil
+            payrollCSVAttachment = PayrollCSVAttachment(url: url)
+        } catch {
+            payrollCSVError = "급여 CSV 파일을 생성하지 못했습니다."
         }
     }
 
@@ -919,4 +960,19 @@ struct WorkFinanceView: View {
         }
         .font(.subheadline)
     }
+}
+
+private struct PayrollCSVAttachment: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private struct PayrollCSVShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
