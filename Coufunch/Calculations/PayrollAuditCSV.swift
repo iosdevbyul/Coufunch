@@ -38,7 +38,9 @@ enum PayrollAuditCSV {
     static func readable(
         report: PayrollAuditReport,
         calendar: Calendar,
-        incentives: [(date: Date, name: String, amount: Decimal)]
+        incentives: [(date: Date, name: String, amount: Decimal)],
+        actualNetBySession: [UUID: Decimal] = [:],
+        totalNet: Decimal? = nil
     ) -> String {
         let date = DateFormatter()
         date.calendar = calendar
@@ -54,17 +56,20 @@ enum PayrollAuditCSV {
         let header = [
             "날짜", "구분", "근무지/수당", "시작", "종료", "유급시간(분)",
             "야간(분)", "연장(분)", "기본급(원)", "야간수당(원)",
-            "연장수당(원)", "휴일수당(원)", "인센티브(원)", "세전합계(원)"
+            "연장수당(원)", "휴일수당(원)", "인센티브(원)", "세전합계(원)", "세후금액(원)", "세후구분"
         ].joined(separator: ",")
 
         let shiftRows: [(Date, String)] = report.entries.map { entry in
+            let actual = actualNetBySession[entry.id]
+            let net = actual ?? EstimatedTakeHomeCalculator.calculate(gross: entry.grossTotal, shifts: []).net
             let values = [
                 escaped(date.string(from: entry.start)), "근무", escaped(entry.workplaceName),
                 escaped(time.string(from: entry.start)), escaped(time.string(from: entry.end)),
                 String(entry.paidMinutes), String(entry.nightMinutes),
                 String(entry.dailyOvertimeMinutes), number(entry.basePay),
                 number(entry.nightPremium), number(entry.overtimePremium),
-                number(entry.holidayPremium), "0", number(entry.grossTotal)
+                number(entry.holidayPremium), "0", number(entry.grossTotal),
+                number(net), actual == nil ? "예상" : "실제"
             ]
             return (entry.start, values.joined(separator: ","))
         }
@@ -72,14 +77,17 @@ enum PayrollAuditCSV {
             let values = [
                 escaped(date.string(from: item.date)), "인센티브", escaped(item.name),
                 "", "", "", "", "", "", "", "", "",
-                number(item.amount), number(item.amount)
+                number(item.amount), number(item.amount),
+                number(EstimatedTakeHomeCalculator.calculate(gross: item.amount, shifts: []).net), "예상(수당)"
             ]
             return (item.date, values.joined(separator: ","))
         }
         let lines = (shiftRows + bonusRows).sorted { $0.0 < $1.0 }.map { $0.1 }
         let gross = report.shiftGross + incentives.reduce(Decimal.zero) { $0 + $1.amount }
+        let estimatedNet = EstimatedTakeHomeCalculator.calculate(gross: gross, shifts: []).net
         let summary = ["", "합계", "", "", "", "", "", "", "", "", "", "", "",
-                       number(gross)].joined(separator: ",")
+                       number(gross), number(totalNet ?? estimatedNet),
+                       totalNet == nil ? "예상" : "실제입력 반영"].joined(separator: ",")
         return ([header] + lines + [summary]).joined(separator: "\n") + "\n"
     }
 
