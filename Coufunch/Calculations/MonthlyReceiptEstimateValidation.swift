@@ -23,11 +23,10 @@ struct MonthlyReceiptEstimateValidation {
         profileNet: Decimal?,
         calendar: Calendar
     ) -> MonthlyReceiptEstimateValidation? {
-        guard fullMonthConfirmed,
-              let interval = calendar.dateInterval(of: .month, for: month) else {
-            return nil
+        guard fullMonthConfirmed else { return nil }
+        let scoped = receipts.filter {
+            calendar.isDate($0.monthStart, equalTo: month, toGranularity: .month)
         }
-        let scoped = receipts.filter { interval.contains($0.monthStart) }
         // An eligible comparison must be a single, explicitly identified
         // full-month net receipt, with no additional daily or allowance items.
         guard scoped.count == 1, let receipt = scoped.first,
