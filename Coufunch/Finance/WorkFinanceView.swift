@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import SwiftData
 import WakTrainerDesignSystem
 
@@ -7,13 +8,12 @@ struct WorkFinanceView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var receivedPay: [ReceivedPayRecord]
     @State private var editingSessionID: UUID?
-    @State private var editingAllowanceID: String?
-    @State private var allowanceAmount = ""
-    @State private var allowanceDepositDate = Date()
-    @State private var allowanceError: String?
     @State private var receiptAmount = ""
     @State private var depositDate = Date()
     @State private var bonusInclusion: BonusInclusion = .unknown
+    @State private var receiptIncludedTypes: Set<String> = []
+    @State private var payrollCSVAttachment: PayrollCSVAttachment?
+    @State private var payrollCSVError: String?
     @State private var receiptError: String?
     enum Screen { case pay, strategy }
     let screen: Screen
@@ -82,6 +82,17 @@ struct WorkFinanceView: View {
     private func incentiveTotal(on day: Date) -> Decimal {
         earnedIncentives.filter { Calendar.current.isDate($0.day, inSameDayAs: day) }
             .reduce(Decimal.zero) { $0 + $1.amount }
+    }
+
+    // Attach one day's incentive awards to the last completed shift only.
+    private func assignedIncentives(for item: PayrollAuditEntry) -> [EarnedIncentive] {
+        let lastShift = audit.entries.filter {
+            Calendar.current.isDate($0.start, inSameDayAs: item.start)
+        }.last
+        guard lastShift?.id == item.id else { return [] }
+        return earnedIncentives.filter {
+            Calendar.current.isDate($0.day, inSameDayAs: item.start)
+        }
     }
 
     private func shiftGross(on day: Date) -> Decimal {
@@ -337,6 +348,29 @@ struct WorkFinanceView: View {
         return result
     }
 
+    private func allowanceType(for name: String, period: IncentivePeriod, days: Int) -> String? {
+        if period == .monthly && days == 15 { return "winner" }
+        if period == .weekly && days == 5 { return "weekly" }
+        if period == .weekly && days == 6 { return "special" }
+        return nil
+    }
+
+    private func estimatedIncludedBonuses(for sessionID: UUID, types: Set<String>) -> Decimal {
+        guard let session = sessions.first(where: { $0.id == sessionID }) else { return 0 }
+        let day = Calendar.current.startOfDay(for: session.startAt)
+        let relevant = earnedIncentives.filter { Calendar.current.isDate($0.day, inSameDayAs: day) }
+        return relevant.reduce(Decimal.zero) { total, item in
+            guard let workplace = workplaces.first(where: { $0.id == session.workplaceID }),
+                  let rule = rules.first(where: {
+                      $0.name == item.name && $0.workplaceID == workplace.id
+                  }),
+                  let type = allowanceType(for: rule.name, period: rule.period,
+                                           days: rule.requiredAttendanceDays),
+                  types.contains(type) else { return total }
+            return total + item.amount
+        }
+    }
+
     private var weeklyAllowanceTimeline: [WeeklyAllowanceTimelineEntry] {
         WeeklyAllowanceTimeline.entries(
             sessions: sessions, workplaces: workplaces, rules: rules,
@@ -348,20 +382,28 @@ struct WorkFinanceView: View {
     }
 
     private var reconciledNet: Decimal {
-        let reconciled = ActualPayReconciliation.total(
+        // Replace each recorded shift estimate. Explicitly included earned
+        // incentives are removed once so they cannot be counted twice.
+        let base = ActualPayReconciliation.total(
             estimatedMonthlyNet: estimatedTakeHome.net,
             shiftGross: audit.entries.map { (id: $0.id, gross: $0.grossTotal) },
             actualBySession: actualBySession,
             bonusNetBySession: weeklyBonusNetBySession,
             bonusInclusionBySession: bonusInclusionBySession
         )
-        // A separate deposit replaces the estimated net allowance; it is not
-        // added on top of the existing monthly estimate.
-        return weeklyAllowanceTimeline.reduce(reconciled) { sum, item in
+        let typedBonusAdjustment = receivedPay.filter {
+            $0.basis == .net && $0.sessionID != nil && !$0.includedBonusTypes.isEmpty
+        }.reduce(Decimal.zero) { result, receipt in
+            guard let id = receipt.sessionID else { return result }
+            let gross = estimatedIncludedBonuses(for: id, types: receipt.includedBonusTypes)
+            let estimated = EstimatedTakeHomeCalculator.calculate(gross: gross, shifts: []).net
+            // Old single bonus picker is disabled for newly edited receipts.
+            return result - estimated
+        }
+        return weeklyAllowanceTimeline.reduce(base + typedBonusAdjustment) { sum, item in
             guard let actual = item.separatelyReceivedNet,
                   item.inclusion != .included else { return sum }
-            let estimated = EstimatedTakeHomeCalculator.calculate(
-                gross: item.amount, shifts: []).net
+            let estimated = EstimatedTakeHomeCalculator.calculate(gross: item.amount, shifts: []).net
             return sum - estimated + actual
         }
     }
@@ -531,11 +573,17 @@ struct WorkFinanceView: View {
                                 Text("The net amount is a flat-rate estimate, not a confirmed deposit. Incentives appear on the day their attendance threshold is reached.")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
-                            ShareLink(item: PayrollAuditCSV.make(report: audit, calendar: .current)) {
-                                Label("Share Payroll CSV", systemImage: "square.and.arrow.up")
+                            Button {
+                                exportPayrollCSV()
+                            } label: {
+                                Label("급여 내역 CSV 파일 공유", systemImage: "square.and.arrow.up")
                             }
-                            .disabled(audit.entries.isEmpty)
-                            Text("Shares a CSV text breakdown outside this app only when you choose. It may contain workplace and shift details.")
+                            .disabled(audit.entries.isEmpty && earnedIncentives.isEmpty)
+                            if let payrollCSVError {
+                                Text(payrollCSVError)
+                                    .font(.caption).foregroundStyle(.red)
+                            }
+                            Text("근무 내역, 인센티브 및 세전 합계를 날짜순으로 정리한 CSV 파일입니다. Numbers 또는 Excel에서 열 수 있습니다.")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text("Completed shifts only. Compare these gross estimates with a gross payslip; bonuses and deductions are shown separately in the monthly summary.")
                                 .font(.footnote).foregroundStyle(.secondary)
@@ -547,8 +595,10 @@ struct WorkFinanceView: View {
                                 Text("No completed shifts on the selected date.")
                                     .foregroundStyle(.secondary)
                             }
-                            if payrollDetailMode == .calendar {
-                                ForEach(earnedIncentives.filter { Calendar.current.isDate($0.day, inSameDayAs: selectedPayrollDay) }) { bonus in
+                            if payrollDetailMode == .calendar && visibleAuditEntries.isEmpty {
+                                ForEach(earnedIncentives.filter {
+                                    Calendar.current.isDate($0.day, inSameDayAs: selectedPayrollDay)
+                                }) { bonus in
                                     row(bonus.name, money(bonus.amount))
                                 }
                             }
@@ -564,8 +614,16 @@ struct WorkFinanceView: View {
                                     row("Night premium", money(item.nightPremium))
                                     row("Overtime premium", money(item.overtimePremium))
                                     row("Holiday premium", money(item.holidayPremium))
-                                    row("Shift gross", money(item.grossTotal))
-                                    row("Shift estimated net", money(EstimatedTakeHomeCalculator.calculate(gross: item.grossTotal, shifts: []).net))
+                                    let awards = assignedIncentives(for: item)
+                                    let incentiveGross = awards.reduce(Decimal.zero) { $0 + $1.amount }
+                                    ForEach(awards) { bonus in
+                                        row(bonus.name, money(bonus.amount))
+                                    }
+                                    row("Shift gross (including earned incentives)", money(item.grossTotal + incentiveGross))
+                                    row("Shift estimated net (including earned incentives)",
+                                        money(EstimatedTakeHomeCalculator.calculate(
+                                            gross: item.grossTotal + incentiveGross, shifts: []
+                                        ).net))
                                     if let actual = actualBySession[item.id] {
                                         row("Actual received", money(actual))
                                         if let date = receivedPay.first(where: { $0.sessionID == item.id })?.depositedAt {
@@ -583,7 +641,8 @@ struct WorkFinanceView: View {
                                             NSDecimalNumber(decimal: $0).stringValue
                                         } ?? ""
                                         receiptError = nil
-                                        bonusInclusion = bonusInclusionBySession[item.id] ?? .unknown
+                                        bonusInclusion = .unknown
+                                        receiptIncludedTypes = receivedPay.first(where: { $0.sessionID == item.id })?.includedBonusTypes ?? []
                                         depositDate = receivedPay.first(where: { $0.sessionID == item.id })?.depositedAt ?? Date()
                                     }
                                     .buttonStyle(.bordered)
@@ -649,14 +708,6 @@ struct WorkFinanceView: View {
                                                  : "Allowance deposit date is unconfirmed.")
                                                 .font(.caption).foregroundStyle(.secondary)
                                         }
-                                        Button(item.separatelyReceivedNet == nil ? "Record Separate Allowance" : "Edit Separate Allowance") {
-                                            editingAllowanceID = item.id
-                                            allowanceAmount = item.separatelyReceivedNet.map { NSDecimalNumber(decimal: $0).stringValue } ?? ""
-                                            allowanceDepositDate = receivedPay.first(where: { $0.allowanceAwardID == item.id })?.depositedAt ?? Date()
-                                            allowanceError = nil
-                                        }
-                                        .buttonStyle(.bordered)
-                                        .disabled(item.inclusion == .included)
                                     }
                                     Divider()
                                 }
@@ -765,21 +816,21 @@ struct WorkFinanceView: View {
                     DatePicker("Bank deposit date", selection: $depositDate, displayedComponents: .date)
                     Text("The deposit date is recorded separately from the work date and does not change which month earned pay belongs to.")
                         .font(.caption).foregroundStyle(.secondary)
-                    if let id = editingSessionID,
-                       let bonus = weeklyBonusGrossBySession[id], bonus > 0 {
-                        Section {
-                            Text("A weekly allowance is estimated for this workweek. Does the entered deposit include it?")
-                            Picker("Weekly allowance included?", selection: $bonusInclusion) {
-                                Text("Yes, included").tag(BonusInclusion.included)
-                                Text("No, paid separately").tag(BonusInclusion.excluded)
-                                Text("Not sure yet").tag(BonusInclusion.unknown)
-                            }
-                            .pickerStyle(.inline)
-                            if bonusInclusion == .unknown {
-                                Text("Bonus inclusion is unconfirmed. The estimated allowance remains in the total until confirmed.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
+                    Section("Included in actual deposit") {
+                        Toggle("Includes weekly allowance (5 days)", isOn: Binding(
+                            get: { receiptIncludedTypes.contains("weekly") },
+                            set: { if $0 { receiptIncludedTypes.insert("weekly") } else { receiptIncludedTypes.remove("weekly") } }
+                        ))
+                        Toggle("Includes special allowance (6 days)", isOn: Binding(
+                            get: { receiptIncludedTypes.contains("special") },
+                            set: { if $0 { receiptIncludedTypes.insert("special") } else { receiptIncludedTypes.remove("special") } }
+                        ))
+                        Toggle("Includes Winner Promotion (15 days)", isOn: Binding(
+                            get: { receiptIncludedTypes.contains("winner") },
+                            set: { if $0 { receiptIncludedTypes.insert("winner") } else { receiptIncludedTypes.remove("winner") } }
+                        ))
+                        Text("Choose only allowances included in this bank deposit. Unchecked allowances stay in the estimate.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                     if let receiptError {
                         Text(LocalizedStringKey(receiptError)).foregroundStyle(.red)
@@ -799,38 +850,8 @@ struct WorkFinanceView: View {
                 }
             }
         }
-        .sheet(isPresented: Binding(
-            get: { editingAllowanceID != nil },
-            set: { if !$0 { editingAllowanceID = nil } }
-        )) {
-            NavigationStack {
-                Form {
-                    TextField("Separate allowance received (KRW)", text: $allowanceAmount)
-                        .keyboardType(.numberPad)
-                    DatePicker("Bank deposit date", selection: $allowanceDepositDate,
-                               displayedComponents: .date)
-                    Text("Enter the net amount actually deposited separately. This replaces the estimated net allowance in its earned month.")
-                        .font(.caption).foregroundStyle(.secondary)
-                    if let allowanceError {
-                        Text(LocalizedStringKey(allowanceError)).foregroundStyle(.red)
-                    }
-                    if let id = editingAllowanceID,
-                       receivedPay.contains(where: { $0.allowanceAwardID == id }) {
-                        Button("Remove Separate Allowance", role: .destructive) {
-                            removeSeparateAllowance()
-                        }
-                    }
-                }
-                .navigationTitle("Separate Weekly Allowance")
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Cancel") { editingAllowanceID = nil }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Save") { saveSeparateAllowance() }
-                    }
-                }
-            }
+        .sheet(item: $payrollCSVAttachment) { file in
+            PayrollCSVShareSheet(items: [file.url])
         }
         .onAppear {
             simulationWorkplaceID = simulationWorkplaceID ?? workplaces.first?.id
@@ -845,6 +866,35 @@ struct WorkFinanceView: View {
             let year = Calendar.current.component(.year, from: selectedMonth)
             await holidayStore.load(year: year)
             await holidayStore.load(year: year + 1)
+        }
+    }
+
+    private func exportPayrollCSV() {
+        let calendar = Calendar.current
+        let bonusRows = earnedIncentives.map {
+            (date: $0.day, name: $0.name, amount: $0.amount)
+        }
+        let content = PayrollAuditCSV.readable(report: audit, calendar: calendar,
+                                               incentives: bonusRows)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM"
+        formatter.calendar = calendar
+        let filename = "Coufunch_급여내역_\(formatter.string(from: selectedMonth)).csv"
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CoufunchPayrollExports", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(
+                at: directory, withIntermediateDirectories: true
+            )
+            let url = directory.appendingPathComponent(filename)
+            // UTF-8 BOM makes Korean headers reliably readable in Excel.
+            try (Data([0xEF, 0xBB, 0xBF]) + Data(content.utf8)).write(
+                to: url, options: .atomic
+            )
+            payrollCSVError = nil
+            payrollCSVAttachment = PayrollCSVAttachment(url: url)
+        } catch {
+            payrollCSVError = "급여 CSV 파일을 생성하지 못했습니다."
         }
     }
 
@@ -868,14 +918,16 @@ struct WorkFinanceView: View {
         if let first = existing.first {
             first.amount = amount
             first.basis = .net
-            first.bonusInclusion = bonusInclusion
+            first.bonusInclusion = .unknown
+            first.includedBonusTypes = receiptIncludedTypes
             first.depositedAt = depositDate
             for duplicate in existing.dropFirst() { modelContext.delete(duplicate) }
         } else {
             modelContext.insert(ReceivedPayRecord(monthStart: month, amount: amount,
                                                    basis: .net, sessionID: id,
-                                                   bonusInclusion: bonusInclusion,
-                                                   depositedAt: depositDate))
+                                                   bonusInclusion: .unknown,
+                                                   depositedAt: depositDate,
+                                                   includedBonusTypes: receiptIncludedTypes))
         }
         do {
             try modelContext.save()
@@ -900,52 +952,6 @@ struct WorkFinanceView: View {
         }
     }
 
-    private func saveSeparateAllowance() {
-        guard let id = editingAllowanceID,
-              let item = weeklyAllowanceTimeline.first(where: { $0.id == id }),
-              item.inclusion != .included,
-              let amount = Decimal(string: allowanceAmount, locale: Locale(identifier: "en_US_POSIX")),
-              amount >= 0,
-              let month = Calendar.current.dateInterval(of: .month, for: item.earnedAt)?.start else {
-            allowanceError = "Enter a valid amount. Allowance already included in a shift cannot be recorded separately."
-            return
-        }
-        let existing = receivedPay.filter { $0.allowanceAwardID == id }
-        if let first = existing.first {
-            first.amount = amount
-            first.depositedAt = allowanceDepositDate
-            first.basis = .net
-            for duplicate in existing.dropFirst() { modelContext.delete(duplicate) }
-        } else {
-            modelContext.insert(ReceivedPayRecord(
-                monthStart: month, amount: amount, basis: .net,
-                depositedAt: allowanceDepositDate, allowanceAwardID: id))
-        }
-        do {
-            try modelContext.save()
-            editingAllowanceID = nil
-            allowanceError = nil
-        } catch {
-            modelContext.rollback()
-            allowanceError = "Unable to save the payment record."
-        }
-    }
-
-    private func removeSeparateAllowance() {
-        guard let id = editingAllowanceID else { return }
-        for record in receivedPay where record.allowanceAwardID == id {
-            modelContext.delete(record)
-        }
-        do {
-            try modelContext.save()
-            editingAllowanceID = nil
-            allowanceError = nil
-        } catch {
-            modelContext.rollback()
-            allowanceError = "Unable to delete the payment record."
-        }
-    }
-
     private func row(_ title: String, _ value: String) -> some View {
         HStack {
             Text(LocalizedStringKey(title)).foregroundStyle(.secondary)
@@ -954,4 +960,19 @@ struct WorkFinanceView: View {
         }
         .font(.subheadline)
     }
+}
+
+private struct PayrollCSVAttachment: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private struct PayrollCSVShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }

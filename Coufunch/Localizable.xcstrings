@@ -3320,6 +3320,76 @@
           }
         }
       }
+    },
+    "Shift gross (including earned incentives)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무별 세전 급여 (발생 인센티브 포함)"
+          }
+        }
+      }
+    },
+    "Shift estimated net (including earned incentives)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근무별 예상 실수령액 (발생 인센티브 포함)"
+          }
+        }
+      }
+    },
+    "Included in actual deposit": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 입금액에 포함된 수당"
+          }
+        }
+      }
+    },
+    "Includes weekly allowance (5 days)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주휴수당 포함 (주 5일)"
+          }
+        }
+      }
+    },
+    "Includes special allowance (6 days)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "특근수당 포함 (주 6일)"
+          }
+        }
+      }
+    },
+    "Includes Winner Promotion (15 days)": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "위너프로모션 포함 (월 15일)"
+          }
+        }
+      }
+    },
+    "Choose only allowances included in this bank deposit. Unchecked allowances stay in the estimate.": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 입금액에 포함된 수당만 선택하세요. 선택하지 않은 수당은 예상 금액에 유지됩니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

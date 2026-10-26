@@ -21,10 +21,16 @@ final class ReceivedPayRecord {
     var workplaceID: UUID?
     var sessionID: UUID?
     var bonusInclusionRaw: String = "unknown"
+    // Comma-separated allowance categories recorded with the actual deposit.
+    var includedBonusTypesRaw: String = ""
 
     var bonusInclusion: BonusInclusion {
         get { BonusInclusion(rawValue: bonusInclusionRaw) ?? .unknown }
         set { bonusInclusionRaw = newValue.rawValue }
+    }
+    var includedBonusTypes: Set<String> {
+        get { Set(includedBonusTypesRaw.split(separator: ",").map(String.init)) }
+        set { includedBonusTypesRaw = newValue.sorted().joined(separator: ",") }
     }
     var amount: Decimal
     var basisRaw: String
@@ -43,12 +49,13 @@ final class ReceivedPayRecord {
     init(id: UUID = UUID(), monthStart: Date, workplaceID: UUID? = nil,
          amount: Decimal, basis: ReceivedPayBasis, note: String = "", sessionID: UUID? = nil,
          bonusInclusion: BonusInclusion = .unknown, depositedAt: Date? = nil,
-         allowanceAwardID: String? = nil) {
+         allowanceAwardID: String? = nil, includedBonusTypes: Set<String> = []) {
         self.id = id
         self.monthStart = monthStart
         self.workplaceID = workplaceID
         self.sessionID = sessionID
         self.bonusInclusionRaw = bonusInclusion.rawValue
+        self.includedBonusTypesRaw = includedBonusTypes.sorted().joined(separator: ",")
         self.amount = amount
         self.basisRaw = basis.rawValue
         self.note = note
