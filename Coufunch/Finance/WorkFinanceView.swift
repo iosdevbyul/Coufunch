@@ -6,6 +6,7 @@ import WakTrainerDesignSystem
 struct WorkFinanceView: View {
     @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var appLocale
     @Query private var receivedPay: [ReceivedPayRecord]
     @State private var editingSessionID: UUID?
     @State private var receiptAmount = ""
@@ -414,9 +415,9 @@ struct WorkFinanceView: View {
 
     private func localizedBonusName(_ name: String) -> String {
         switch name {
-        case "5-day weekly bonus": return Locale.current.language.languageCode?.identifier == "ko" ? "주 5일 근무 주휴수당" : name
-        case "6-day weekly bonus": return Locale.current.language.languageCode?.identifier == "ko" ? "주 6일 근무 특근수당" : name
-        case "15-day monthly bonus": return Locale.current.language.languageCode?.identifier == "ko" ? "월 15일 위너프로모션" : name
+        case "5-day weekly bonus": return appLocale.language.languageCode?.identifier == "ko" ? "주 5일 근무 주휴수당" : name
+        case "6-day weekly bonus": return appLocale.language.languageCode?.identifier == "ko" ? "주 6일 근무 특근수당" : name
+        case "15-day monthly bonus": return appLocale.language.languageCode?.identifier == "ko" ? "월 15일 위너프로모션" : name
         default: return name
         }
     }
@@ -887,11 +888,11 @@ struct WorkFinanceView: View {
                                                incentives: bonusRows,
                                                actualNetBySession: actualBySession,
                                                totalNet: reconciledNet,
-                                               locale: .current)
+                                               locale: appLocale)
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM"
         formatter.calendar = calendar
-        let filename = "Coufunch_\(Locale.current.language.languageCode?.identifier == "ko" ? "급여내역" : "Payroll")_\(formatter.string(from: selectedMonth)).csv"
+        let filename = "Coufunch_\(appLocale.language.languageCode?.identifier == "ko" ? "급여내역" : "Payroll")_\(formatter.string(from: selectedMonth)).csv"
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("CoufunchPayrollExports", isDirectory: true)
         do {
@@ -912,10 +913,10 @@ struct WorkFinanceView: View {
 
     private func exportPayrollText() {
         let calendar = Calendar.current
-        let korean = Locale.current.language.languageCode?.identifier == "ko"
+        let korean = appLocale.language.languageCode?.identifier == "ko"
         func l(_ ko: String, _ en: String) -> String { korean ? ko : en }
         let date = DateFormatter()
-        date.locale = .current
+        date.locale = appLocale
         date.dateFormat = "yyyy-MM-dd"
         date.timeZone = calendar.timeZone
         let month = DateFormatter()
