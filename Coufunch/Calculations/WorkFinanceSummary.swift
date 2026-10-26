@@ -11,7 +11,12 @@ struct MonthlyPaySummary {
     let skippedSessions: Int
 
     var total: Decimal { basePay + nightPremium + overtimePremium + holidayPremium + automaticIncentives + manualIncentives }
-    var dailyAverage: Decimal { completedDays > 0 ? total / Decimal(completedDays) : 0 }
+    var dailyAverage: Decimal {
+        guard completedDays > 0 else { return 0 }
+        return NSDecimalNumber(decimal: total)
+            .dividing(by: NSDecimalNumber(value: completedDays))
+            .decimalValue
+    }
 }
 
 struct NextWorkdayOpportunity: Identifiable {
