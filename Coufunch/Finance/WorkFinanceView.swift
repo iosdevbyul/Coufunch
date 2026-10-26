@@ -90,6 +90,19 @@ struct WorkFinanceView: View {
         )
     }
 
+    private var receiptEstimateValidation: MonthlyReceiptEstimateValidation? {
+        guard workplaces.count == 1, let workplace = workplaces.first else { return nil }
+        return MonthlyReceiptEstimateValidation.calculate(
+            month: selectedMonth,
+            workplaceID: workplace.id,
+            receipts: receivedPay,
+            gross: summary.total,
+            hasIncentives: summary.automaticIncentives != 0 || summary.manualIncentives != 0,
+            profileNet: insurancePreview?.estimatedNet,
+            calendar: .current
+        )
+    }
+
     private var estimatedTakeHome: EstimatedTakeHomeResult {
         EstimatedTakeHomeCalculator.calculate(
             gross: summary.total,
@@ -245,6 +258,25 @@ struct WorkFinanceView: View {
                             Text(money(reconciledNet))
                                 .font(.title2.bold())
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
+                            Divider()
+                            if let validation = receiptEstimateValidation {
+                                Divider()
+                                Text("Monthly Receipt Accuracy Check").font(.headline)
+                                row("Confirmed Monthly Net Receipt", money(validation.actualNet))
+                                row("Flat-Rate Estimate Error", money(validation.flatRateError))
+                                if let profileError = validation.profileError {
+                                    row("Insurance Profile Estimate Error", money(profileError))
+                                } else {
+                                    row("Insurance Profile Estimate Error", "Unknown")
+                                }
+                                Text("Estimate minus actual deposit. Positive values mean the estimate is too high. Only one full-month net receipt with matching workplace and bonus coverage can be compared.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                Text("Income tax is not included in either estimate. This check does not alter recorded deposits or reconciliation.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                Text("Monthly accuracy check unavailable: record one complete monthly net receipt for a single workplace, including any bonuses, without separate shift or allowance receipts.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
                             Divider()
                             Text("Insurance Profile Preview").font(.headline)
                             ForEach(healthEligibilityPreview) { item in
