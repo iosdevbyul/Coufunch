@@ -7,13 +7,9 @@ struct WorkTimelineEditor: View {
     @Binding var work: TimelineRange
     @Binding var breaks: [TimelineRange]
 
-    @State private var handleAnchor: TimelineRange?
     @State private var selectionAnchor: Int?
     @State private var activeBreakIndex = 0
 
-    private let pointsPerHour: CGFloat = 132
-    private var pointsPerMinute: CGFloat { pointsPerHour / 60 }
-    private var contentWidth: CGFloat { CGFloat(TimelineSelection.maximumMinute) * pointsPerMinute }
 
     var body: some View {
         VStack(alignment: .leading, spacing: WakSpacing.medium) {
@@ -21,25 +17,63 @@ struct WorkTimelineEditor: View {
                 .font(WakTypography.screenTitle)
                 .foregroundStyle(CoufunchColor.textPrimary)
 
-            Text("On the Shift row, touch your start time and drag to your end time to select the entire work interval. Scroll with the ruler; adjust by five minutes below.")
+            Text("근무시간 선택: 시작 시간부터 종료 시간까지 쭉 드래그하세요. 시간은 5분 단위로 선택됩니다.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        ruler
-                        lane(title: "Shift", range: work, tint: CoufunchColor.primary, isBreak: false)
-                        lane(title: "Break", range: breaks.indices.contains(activeBreakIndex) ? breaks[activeBreakIndex] : nil, tint: .orange, isBreak: true)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("시작 시간부터 종료 시간까지 아래 시간표를 한 번에 그어 선택하세요.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                GeometryReader { geometry in
+                    let width = max(1, geometry.size.width)
+                    let toX: (Int) -> CGFloat = {
+                        width * CGFloat($0) / CGFloat(TimelineSelection.maximumMinute)
                     }
-                    .frame(width: contentWidth)
-                    .padding(.vertical, 8)
+                    ZStack(alignment: .topLeading) {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(CoufunchColor.textPrimary.opacity(0.08))
+                        ForEach(0...8, id: \.self) { tick in
+                            let minute = tick * 360
+                            VStack(spacing: 4) {
+                                Text(tick < 4 ? "\(tick * 6)시" : "+1일 \((tick - 4) * 6)시")
+                                    .font(.system(size: 9))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.6)
+                                Rectangle()
+                                    .fill(.secondary.opacity(0.3))
+                                    .frame(width: 1, height: 46)
+                            }
+                            .offset(x: min(width - 20, max(0, toX(minute) - 10)), y: 7)
+                        }
+                        RoundedRectangle(cornerRadius: 7)
+                            .fill(CoufunchColor.primary.opacity(0.75))
+                            .frame(width: max(2, toX(work.end - work.start)), height: 34)
+                            .offset(x: toX(work.start), y: 41)
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                                    .onChanged { value in
+                                        if selectionAnchor == nil {
+                                            selectionAnchor = minute(at: value.startLocation.x, width: width)
+                                        }
+                                        guard let anchor = selectionAnchor else { return }
+                                        work = TimelineSelection.selection(
+                                            from: anchor,
+                                            to: minute(at: value.location.x, width: width)
+                                        )
+                                    }
+                                    .onEnded { _ in selectionAnchor = nil }
+                            )
+                    }
                 }
-                .scrollIndicators(.visible)
-                .onAppear {
-                    // Reveal the selected shift without changing its start or end values.
-                    proxy.scrollTo(max(0, work.start / 60 - 1), anchor: .leading)
-                }
+                .frame(height: 84)
+                Text("전체 48시간을 표시합니다. 자정 이후는 +1일이며, 아래 ± 버튼으로 5분씩 정밀 조정할 수 있습니다.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
 
             VStack(alignment: .leading, spacing: WakSpacing.medium) {
@@ -104,115 +138,9 @@ struct WorkTimelineEditor: View {
         }
     }
 
-    private var ruler: some View {
-        ZStack(alignment: .topLeading) {
-            HStack(alignment: .top, spacing: 0) {
-                ForEach(0..<48, id: \.self) { hour in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(hour < 24 ? String(format: "%02d:00", hour) :
-                             "+1d " + String(format: "%02d:00", hour - 24))
-                            .font(.caption2.monospacedDigit())
-                        Rectangle().fill(.secondary).frame(width: 1, height: 10)
-                    }
-                    .frame(width: pointsPerHour, height: 44, alignment: .topLeading)
-                    .id(hour)
-                }
-            }
-            ForEach(0..<576, id: \.self) { tick in
-                Rectangle()
-                    .fill(CoufunchColor.textPrimary.opacity(0.14))
-                    .frame(width: 1, height: tick.isMultiple(of: 12) ? 10 : 4)
-                    .offset(x: CGFloat(tick * 5) * pointsPerMinute, y: 34)
-            }
-        }
-        .frame(width: contentWidth, height: 44, alignment: .topLeading)
-        .allowsHitTesting(false)
-        .accessibilityLabel("Timeline ruler, 48 hours in five-minute increments")
-    }
-
-    private func lane(title: String, range: TimelineRange?, tint: Color, isBreak: Bool) -> some View {
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(CoufunchColor.textPrimary.opacity(0.08))
-                .frame(width: contentWidth, height: 54)
-                .contentShape(Rectangle())
-                .allowsHitTesting(isBreak)
-
-            if let range {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(tint.opacity(0.6))
-                    .frame(width: CGFloat(range.duration) * pointsPerMinute, height: 36)
-                    .offset(x: CGFloat(range.start) * pointsPerMinute)
-                    .accessibilityLabel(String(format: String(localized: "%@ from %@ to %@"), String(localized: String.LocalizationValue(title)), label(range.start), label(range.end)))
-
-                if isBreak {
-                    handle(edge: .start, range: range, tint: tint, isBreak: true)
-                    handle(edge: .end, range: range, tint: tint, isBreak: true)
-                } else {
-                    handleMarker(edge: .start, range: range, tint: tint)
-                    handleMarker(edge: .end, range: range, tint: tint)
-                }
-            }
-        }
-        .frame(width: contentWidth, height: 54)
-        .contentShape(Rectangle())
-        .highPriorityGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                    guard !isBreak else { return }
-                    if selectionAnchor == nil {
-                        selectionAnchor = TimelineSelection.snap(
-                            Double(value.startLocation.x / pointsPerMinute)
-                        )
-                    }
-                    guard let anchor = selectionAnchor else { return }
-                    work = TimelineSelection.selection(
-                        from: anchor,
-                        to: TimelineSelection.snap(Double(value.location.x / pointsPerMinute))
-                    )
-                }
-                .onEnded { _ in selectionAnchor = nil }
-        )
-
-    }
-
-    private func handleMarker(edge: TimelineSelection.Edge, range: TimelineRange, tint: Color) -> some View {
-        RoundedRectangle(cornerRadius: 9)
-            .fill(tint)
-            .frame(width: 22, height: 48)
-            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(CoufunchColor.textPrimary, lineWidth: 1))
-            .offset(x: CGFloat(edge == .start ? range.start : range.end) * pointsPerMinute - 11)
-            .allowsHitTesting(false)
-    }
-
-    private func handle(edge: TimelineSelection.Edge, range: TimelineRange, tint: Color, isBreak: Bool) -> some View {
-        RoundedRectangle(cornerRadius: 9)
-            .fill(tint)
-            .frame(width: 22, height: 48)
-            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(CoufunchColor.textPrimary, lineWidth: 1))
-            .offset(x: CGFloat(edge == .start ? range.start : range.end) * pointsPerMinute - 11)
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 2)
-                    .onChanged { value in
-                        if handleAnchor == nil { handleAnchor = range }
-                        guard let anchor = handleAnchor else { return }
-                        let original = edge == .start ? anchor.start : anchor.end
-                        let next = original + Int((value.translation.width / pointsPerMinute).rounded())
-                        let bounds = isBreak ? work : TimelineRange(start: 0, end: TimelineSelection.maximumMinute)
-                        if isBreak, breaks.indices.contains(activeBreakIndex) {
-                            let updated = TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)
-                            guard !breaks.enumerated().contains(where: {
-                                $0.offset != activeBreakIndex &&
-                                updated.start < $0.element.end && $0.element.start < updated.end
-                            }) else { return }
-                            breaks[activeBreakIndex] = updated
-                        } else if !isBreak {
-                            work = TimelineSelection.adjust(anchor, edge: edge, to: next, bounds: bounds)
-                        }
-                    }
-                    .onEnded { _ in handleAnchor = nil }
-            )
-            .accessibilityLabel(LocalizedStringKey(isBreak ? "Adjust break boundary" : "Adjust shift boundary"))
+    private func minute(at x: CGFloat, width: CGFloat) -> Int {
+        let fraction = Double(max(0, min(width, x)) / max(width, 1))
+        return TimelineSelection.snap(fraction * Double(TimelineSelection.maximumMinute))
     }
 
     private var hasAvailableBreakGap: Bool {
