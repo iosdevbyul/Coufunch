@@ -33,24 +33,26 @@ private struct CoufunchRootView: View {
     @State private var isShowingSplash = true
 
     var body: some View {
-        Group {
+        ZStack {
+            Group {
+                if workplaces.isEmpty {
+                    WorkplaceOnboardingView(onComplete: {})
+                } else {
+                    WorkOverviewView()
+                }
+            }
+
             if isShowingSplash {
-                StartupSplashView()
-                    .ignoresSafeArea()
-            } else if workplaces.isEmpty {
-                WorkplaceOnboardingView(onComplete: {})
-            } else {
-                WorkOverviewView()
+                StartupSplashView {
+                    isShowingSplash = false
+                }
+                .ignoresSafeArea()
+                .zIndex(2)
             }
         }
         // Prefetch begins while the splash is visible; slow networks do not block navigation.
         .task {
             await holidayStore.prefetchNearbyYears()
-        }
-        .task {
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
-            isShowingSplash = false
         }
         .onChange(of: isShowingSplash) { _, showing in
             if !showing && !promptAnswered && !workplaces.isEmpty {
@@ -116,17 +118,91 @@ private struct AppSwitcherPrivacyCover: View {
 
 import SwiftUI
 
-/// Displayed after iOS LaunchScreen while startup data is prefetched.
-struct StartupSplashView: View {
-    var body: some View {
-        ZStack {
-            Color(red: 0.035, green: 0.039, blue: 0.047)
+/// Displayed after the static iOS LaunchScreen. The home screen is already
+/// underneath; the closing curtain reveals it from right to left.
+private struct StartupSplashView: View {
+    let onFinished: () -> Void
 
-            Image("SplashIcon")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 200, height: 200)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var logoX: CGFloat = -1
+    @State private var logoY: CGFloat = 0
+    @State private var curtainX: CGFloat = 0
+    @State private var started = false
+
+    private let backgroundColor = Color(red: 0.035, green: 0.039, blue: 0.047)
+    private let logoSize: CGFloat = 200
+
+    var body: some View {
+        GeometryReader { geometry in
+            let screenWidth = geometry.size.width
+            let outside = screenWidth / 2 + logoSize
+
+            ZStack {
+                backgroundColor
+
+                Image("SplashIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: logoSize, height: logoSize)
+                    .offset(x: logoX == -1 ? -outside : logoX, y: logoY)
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
+            .offset(x: curtainX)
+            .task {
+                guard !started else { return }
+                started = true
+
+                if reduceMotion {
+                    // Respect accessibility settings without requiring precise motion.
+                    try? await Task.sleep(for: .milliseconds(400))
+                    guard !Task.isCancelled else { return }
+                    onFinished()
+                    return
+                }
+
+                // Enter from beyond the left edge and land in the middle.
+                withAnimation(.easeOut(duration: 0.40)) {
+                    logoX = 0
+                }
+                guard await pause(420) else { return }
+
+                // Three increasingly smaller bounces in the center.
+                for height: CGFloat in [54, 34, 18] {
+                    withAnimation(.easeOut(duration: 0.13)) {
+                        logoY = -height
+                    }
+                    guard await pause(130) else { return }
+                    withAnimation(.easeIn(duration: 0.15)) {
+                        logoY = 0
+                    }
+                    guard await pause(170) else { return }
+                }
+
+                // The logo exits completely offscreen to the right.
+                withAnimation(.easeIn(duration: 0.36)) {
+                    logoX = outside
+                }
+                guard await pause(380) else { return }
+
+                // Slide the entire dark splash offscreen to the left.
+                withAnimation(.easeInOut(duration: 0.42)) {
+                    curtainX = -screenWidth
+                }
+                guard await pause(440) else { return }
+                onFinished()
+            }
         }
         .accessibilityHidden(true)
+        .allowsHitTesting(true)
+    }
+
+    private func pause(_ milliseconds: Int) async -> Bool {
+        do {
+            try await Task.sleep(for: .milliseconds(milliseconds))
+            return !Task.isCancelled
+        } catch {
+            return false
+        }
     }
 }
