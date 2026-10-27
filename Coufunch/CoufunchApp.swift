@@ -161,29 +161,40 @@ private struct StartupSplashView: View {
                     return
                 }
 
-                // Enter from beyond the left edge and land in the middle.
-                withAnimation(.easeOut(duration: 0.40)) {
-                    logoX = 0
-                }
-                guard await pause(420) else { return }
+                // The logo travels left-to-right THROUGH three bounces.
+                // Each landing advances along the screen, never in place.
+                let landings: [CGFloat] = [
+                    -screenWidth * 0.25,
+                    0,
+                    screenWidth * 0.25
+                ]
+                let heights: [CGFloat] = [64, 52, 38]
+                let launchX = -outside
+                logoX = launchX
 
-                // Three increasingly smaller bounces in the center.
-                for height: CGFloat in [54, 34, 18] {
-                    withAnimation(.easeOut(duration: 0.13)) {
-                        logoY = -height
+                for index in landings.indices {
+                    let startX = index == 0 ? launchX : landings[index - 1]
+                    let landingX = landings[index]
+                    // Rise while moving halfway to the next landing.
+                    withAnimation(.easeOut(duration: 0.20)) {
+                        logoX = (startX + landingX) / 2
+                        logoY = -heights[index]
                     }
-                    guard await pause(130) else { return }
-                    withAnimation(.easeIn(duration: 0.15)) {
+                    guard await pause(210) else { return }
+
+                    // Fall and advance to the next rightward position.
+                    withAnimation(.easeIn(duration: 0.18)) {
+                        logoX = landingX
                         logoY = 0
                     }
-                    guard await pause(170) else { return }
+                    guard await pause(200) else { return }
                 }
 
-                // The logo exits completely offscreen to the right.
-                withAnimation(.easeIn(duration: 0.36)) {
+                // Exit completely off the right edge after the third landing.
+                withAnimation(.easeIn(duration: 0.34)) {
                     logoX = outside
                 }
-                guard await pause(380) else { return }
+                guard await pause(360) else { return }
 
                 // Slide the entire dark splash offscreen to the left.
                 withAnimation(.easeInOut(duration: 0.42)) {
