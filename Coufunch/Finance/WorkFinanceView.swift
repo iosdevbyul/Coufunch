@@ -18,6 +18,8 @@ struct WorkFinanceView: View {
     @State private var payrollCSVAttachment: PayrollCSVAttachment?
     @State private var payrollCSVError: String?
     @State private var receiptError: String?
+    @State private var scenarioAdditionalShifts = 0
+    @State private var scenarioGrossPerShift = ""
     enum Screen { case pay, strategy }
     let screen: Screen
 
@@ -196,6 +198,34 @@ struct WorkFinanceView: View {
     @State private var confirmedFullMonth = false
     @State private var simulationWorkplaceID: UUID?
     @State private var simulationDate = Date()
+
+    private var statusForecast: PayForecast {
+        PayForecastCalculator.calculate(
+            month: selectedMonth,
+            sessions: sessions,
+            breaks: breaks,
+            settings: settings,
+            calendar: .current,
+            holidayDates: holidayStore.dates
+        )
+    }
+
+    private var scenarioUnitPay: Decimal? {
+        guard let value = Decimal(string: scenarioGrossPerShift,
+                                  locale: Locale(identifier: "en_US_POSIX")), value > 0 else {
+            return nil
+        }
+        return value
+    }
+
+    private var scenarioProjectedGross: Decimal? {
+        guard scenarioAdditionalShifts == 0 || scenarioUnitPay != nil else { return nil }
+        return ManualPayScenario.projectedGross(
+            recordedGross: summary.total + statusForecast.confirmedGross + statusForecast.appliedGross,
+            shiftCount: scenarioAdditionalShifts,
+            grossPerShift: scenarioUnitPay ?? 0
+        )
+    }
 
     private var summary: MonthlyPaySummary {
         WorkFinanceSummary.summarize(month: selectedMonth, sessions: sessions,
@@ -444,6 +474,56 @@ struct WorkFinanceView: View {
                         Spacer()
                         Button { selectedMonth = Calendar.current.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth } label: {
                             Image(systemName: "chevron.right")
+                        }
+                    }
+                    CoufunchCard {
+                        VStack(alignment: .leading, spacing: WakSpacing.medium) {
+                            Text("월말 수입 시나리오")
+                                .font(WakTypography.screenTitle)
+                            Text("불규칙한 근무 일정은 자동 예측하지 않습니다. 아래 추가 근무 횟수와 1회 세전 급여를 직접 입력해 비교하세요.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+
+                            row("현재 기록 기반 월 급여", money(summary.total))
+                            row("확정 예정 근무", "\(statusForecast.confirmedCount)회 · \(money(statusForecast.confirmedGross))")
+                            row("지원 중인 근무", "\(statusForecast.appliedCount)회 · \(money(statusForecast.appliedGross))")
+
+                            Stepper(value: $scenarioAdditionalShifts, in: 0...31) {
+                                Text("추가 근무 가정: \(scenarioAdditionalShifts)회")
+                                    .font(.subheadline)
+                            }
+                            HStack {
+                                Text("추가 1회 세전 급여")
+                                    .font(.subheadline)
+                                Spacer()
+                                TextField("금액 입력", text: $scenarioGrossPerShift)
+                                    .keyboardType(.decimalPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(maxWidth: 130)
+                                    .accessibilityIdentifier("finance.scenario.grossPerShift")
+                                Text("원")
+                            }
+                            if let scenarioProjectedGross {
+                                Divider()
+                                row("모든 예정 근무 포함 시 세전", money(scenarioProjectedGross))
+                                row("추가 가정분", money(ManualPayScenario.additionalGross(
+                                    shiftCount: scenarioAdditionalShifts,
+                                    grossPerShift: scenarioUnitPay ?? 0
+                                )))
+                                row("예상 실수령액(단순 보험료 추정)",
+                                    money(EstimatedTakeHomeCalculator.calculate(
+                                        gross: scenarioProjectedGross, shifts: []
+                                    ).net))
+                            } else {
+                                Text("추가 근무 1회 세전 급여를 입력하면 시나리오를 계산합니다.")
+                                    .font(.caption).foregroundStyle(.orange)
+                            }
+                            if statusForecast.unpricedCount > 0 {
+                                Text("금액을 계산할 수 없는 기존 근무 \(statusForecast.unpricedCount)건은 시나리오에서 제외했습니다.")
+                                    .font(.caption).foregroundStyle(.orange)
+                            }
+                            Text("시나리오는 확정·지원 상태의 근무가 실제 완료된다고 가정한 참고값입니다. 추가 근무 횟수는 저장되지 않으며, 주휴·추가 인센티브 발생 및 세금은 새 가정에 대해 재계산하지 않습니다.")
+                                .font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     CoufunchCard {

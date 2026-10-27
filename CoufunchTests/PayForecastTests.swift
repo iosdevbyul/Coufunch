@@ -59,4 +59,25 @@ final class PayForecastTests: XCTestCase {
         XCTAssertEqual(saved[0].basis, .net)
         XCTAssertEqual(saved[0].note, "Deposited")
     }
+    func testManualScenarioDoesNotInventAdditionalWork() {
+        XCTAssertEqual(ManualPayScenario.projectedGross(
+            recordedGross: 350_000, shiftCount: 0, grossPerShift: 108_000
+        ), 350_000)
+        XCTAssertEqual(ManualPayScenario.projectedGross(
+            recordedGross: 350_000, shiftCount: 3, grossPerShift: 108_000
+        ), 674_000)
+    }
+
+    func testManualScenarioDoesNotSubtractRecordedEarnings() {
+        XCTAssertEqual(ManualPayScenario.additionalGross(
+            shiftCount: 0, grossPerShift: 108_000
+        ), 0)
+        XCTAssertEqual(ManualPayScenario.additionalGross(
+            shiftCount: -1, grossPerShift: 108_000
+        ), 0)
+        XCTAssertEqual(ManualPayScenario.additionalGross(
+            shiftCount: 4, grossPerShift: -10
+        ), 0)
+    }
+
 }
