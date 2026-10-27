@@ -31,7 +31,8 @@ struct MonthlyPayStatisticsView: View {
 
     @State private var mode: PayMode = .gross
     @State private var visibleMode: PayMode = .gross
-    @State private var chartHeightFactor = 1.0
+    @State private var displayedBarValues: [Double] = []
+    @State private var isTransitioning = false
     @State private var selectedMonthIndex: Int?
     @State private var transitionTask: Task<Void, Never>?
 
@@ -83,19 +84,31 @@ struct MonthlyPayStatisticsView: View {
     }
 
     private func changeMode(_ newMode: PayMode) {
-        guard mode != newMode else { return }
-        transitionTask?.cancel()
+        guard mode != newMode, !isTransitioning else { return }
         mode = newMode
+        isTransitioning = true
+        transitionTask?.cancel()
+
+        // First animation: EVERY bar descends to the baseline together.
+        withAnimation(.easeInOut(duration: 0.35)) {
+            displayedBarValues = Array(repeating: 0, count: months.count)
+        }
+
         transitionTask = Task { @MainActor in
-            withAnimation(.easeIn(duration: 0.28)) {
-                chartHeightFactor = 0
-            }
-            try? await Task.sleep(for: .milliseconds(300))
+            try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled else { return }
+
+            // Replace the data only after every rendered bar has reached zero.
             visibleMode = newMode
-            withAnimation(.easeOut(duration: 0.48)) {
-                chartHeightFactor = 1
+            let nextValues = months.map { $0.amount(for: newMode) }
+
+            // Second animation: EVERY bar grows from the baseline together.
+            withAnimation(.easeInOut(duration: 0.55)) {
+                displayedBarValues = nextValues
             }
+            try? await Task.sleep(for: .milliseconds(570))
+            guard !Task.isCancelled else { return }
+            isTransitioning = false
         }
     }
 
@@ -121,6 +134,7 @@ struct MonthlyPayStatisticsView: View {
                                 )
                         }
                         .buttonStyle(.plain)
+                        .disabled(isTransitioning)
                         .accessibilityAddTraits(mode == value ? .isSelected : [])
                     }
                 }
@@ -130,7 +144,7 @@ struct MonthlyPayStatisticsView: View {
                 Chart(months) { item in
                     BarMark(
                         x: .value("월", item.index),
-                        y: .value("급여", item.amount(for: visibleMode) * chartHeightFactor)
+                        y: .value("급여", displayedBarValues.indices.contains(item.index) ? displayedBarValues[item.index] : item.amount(for: visibleMode))
                     )
                     .foregroundStyle(
                         selected?.index == item.index
@@ -201,8 +215,12 @@ struct MonthlyPayStatisticsView: View {
             await holidays.load(year: year - 1)
             await holidays.load(year: year)
         }
+        .onAppear {
+            displayedBarValues = months.map { $0.amount(for: visibleMode) }
+        }
         .onDisappear {
             transitionTask?.cancel()
+            isTransitioning = false
         }
     }
 
