@@ -14,6 +14,7 @@ struct WorkFinanceView: View {
     @State private var depositDate = Date()
     @State private var bonusInclusion: BonusInclusion = .unknown
     @State private var receiptIncludedTypes: Set<String> = []
+    @State private var showPayrollExportOptions = false
     @State private var payrollCSVAttachment: PayrollCSVAttachment?
     @State private var payrollCSVError: String?
     @State private var receiptError: String?
@@ -453,6 +454,7 @@ struct WorkFinanceView: View {
                             Text("Estimated / Actual Take-Home Pay").font(WakTypography.screenTitle)
                             Text(money(reconciledNet))
                                 .font(.title.bold())
+                                .foregroundStyle(CoufunchColor.primary)
                             row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
                             Divider()
                             if let key = currentConfirmationKey {
@@ -575,22 +577,16 @@ struct WorkFinanceView: View {
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             Button {
-                                exportPayrollCSV()
+                                showPayrollExportOptions = true
                             } label: {
-                                Label("급여 내역 CSV 파일 공유", systemImage: "square.and.arrow.up")
-                            }
-                            .disabled(audit.entries.isEmpty && earnedIncentives.isEmpty)
-                            Button {
-                                exportPayrollText()
-                            } label: {
-                                Label("급여 내역 TXT 공유", systemImage: "text.alignleft")
+                                Label("급여 내역 파일 공유", systemImage: "square.and.arrow.up")
                             }
                             .disabled(audit.entries.isEmpty && earnedIncentives.isEmpty)
                             if let payrollCSVError {
                                 Text(payrollCSVError)
                                     .font(.caption).foregroundStyle(.red)
                             }
-                            Text("근무 내역, 인센티브 및 세전 합계를 날짜순으로 정리한 CSV 파일입니다. Numbers 또는 Excel에서 열 수 있습니다.")
+                            Text("공유 버튼을 누른 뒤 CSV 또는 TXT 파일 형식을 선택할 수 있습니다.")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text("Completed shifts only. Compare these gross estimates with a gross payslip; bonuses and deductions are shown separately in the monthly summary.")
                                 .font(.footnote).foregroundStyle(.secondary)
@@ -859,6 +855,11 @@ struct WorkFinanceView: View {
                     }
                 }
             }
+        }
+        .confirmationDialog("공유 파일 형식 선택", isPresented: $showPayrollExportOptions, titleVisibility: .visible) {
+            Button("CSV 파일") { exportPayrollCSV() }
+            Button("TXT 파일") { exportPayrollText() }
+            Button("취소", role: .cancel) { }
         }
         .sheet(item: $payrollCSVAttachment) { file in
             PayrollCSVShareSheet(items: [file.url])
