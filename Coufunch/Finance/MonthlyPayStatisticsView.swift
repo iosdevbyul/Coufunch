@@ -31,7 +31,11 @@ struct MonthlyPayStatisticsView: View {
 
     @State private var mode: PayMode = .gross
     @State private var visibleMode: PayMode = .gross
-    @State private var chartHeightFactor = 1.0
+    private enum BarPhase { case idle, descending, ascending }
+    @State private var barPhase: BarPhase = .idle
+    @State private var phaseStartedAt = Date()
+    @State private var isTransitioning = false
+    private let phaseDuration = 0.8
     @State private var selectedMonthIndex: Int?
     @State private var transitionTask: Task<Void, Never>?
 
@@ -82,20 +86,40 @@ struct MonthlyPayStatisticsView: View {
         amount.formatted(.currency(code: "KRW").precision(.fractionLength(0)))
     }
 
+    // Equal currency units per second: smaller bars reach zero sooner.
+    // Both axes stay fixed, and the next series only starts once ALL bars reach zero.
+    private func animatedValue(for item: MonthAmount, at now: Date) -> Double {
+        let amount = item.amount(for: visibleMode)
+        let speed = fixedYAxisMaximum / phaseDuration
+        let distance = max(0, now.timeIntervalSince(phaseStartedAt)) * speed
+        switch barPhase {
+        case .idle: return amount
+        case .descending: return max(0, amount - distance)
+        case .ascending: return min(amount, distance)
+        }
+    }
+
     private func changeMode(_ newMode: PayMode) {
-        guard mode != newMode else { return }
+        guard mode != newMode, !isTransitioning else { return }
         transitionTask?.cancel()
         mode = newMode
+        isTransitioning = true
+        barPhase = .descending
+        phaseStartedAt = .now
+
         transitionTask = Task { @MainActor in
-            withAnimation(.easeIn(duration: 0.28)) {
-                chartHeightFactor = 0
-            }
-            try? await Task.sleep(for: .milliseconds(300))
+            try? await Task.sleep(for: .seconds(phaseDuration))
             guard !Task.isCancelled else { return }
+
+            // All bars are now at zero. Only now switch the dataset.
             visibleMode = newMode
-            withAnimation(.easeOut(duration: 0.48)) {
-                chartHeightFactor = 1
-            }
+            phaseStartedAt = .now
+            barPhase = .ascending
+
+            try? await Task.sleep(for: .seconds(phaseDuration))
+            guard !Task.isCancelled else { return }
+            barPhase = .idle
+            isTransitioning = false
         }
     }
 
@@ -121,16 +145,18 @@ struct MonthlyPayStatisticsView: View {
                                 )
                         }
                         .buttonStyle(.plain)
+                        .disabled(isTransitioning)
                         .accessibilityAddTraits(mode == value ? .isSelected : [])
                     }
                 }
                 .padding(4)
                 .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 14))
 
-                Chart(months) { item in
+                TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: !isTransitioning)) { timeline in
+                    Chart(months) { item in
                     BarMark(
                         x: .value("월", item.index),
-                        y: .value("급여", item.amount(for: visibleMode) * chartHeightFactor)
+                        y: .value("급여", animatedValue(for: item, at: timeline.date))
                     )
                     .foregroundStyle(
                         selected?.index == item.index
@@ -162,7 +188,8 @@ struct MonthlyPayStatisticsView: View {
                 }
                 .chartXSelection(value: $selectedMonthIndex)
                 .frame(height: 260)
-                .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity)
+                }
 
                 Text("막대를 누르면 해당 월의 근무 정보가 표시됩니다.")
                     .font(.caption)
@@ -203,6 +230,8 @@ struct MonthlyPayStatisticsView: View {
         }
         .onDisappear {
             transitionTask?.cancel()
+            isTransitioning = false
+            barPhase = .idle
         }
     }
 
