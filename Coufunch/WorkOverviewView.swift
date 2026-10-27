@@ -6,12 +6,14 @@ import WakTrainerDesignSystem
 struct WorkOverviewView: View {
     @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.modelContext) private var modelContext
     @Query private var workBreaks: [WorkBreak]
     @Query private var sessions: [WorkSession]
     @Query private var rules: [IncentiveRule]
     @Query private var workplaces: [Workplace]
     @State private var displayedMonth = Date()
+    @State private var calendarTodayToken = Calendar.current.startOfDay(for: .now)
     @State private var selectedDate: Date?
     @State private var isSidebarPresented = false
     @State private var financeScreen: WorkFinanceView.Screen?
@@ -115,6 +117,7 @@ struct WorkOverviewView: View {
                         configuration: calendarConfiguration,
                         style: calendarStyle
                     )
+                    .id(calendarTodayToken)
 
                     if let error = holidayStore.errorMessage {
                         Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(.orange)
@@ -181,6 +184,18 @@ struct WorkOverviewView: View {
                 .padding(WakSpacing.large)
             }
             .background(CoufunchColor.background)
+            .task {
+                await refreshCalendarTodayAcrossMidnight()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshCalendarToday() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                refreshCalendarToday()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                refreshCalendarToday()
+            }
             .task(id: reminderSyncKey) { await refreshPaydayReminders() }
             .task(id: Calendar.current.component(.year, from: displayedMonth)) {
                 var calendar = Calendar(identifier: .gregorian)
@@ -313,6 +328,33 @@ struct WorkOverviewView: View {
             return nil
         }
         return holidayStore.displayName(for: String(format: "%04d-%02d-%02d", year, month, day), locale: locale)
+    }
+
+    private func refreshCalendarToday() {
+        let today = Calendar.current.startOfDay(for: .now)
+        if calendarTodayToken != today {
+            calendarTodayToken = today
+        }
+    }
+
+    /// The calendar library computes isToday when building its day cells.
+    /// Recreate only the calendar at the next local day boundary; preserve
+    /// the user's displayed month and explicitly selected date.
+    @MainActor
+    private func refreshCalendarTodayAcrossMidnight() async {
+        while !Task.isCancelled {
+            let now = Date()
+            guard let boundary = Calendar.current.dateInterval(of: .day, for: now)?.end else {
+                return
+            }
+            let delay = max(0.05, boundary.timeIntervalSince(now))
+            do {
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                return
+            }
+            refreshCalendarToday()
+        }
     }
 
     private func deletePendingSession() {
