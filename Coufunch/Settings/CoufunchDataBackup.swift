@@ -4,7 +4,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// Versioned, portable JSON backup for the seven SwiftData record types.
-/// It intentionally does not claim to include UserDefaults-based preferences.
+/// Version 2 also captures a restricted set of monthly UserDefaults settings.
 struct CoufunchBackupArchive: Codable {
     let version: Int
     let createdAt: Date
@@ -15,6 +15,7 @@ struct CoufunchBackupArchive: Codable {
     let rules: [[String: String]]
     let incentives: [[String: String]]
     let receipts: [[String: String]]
+    let monthlyPreferences: [String: String]?
 
     var recordCount: Int {
         workplaces.count + paySettings.count + sessions.count +
@@ -77,7 +78,7 @@ enum CoufunchBackupStore {
         let receipts = try context.fetch(FetchDescriptor<ReceivedPayRecord>())
 
         return CoufunchBackupArchive(
-            version: 1, createdAt: .now,
+            version: 2, createdAt: .now,
             workplaces: workplaces.map { [
                 "id": uuid($0.id), "name": $0.name,
                 "weekStartWeekday": String($0.weekStartWeekday),
@@ -128,7 +129,8 @@ enum CoufunchBackupStore {
                 "basis": $0.basisRaw, "note": $0.note,
                 "createdAt": stamp($0.createdAt), "depositedAt": stamp($0.depositedAt),
                 "allowanceAwardID": $0.allowanceAwardID ?? ""
-            ] }
+            ] },
+            monthlyPreferences: exportMonthlyPreferences()
         )
     }
 
@@ -143,7 +145,7 @@ enum CoufunchBackupStore {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let archive = try decoder.decode(CoufunchBackupArchive.self, from: data)
-        guard archive.version == 1 else { throw CoufunchBackupError.unsupportedVersion }
+        guard archive.version == 1 || archive.version == 2 else { throw CoufunchBackupError.unsupportedVersion }
         try validate(archive)
         return archive
     }
@@ -212,6 +214,14 @@ enum CoufunchBackupStore {
     }
 
     private static func validate(_ archive: CoufunchBackupArchive) throws {
+        if archive.version == 2 && archive.monthlyPreferences == nil {
+            throw CoufunchBackupError.invalidRecord("missing monthly preferences")
+        }
+        for (key, value) in archive.monthlyPreferences ?? [:] {
+            guard isApprovedMonthlyKey(key), isValidMonthlyValue(value, for: key) else {
+                throw CoufunchBackupError.invalidRecord("invalid monthly preference")
+            }
+        }
         var ids = Set<UUID>()
         for group in [archive.workplaces, archive.paySettings, archive.sessions,
                       archive.breaks, archive.rules, archive.incentives, archive.receipts] {
@@ -293,6 +303,67 @@ enum CoufunchBackupStore {
             _ = try optionalDecimal(row, "grossAmount")
             _ = try date(row, "createdAt")
             _ = try optionalDate(row, "depositedAt")
+        }
+    }
+
+    /// Only per-workplace/per-month scalar values are portable.
+    /// Global notification state and system authorization are intentionally excluded.
+    private static func isApprovedMonthlyKey(_ key: String) -> Bool {
+        let parts = key.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
+        if parts.count == 5 && parts[0] == "insurance" &&
+            (parts[1] == "employment" || parts[1] == "profile") &&
+            UUID(uuidString: parts[2]) != nil && validMonth(parts[3]) {
+            let allowed: Set<String> = parts[1] == "employment"
+                ? ["previousMonth", "startedOnFirstDay"]
+                : ["pensionEnrollment", "healthEnrollment", "pensionBase", "healthBase"]
+            return allowed.contains(parts[4])
+        }
+        // Monthly payroll receipt-confirmation flags may be scoped to a single workplace.
+        return parts.count == 5 && parts[0] == "payroll" &&
+            parts[1] == "validation" && UUID(uuidString: parts[2]) != nil &&
+            validMonth(parts[3]) && parts[4] == "fullMonthConfirmed"
+    }
+
+    private static func validMonth(_ raw: String) -> Bool {
+        let parts = raw.split(separator: "-", omittingEmptySubsequences: false)
+        guard parts.count == 2, parts[0].count == 4, parts[1].count == 2,
+              Int(parts[0]) != nil, let month = Int(parts[1]) else { return false }
+        return (1...12).contains(month)
+    }
+
+    private static func isValidMonthlyValue(_ value: String, for key: String) -> Bool {
+        if key.hasPrefix("payroll.validation.") { return value == "true" || value == "false" }
+        if key.hasPrefix("insurance.employment.") { return ["yes", "no", "unknown"].contains(value) }
+        if key.hasSuffix(".pensionEnrollment") || key.hasSuffix(".healthEnrollment") {
+            return ["enrolled", "notEnrolled", "unknown"].contains(value)
+        }
+        if key.hasSuffix(".pensionBase") || key.hasSuffix(".healthBase") {
+            return value.isEmpty || (Decimal(string: value, locale: Locale(identifier: "en_US_POSIX")).map { $0 >= 0 } ?? false)
+        }
+        return false
+    }
+
+    private static func exportMonthlyPreferences(defaults: UserDefaults = .standard) -> [String: String] {
+        defaults.dictionaryRepresentation().reduce(into: [:]) { result, entry in
+            guard isApprovedMonthlyKey(entry.key) else { return }
+            if let value = entry.value as? String {
+                if isValidMonthlyValue(value, for: entry.key) { result[entry.key] = value }
+            } else if let value = entry.value as? Bool {
+                let raw = value ? "true" : "false"
+                if isValidMonthlyValue(raw, for: entry.key) { result[entry.key] = raw }
+            }
+        }
+    }
+
+    /// Do not replace settings already entered on the destination device.
+    private static func restoreMonthlyPreferences(_ preferences: [String: String],
+                                                   defaults: UserDefaults = .standard) {
+        for (key, value) in preferences where defaults.object(forKey: key) == nil {
+            if key.hasPrefix("payroll.validation.") {
+                defaults.set(value == "true", forKey: key)
+            } else {
+                defaults.set(value, forKey: key)
+            }
         }
     }
 
@@ -425,6 +496,9 @@ enum CoufunchBackupStore {
                 context.insert(item)
             }
             try context.save()
+            if let preferences = archive.monthlyPreferences {
+                restoreMonthlyPreferences(preferences)
+            }
             return added
         } catch {
             context.rollback()

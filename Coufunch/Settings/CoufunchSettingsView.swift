@@ -73,7 +73,7 @@ struct CoufunchSettingsView: View {
             }
 
             Section("데이터 백업 및 복원") {
-                Text("근무 기록, 휴게시간, 사업장, 급여 설정, 수당, 실제 입금 내역을 JSON 파일로 저장하거나 가져옵니다.")
+                Text("근무 기록, 휴게시간, 사업장, 급여 설정, 수당, 실제 입금 내역과 월별 보험·고용·급여 검증 설정을 JSON 파일로 저장하거나 가져옵니다.")
                     .font(.footnote).foregroundStyle(.secondary)
                 Button("백업 파일 내보내기") {
                     do {
@@ -88,7 +88,7 @@ struct CoufunchSettingsView: View {
                 Button("백업 파일 가져오기") {
                     showingImporter = true
                 }
-                Text("복원은 파일의 기록을 추가하며, 같은 ID의 기존 기록은 덮어쓰거나 삭제하지 않습니다. 보험·고용 프로필과 알림 설정 등 기기에 별도 저장된 설정은 현재 백업에 포함되지 않습니다.")
+                Text("복원은 파일의 기록을 추가하며, 같은 ID의 기존 기록과 이미 설정된 월별 값을 덮어쓰지 않습니다. iPhone 알림 권한 및 알림 사용 여부는 백업되지 않습니다. v1 백업 파일도 가져올 수 있습니다.")
                     .font(.footnote).foregroundStyle(.secondary)
                 if let backupMessage {
                     Text(backupMessage)
