@@ -8,7 +8,6 @@ struct WorkTimelineEditor: View {
     @Binding var breaks: [TimelineRange]
 
     @State private var handleAnchor: TimelineRange?
-    @State private var movingAnchor: TimelineRange?
     @State private var selectionAnchor: Int?
     @State private var activeBreakIndex = 0
 
@@ -22,7 +21,7 @@ struct WorkTimelineEditor: View {
                 .font(WakTypography.screenTitle)
                 .foregroundStyle(CoufunchColor.textPrimary)
 
-            Text("Drag an empty Shift lane to select start and end times. Drag the colored band to move the shift, or drag its handles to resize it. Scroll using the ruler.")
+            Text("On the Shift row, touch your start time and drag to your end time to select the entire work interval. Scroll with the ruler; adjust by five minutes below.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -137,64 +136,53 @@ struct WorkTimelineEditor: View {
                 .fill(CoufunchColor.textPrimary.opacity(0.08))
                 .frame(width: contentWidth, height: 54)
                 .contentShape(Rectangle())
-                .highPriorityGesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            guard !isBreak else { return }
-                            if selectionAnchor == nil {
-                                selectionAnchor = TimelineSelection.snap(
-                                    Double(value.startLocation.x / pointsPerMinute)
-                                )
-                            }
-                            guard let anchor = selectionAnchor else { return }
-                            let minute = TimelineSelection.snap(
-                                Double(value.location.x / pointsPerMinute)
-                            )
-                            work = TimelineSelection.selection(from: anchor, to: minute)
-                        }
-                        .onEnded { _ in selectionAnchor = nil }
-                )
+                .allowsHitTesting(isBreak)
 
             if let range {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(tint.opacity(0.6))
                     .frame(width: CGFloat(range.duration) * pointsPerMinute, height: 36)
                     .offset(x: CGFloat(range.start) * pointsPerMinute)
-                    .highPriorityGesture(
-                        DragGesture(minimumDistance: 2)
-                            .onChanged { value in
-                                if movingAnchor == nil { movingAnchor = range }
-                                guard let anchor = movingAnchor else { return }
-                                let delta = TimelineSelection.snapDelta(
-                                    Double(value.translation.width / pointsPerMinute)
-                                )
-                                let bounds = isBreak ? work : TimelineRange(
-                                    start: 0, end: TimelineSelection.maximumMinute
-                                )
-                                let moved = TimelineSelection.move(anchor, by: delta, within: bounds)
-                                if isBreak {
-                                    guard breaks.indices.contains(activeBreakIndex),
-                                          !breaks.enumerated().contains(where: {
-                                              $0.offset != activeBreakIndex &&
-                                              moved.start < $0.element.end &&
-                                              $0.element.start < moved.end
-                                          }) else { return }
-                                    breaks[activeBreakIndex] = moved
-                                } else {
-                                    work = moved
-                                }
-                            }
-                            .onEnded { _ in movingAnchor = nil }
-                    )
                     .accessibilityLabel(String(format: String(localized: "%@ from %@ to %@"), String(localized: String.LocalizationValue(title)), label(range.start), label(range.end)))
 
-                handle(edge: .start, range: range, tint: tint, isBreak: isBreak)
-                handle(edge: .end, range: range, tint: tint, isBreak: isBreak)
+                if isBreak {
+                    handle(edge: .start, range: range, tint: tint, isBreak: true)
+                    handle(edge: .end, range: range, tint: tint, isBreak: true)
+                } else {
+                    handleMarker(edge: .start, range: range, tint: tint)
+                    handleMarker(edge: .end, range: range, tint: tint)
+                }
             }
         }
         .frame(width: contentWidth, height: 54)
         .contentShape(Rectangle())
+        .highPriorityGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    guard !isBreak else { return }
+                    if selectionAnchor == nil {
+                        selectionAnchor = TimelineSelection.snap(
+                            Double(value.startLocation.x / pointsPerMinute)
+                        )
+                    }
+                    guard let anchor = selectionAnchor else { return }
+                    work = TimelineSelection.selection(
+                        from: anchor,
+                        to: TimelineSelection.snap(Double(value.location.x / pointsPerMinute))
+                    )
+                }
+                .onEnded { _ in selectionAnchor = nil }
+        )
 
+    }
+
+    private func handleMarker(edge: TimelineSelection.Edge, range: TimelineRange, tint: Color) -> some View {
+        RoundedRectangle(cornerRadius: 9)
+            .fill(tint)
+            .frame(width: 22, height: 48)
+            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(CoufunchColor.textPrimary, lineWidth: 1))
+            .offset(x: CGFloat(edge == .start ? range.start : range.end) * pointsPerMinute - 11)
+            .allowsHitTesting(false)
     }
 
     private func handle(edge: TimelineSelection.Edge, range: TimelineRange, tint: Color, isBreak: Bool) -> some View {
