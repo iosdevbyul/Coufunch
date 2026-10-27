@@ -27,6 +27,10 @@ struct WorkOverviewView: View {
     @State private var pendingDelete: WorkSession?
 
     private let calendarStyle = CalendarStyle(
+        selectedBackgroundColor: CoufunchColor.primary,
+        selectedTextColor: .white,
+        highlightedBackgroundColor: CoufunchColor.primary.opacity(0.16),
+        todayBorderColor: CoufunchColor.primary,
         weekdaySaturdayColor: .blue,
         weekdaySundayColor: .red
     )
