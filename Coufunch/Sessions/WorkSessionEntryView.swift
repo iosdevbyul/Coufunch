@@ -177,6 +177,7 @@ struct WorkSessionEntryView: View {
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel", action: onSaved)
+                        .foregroundStyle(.red)
                 }
             }
         }
