@@ -144,6 +144,23 @@ private struct StartupSplashView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: logoSize, height: logoSize)
+                    // SplashIcon currently reuses the opaque app-icon PNG.
+                    // Screen blending removes its near-black rectangular backdrop;
+                    // soft edge masking prevents the square's boundary from showing
+                    // against the moving splash background.
+                    .blendMode(.screen)
+                    .mask {
+                        RadialGradient(
+                            stops: [
+                                .init(color: .white, location: 0),
+                                .init(color: .white, location: 0.56),
+                                .init(color: .clear, location: 0.74)
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: logoSize * 0.72
+                        )
+                    }
                     .offset(x: logoX == -1 ? -outside : logoX, y: logoY)
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
