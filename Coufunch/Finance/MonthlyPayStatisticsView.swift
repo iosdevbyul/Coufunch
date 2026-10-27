@@ -20,6 +20,38 @@ private struct PayrollBarShape: Shape {
     }
 }
 
+/// Lightweight line overlay that leaves the existing fixed-layout bars untouched.
+private struct AveragePayLine: Shape {
+    let values: [CGFloat?]
+    var progress: CGFloat
+
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        guard !values.isEmpty else { return path }
+        let slotWidth = rect.width / CGFloat(values.count)
+        var previousWasValid = false
+        for (index, ratio) in values.enumerated() {
+            guard let ratio else {
+                previousWasValid = false
+                continue
+            }
+            let point = CGPoint(
+                x: rect.minX + slotWidth * (CGFloat(index) + 0.5),
+                y: rect.maxY - rect.height * max(0, min(1, ratio)) * progress
+            )
+            if previousWasValid { path.addLine(to: point) }
+            else { path.move(to: point) }
+            previousWasValid = true
+        }
+        return path
+    }
+}
+
 struct MonthlyPayStatisticsView: View {
     private enum PayMode: String, CaseIterable {
         case gross = "세전"
@@ -102,6 +134,19 @@ struct MonthlyPayStatisticsView: View {
                 gross: gross,
                 net: net
             )
+        }
+    }
+
+    private var fixedAverageMaximum: Double {
+        max(1, months.flatMap { [ $0.average(for: .gross), $0.average(for: .net) ] }
+            .compactMap { $0.map { NSDecimalNumber(decimal: $0).doubleValue } }
+            .max() ?? 0) * 1.12
+    }
+
+    private var averageLineRatios: [CGFloat?] {
+        months.map { month in
+            guard let average = month.average(for: visibleMode) else { return nil }
+            return CGFloat(NSDecimalNumber(decimal: average).doubleValue / fixedAverageMaximum)
         }
     }
 
@@ -206,6 +251,37 @@ struct MonthlyPayStatisticsView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                        // The right-hand series uses its own fixed scale.
+                        // Missing-work months break the line rather than creating false zeros.
+                        AveragePayLine(
+                            values: averageLineRatios,
+                            progress: barPhase == .descending ? 0 : 1
+                        )
+                        .stroke(Color.orange, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                        .animation(.linear(duration: phaseDuration), value: barPhase)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+
+                        HStack(spacing: 2) {
+                            ForEach(months) { item in
+                                GeometryReader { column in
+                                    if let average = item.average(for: visibleMode), barPhase != .descending {
+                                        Circle()
+                                            .fill(Color.orange)
+                                            .frame(width: 6, height: 6)
+                                            .position(
+                                                x: column.size.width / 2,
+                                                y: column.size.height * (1 - CGFloat(
+                                                    NSDecimalNumber(decimal: average).doubleValue / fixedAverageMaximum
+                                                ))
+                                            )
+                                    }
+                                }
+                            }
+                        }
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+
                     }
                 }
                 .frame(height: chartHeight)
@@ -224,6 +300,17 @@ struct MonthlyPayStatisticsView: View {
                 }
                 .frame(height: 20)
             }
+
+            VStack(alignment: .leading) {
+                Text(fixedAverageMaximum.formatted(.number.notation(.compactName)))
+                Spacer()
+                Text((fixedAverageMaximum / 2).formatted(.number.notation(.compactName)))
+                Spacer()
+                Text("0")
+            }
+            .font(.caption2)
+            .foregroundStyle(.orange)
+            .frame(width: 48, height: chartHeight)
         }
         .frame(maxWidth: .infinity)
     }
@@ -256,6 +343,14 @@ struct MonthlyPayStatisticsView: View {
                 }
                 .padding(4)
                 .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 14))
+
+                HStack(spacing: 16) {
+                    Label("월 총급여", systemImage: "chart.bar.fill")
+                        .foregroundStyle(CoufunchColor.primary)
+                    Label("1회 평균 급여", systemImage: "waveform.path")
+                        .foregroundStyle(.orange)
+                }
+                .font(.caption)
 
                 monthlyBarChart
 
