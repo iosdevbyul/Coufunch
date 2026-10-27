@@ -32,6 +32,7 @@ struct MonthlyPayStatisticsView: View {
         let completedDays: Int
         let gross: Decimal
         let net: Decimal
+        let validation: MonthlyReceiptEstimateValidation?
 
         var id: Date { month }
         func amount(for mode: PayMode) -> Double {
@@ -45,6 +46,7 @@ struct MonthlyPayStatisticsView: View {
     @Query private var settings: [WorkplacePaySettings]
     @Query private var rules: [IncentiveRule]
     @Query private var manual: [ManualIncentive]
+    @Query private var receivedPay: [ReceivedPayRecord]
     @StateObject private var holidays = KoreanPublicHolidayStore()
 
     @State private var cachedMonths: [MonthAmount] = []
@@ -91,9 +93,44 @@ struct MonthlyPayStatisticsView: View {
                 index: index,
                 completedDays: summary.completedDays,
                 gross: gross,
-                net: net
+                net: net,
+                validation: validatedReceipt(for: month, gross: summary.total, hasIncentives: summary.automaticIncentives != 0 || summary.manualIncentives != 0)
             )
         }
+    }
+
+    // Reuse the same strict eligibility contract as the payroll accuracy check.
+    // Never compare a partial receipt against an entire month's estimate.
+    private func validatedReceipt(for month: Date, gross: Decimal, hasIncentives: Bool) -> MonthlyReceiptEstimateValidation? {
+        guard workplaces.count == 1, let workplace = workplaces.first else { return nil }
+        let monthKey = EmploymentContextStore.monthKey(month, calendar: calendar)
+        let key = "payroll.validation.\(workplace.id.uuidString).\(monthKey).fullMonthConfirmed"
+        return MonthlyReceiptEstimateValidation.calculate(
+            month: month,
+            workplaceID: workplace.id,
+            receipts: receivedPay,
+            gross: gross,
+            hasIncentives: hasIncentives,
+            fullMonthConfirmed: UserDefaults.standard.bool(forKey: key),
+            profileNet: nil,
+            calendar: calendar
+        )
+    }
+
+    private var recentAccuracy: [MonthlyReceiptEstimateValidation] {
+        Array(months.suffix(3)).compactMap(\.validation)
+    }
+
+    private func accuracyRate(for result: MonthlyReceiptEstimateValidation) -> Double? {
+        let actual = NSDecimalNumber(decimal: result.actualNet).doubleValue
+        guard actual > 0 else { return nil }
+        return NSDecimalNumber(decimal: result.flatRateAbsoluteError).doubleValue / actual * 100
+    }
+
+    private var recentAverageErrorRate: Double? {
+        let rates = recentAccuracy.compactMap { accuracyRate(for: $0) }
+        guard !rates.isEmpty else { return nil }
+        return rates.reduce(0, +) / Double(rates.count)
     }
 
     private var selected: MonthAmount? {
@@ -273,6 +310,39 @@ struct MonthlyPayStatisticsView: View {
                     .padding(16)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("예상·실제 급여 오차 분석")
+                        .font(.headline)
+                    if let selected, let validation = selected.validation {
+                        LabeledContent("실제 월 실수령액", value: formatted(validation.actualNet))
+                        LabeledContent("월 예상 실수령액", value: formatted(validation.flatRateNet))
+                        LabeledContent("예상 − 실제", value: formatted(validation.flatRateError))
+                        LabeledContent("절대 오차", value: formatted(validation.flatRateAbsoluteError))
+                        if let rate = accuracyRate(for: validation) {
+                            LabeledContent("오차율", value: rate.formatted(.number.precision(.fractionLength(1))) + "%")
+                        } else {
+                            Text("실제 수령액이 0원이어서 오차율을 계산할 수 없습니다.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Text("선택한 월에 비교 가능한 전체 월 실수령 기록이 없습니다. 급여 화면에서 월 전체 입금액을 기록하고 확인해야 분석할 수 있습니다.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Divider()
+                    if let average = recentAverageErrorRate {
+                        LabeledContent("최근 3개월 평균 절대 오차율", value: average.formatted(.number.precision(.fractionLength(1))) + "%")
+                        Text("최근 3개월 중 비교 조건을 충족한 \(recentAccuracy.compactMap { accuracyRate(for: $0) }.count)개월 기준입니다.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text("최근 3개월에 비교 가능한 확정 월 급여 기록이 없습니다.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Text("양수 오차는 앱 예상액이 실제 입금액보다 큰 경우입니다. 세후 예상은 소득세를 포함하지 않습니다.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(16)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
 
                 Text("세후 금액은 현재 앱의 보험료 추정 계산을 사용합니다. 실제 입금액 및 세금과 다를 수 있습니다.")
                     .font(.footnote)
