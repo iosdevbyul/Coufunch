@@ -106,7 +106,7 @@ struct MonthlyPayStatisticsView: View {
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 11)
-                                .foregroundStyle(mode == value ? .white : .primary)
+                                .foregroundStyle(mode == value ? Color.white : Color.primary)
                                 .background(
                                     mode == value ? CoufunchColor.primary : Color.clear,
                                     in: RoundedRectangle(cornerRadius: 10)
