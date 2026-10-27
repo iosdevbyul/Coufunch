@@ -22,6 +22,7 @@ struct WorkOverviewView: View {
     @State private var showManagement = false
     @State private var showSettings = false
     @State private var isSessionEntryPresented = false
+    @State private var isBulkEntryPresented = false
     @State private var editingSession: WorkSession?
     @State private var pendingDelete: WorkSession?
 
@@ -119,8 +120,16 @@ struct WorkOverviewView: View {
                         Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(.orange)
                     }
 
-                    Button("Add Work Session") { isSessionEntryPresented = true }
-                        .buttonStyle(.borderedProminent)
+                    HStack {
+                        Button("Add Work Session") { isSessionEntryPresented = true }
+                            .buttonStyle(.borderedProminent)
+                        Button {
+                            isBulkEntryPresented = true
+                        } label: {
+                            Label("여러 날짜 추가", systemImage: "calendar.badge.plus")
+                        }
+                        .buttonStyle(.bordered)
+                    }
 
                     CoufunchCard {
                         VStack(alignment: .leading, spacing: WakSpacing.medium) {
@@ -212,6 +221,9 @@ struct WorkOverviewView: View {
                 Button("Cancel", role: .cancel) { pendingDelete = nil }
             } message: {
                 Text("This also removes the session's break records.")
+            }
+            .sheet(isPresented: $isBulkEntryPresented) {
+                BulkWorkSessionEntryView(initialMonth: displayedMonth)
             }
             .sheet(isPresented: $isSessionEntryPresented) {
                 WorkSessionEntryView(date: selectedDate ?? Date()) {
