@@ -1086,6 +1086,7 @@ struct WorkFinanceView: View {
             try modelContext.save()
             editingSessionID = nil
             receiptError = nil
+            Task { await refreshPaydayRemindersAfterReceiptChange() }
         } catch {
             modelContext.rollback()
             receiptError = "Unable to save the payment record."
@@ -1099,9 +1100,45 @@ struct WorkFinanceView: View {
             try modelContext.save()
             editingSessionID = nil
             receiptError = nil
+            Task { await refreshPaydayRemindersAfterReceiptChange() }
         } catch {
             modelContext.rollback()
             receiptError = "Unable to delete the payment record."
+        }
+    }
+
+    /// Use a fresh SwiftData snapshot after the successful save. @Query changes
+    /// may not have published yet when the notification refresh starts.
+    @MainActor
+    private func refreshPaydayRemindersAfterReceiptChange() async {
+        guard UserDefaults.standard.bool(forKey: "paydayRemindersEnabled") else { return }
+        do {
+            let currentSessions = try modelContext.fetch(FetchDescriptor<WorkSession>())
+            let currentBreaks = try modelContext.fetch(FetchDescriptor<WorkBreak>())
+            let currentWorkplaces = try modelContext.fetch(FetchDescriptor<Workplace>())
+            let currentSettings = try modelContext.fetch(FetchDescriptor<WorkplacePaySettings>())
+            let currentRules = try modelContext.fetch(FetchDescriptor<IncentiveRule>())
+            let currentReceipts = try modelContext.fetch(FetchDescriptor<ReceivedPayRecord>())
+
+            // Load holidays for the current year and next year because reminders
+            // can cross the year boundary. Failure leaves dates unavailable rather
+            // than incorrectly assuming a weekday is not a public holiday.
+            let year = Calendar.current.component(.year, from: Date())
+            await holidayStore.load(year: year)
+            await holidayStore.load(year: year + 1)
+
+            await PaydayReminderScheduler.synchronize(
+                sessions: currentSessions,
+                holidays: holidayStore.dates,
+                workplaces: currentWorkplaces,
+                rules: currentRules,
+                loadedYears: holidayStore.loadedYears,
+                breaks: currentBreaks,
+                paySettings: currentSettings,
+                receivedPay: currentReceipts
+            )
+        } catch {
+            NSLog("Coufunch payday refresh after receipt change failed: %@", String(describing: error))
         }
     }
 
