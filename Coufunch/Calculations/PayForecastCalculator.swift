@@ -76,3 +76,16 @@ enum PayForecastCalculator {
                            unpricedCount: unpriced)
     }
 }
+
+/// A user-defined scenario; never extrapolate a work schedule from history.
+enum ManualPayScenario {
+    static func additionalGross(shiftCount: Int, grossPerShift: Decimal) -> Decimal {
+        guard shiftCount > 0, grossPerShift > 0 else { return 0 }
+        return Decimal(shiftCount) * grossPerShift
+    }
+
+    static func projectedGross(recordedGross: Decimal, shiftCount: Int,
+                               grossPerShift: Decimal) -> Decimal {
+        recordedGross + additionalGross(shiftCount: shiftCount, grossPerShift: grossPerShift)
+    }
+}
