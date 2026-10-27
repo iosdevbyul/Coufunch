@@ -26,6 +26,9 @@ private struct CoufunchRootView: View {
     @Query private var workplaces: [Workplace]
     @Query private var sessions: [WorkSession]
     @Query private var rules: [IncentiveRule]
+    @Query private var breaks: [WorkBreak]
+    @Query private var paySettings: [WorkplacePaySettings]
+    @Query private var receivedPay: [ReceivedPayRecord]
     @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @AppStorage("paydayReminderPromptAnswered") private var promptAnswered = false
     @AppStorage("paydayRemindersEnabled") private var remindersEnabled = false
@@ -78,7 +81,8 @@ private struct CoufunchRootView: View {
                         await PaydayReminderScheduler.synchronize(
                             sessions: sessions, holidays: holidayStore.dates,
                             workplaces: workplaces, rules: rules,
-                            loadedYears: holidayStore.loadedYears
+                            loadedYears: holidayStore.loadedYears,
+                            breaks: breaks, paySettings: paySettings, receivedPay: receivedPay
                         )
                     }
                 }
