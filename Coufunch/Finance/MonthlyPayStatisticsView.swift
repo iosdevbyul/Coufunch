@@ -57,14 +57,18 @@ struct MonthlyPayStatisticsView: View {
                 calendar: calendar,
                 holidayDates: holidays.dates
             )
+            // A month without completed shifts must not show an unexplained pay bar.
+            // Incentive-only amounts remain in the payroll ledger, but are not treated
+            // as worked-month earnings in this attendance-based statistics view.
+            let gross = summary.completedDays > 0 ? summary.total : Decimal.zero
             let net = EstimatedTakeHomeCalculator.calculate(
-                gross: summary.total, shifts: []
+                gross: gross, shifts: []
             ).net
             return MonthAmount(
                 month: month,
                 index: index,
                 completedDays: summary.completedDays,
-                gross: summary.total,
+                gross: gross,
                 net: net
             )
         }
@@ -145,29 +149,28 @@ struct MonthlyPayStatisticsView: View {
                             Rectangle().fill(.gray.opacity(0.35)).frame(height: 1)
                         }
 
-                        HStack(alignment: .bottom, spacing: 3) {
+                        HStack(alignment: .bottom, spacing: 2) {
                             ForEach(months) { item in
                                 Button {
                                     selectedMonthIndex = item.index
                                 } label: {
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(selected?.index == item.index
-                                              ? CoufunchColor.primary
-                                              : CoufunchColor.primary.opacity(0.55))
-                                        .frame(
-                                            maxWidth: .infinity,
-                                            minHeight: 0
-                                        )
-                                        .frame(
-                                            height: geometry.size.height *
-                                                CGFloat(barValue(for: item) / fixedYAxisMaximum)
-                                        )
-                                        .frame(maxHeight: .infinity, alignment: .bottom)
-                                        .contentShape(Rectangle())
-                                        .animation(
-                                            .linear(duration: barDuration(for: item)),
-                                            value: barPhase
-                                        )
+                                    GeometryReader { column in
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .fill(selected?.index == item.index
+                                                  ? CoufunchColor.primary
+                                                  : CoufunchColor.primary.opacity(0.55))
+                                            .frame(
+                                                width: column.size.width,
+                                                height: geometry.size.height *
+                                                    CGFloat(barValue(for: item) / fixedYAxisMaximum)
+                                            )
+                                            .frame(maxHeight: .infinity, alignment: .bottom)
+                                            .animation(
+                                                .linear(duration: barDuration(for: item)),
+                                                value: barPhase
+                                            )
+                                    }
+                                    .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity)
@@ -176,16 +179,19 @@ struct MonthlyPayStatisticsView: View {
                                 )
                             }
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     }
                 }
                 .frame(height: chartHeight)
 
-                HStack(spacing: 3) {
+                HStack(spacing: 2) {
                     ForEach(months) { item in
-                        Text(item.index.isMultiple(of: 2)
+                        Text(item.index.isMultiple(of: 3)
                              ? item.month.formatted(.dateTime.month(.twoDigits))
                              : "")
-                            .font(.caption2)
+                            .font(.system(size: 10))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
                     }
