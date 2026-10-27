@@ -3,6 +3,12 @@ import SwiftData
 import TrisCalendarKit
 import WakTrainerDesignSystem
 
+enum CalendarTodayRefresh {
+    static func nextBoundary(after date: Date, calendar: Calendar) -> Date? {
+        calendar.dateInterval(of: .day, for: date)?.end
+    }
+}
+
 struct WorkOverviewView: View {
     @StateObject private var holidayStore = KoreanPublicHolidayStore()
     @Environment(\.locale) private var locale
@@ -344,7 +350,7 @@ struct WorkOverviewView: View {
     private func refreshCalendarTodayAcrossMidnight() async {
         while !Task.isCancelled {
             let now = Date()
-            guard let boundary = Calendar.current.dateInterval(of: .day, for: now)?.end else {
+            guard let boundary = CalendarTodayRefresh.nextBoundary(after: now, calendar: .current) else {
                 return
             }
             let delay = max(0.05, boundary.timeIntervalSince(now))
