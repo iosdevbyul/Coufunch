@@ -35,6 +35,17 @@ enum TimelineSelection {
         }
     }
 
+    /// Signed five-minute delta; unlike snap(), this supports dragging left.
+    static func snapDelta(_ minutes: Double) -> Int {
+        Int((minutes / Double(step)).rounded()) * step
+    }
+
+    /// Translate a range without changing its duration or crossing its bounds.
+    static func move(_ range: TimelineRange, by delta: Int, within bounds: TimelineRange) -> TimelineRange {
+        let start = min(max(range.start + delta, bounds.start), bounds.end - range.duration)
+        return TimelineRange(start: start, end: start + range.duration)
+    }
+
     static func contained(_ range: TimelineRange, within bounds: TimelineRange) -> TimelineRange? {
         guard bounds.duration >= step else { return nil }
         let length = min(max(step, range.duration), bounds.duration)

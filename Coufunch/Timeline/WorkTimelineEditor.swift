@@ -8,6 +8,7 @@ struct WorkTimelineEditor: View {
     @Binding var breaks: [TimelineRange]
 
     @State private var handleAnchor: TimelineRange?
+    @State private var selectionAnchor: Int?
     @State private var activeBreakIndex = 0
 
     private let pointsPerHour: CGFloat = 132
@@ -20,20 +21,26 @@ struct WorkTimelineEditor: View {
                 .font(WakTypography.screenTitle)
                 .foregroundStyle(CoufunchColor.textPrimary)
 
-            Text("Swipe to explore the timeline. Drag a colored handle, or use the five-minute adjustment buttons below.")
+            Text("On the Shift row, touch your start time and drag to your end time to select the entire work interval. Scroll with the ruler; adjust by five minutes below.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            ScrollView(.horizontal) {
-                VStack(alignment: .leading, spacing: 14) {
-                    ruler
-                    lane(title: "Shift", range: work, tint: CoufunchColor.primary, isBreak: false)
-                    lane(title: "Break", range: breaks.indices.contains(activeBreakIndex) ? breaks[activeBreakIndex] : nil, tint: .orange, isBreak: true)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ruler
+                        lane(title: "Shift", range: work, tint: CoufunchColor.primary, isBreak: false)
+                        lane(title: "Break", range: breaks.indices.contains(activeBreakIndex) ? breaks[activeBreakIndex] : nil, tint: .orange, isBreak: true)
+                    }
+                    .frame(width: contentWidth)
+                    .padding(.vertical, 8)
                 }
-                .frame(width: contentWidth)
-                .padding(.vertical, 8)
+                .scrollIndicators(.visible)
+                .onAppear {
+                    // Reveal the selected shift without changing its start or end values.
+                    proxy.scrollTo(max(0, work.start / 60 - 1), anchor: .leading)
+                }
             }
-            .scrollIndicators(.visible)
 
             VStack(alignment: .leading, spacing: WakSpacing.medium) {
                 Label(String(format: String(localized: "Shift: %@ – %@"), label(work.start), label(work.end)), systemImage: "clock")
@@ -99,15 +106,17 @@ struct WorkTimelineEditor: View {
 
     private var ruler: some View {
         ZStack(alignment: .topLeading) {
-            Rectangle().fill(.clear).frame(width: contentWidth, height: 44)
-            ForEach(0...48, id: \.self) { hour in
-                let position = CGFloat(hour) * pointsPerHour
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(hour < 24 ? String(format: "%02d:00", hour) : "+1d " + String(format: "%02d:00", hour - 24))
-                        .font(.caption2.monospacedDigit())
-                    Rectangle().fill(.secondary).frame(width: 1, height: 10)
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(0..<48, id: \.self) { hour in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(hour < 24 ? String(format: "%02d:00", hour) :
+                             "+1d " + String(format: "%02d:00", hour - 24))
+                            .font(.caption2.monospacedDigit())
+                        Rectangle().fill(.secondary).frame(width: 1, height: 10)
+                    }
+                    .frame(width: pointsPerHour, height: 44, alignment: .topLeading)
+                    .id(hour)
                 }
-                .offset(x: position)
             }
             ForEach(0..<576, id: \.self) { tick in
                 Rectangle()
@@ -116,6 +125,8 @@ struct WorkTimelineEditor: View {
                     .offset(x: CGFloat(tick * 5) * pointsPerMinute, y: 34)
             }
         }
+        .frame(width: contentWidth, height: 44, alignment: .topLeading)
+        .allowsHitTesting(false)
         .accessibilityLabel("Timeline ruler, 48 hours in five-minute increments")
     }
 
@@ -124,6 +135,8 @@ struct WorkTimelineEditor: View {
             RoundedRectangle(cornerRadius: 10)
                 .fill(CoufunchColor.textPrimary.opacity(0.08))
                 .frame(width: contentWidth, height: 54)
+                .contentShape(Rectangle())
+                .allowsHitTesting(isBreak)
 
             if let range {
                 RoundedRectangle(cornerRadius: 8)
@@ -132,13 +145,44 @@ struct WorkTimelineEditor: View {
                     .offset(x: CGFloat(range.start) * pointsPerMinute)
                     .accessibilityLabel(String(format: String(localized: "%@ from %@ to %@"), String(localized: String.LocalizationValue(title)), label(range.start), label(range.end)))
 
-                handle(edge: .start, range: range, tint: tint, isBreak: isBreak)
-                handle(edge: .end, range: range, tint: tint, isBreak: isBreak)
+                if isBreak {
+                    handle(edge: .start, range: range, tint: tint, isBreak: true)
+                    handle(edge: .end, range: range, tint: tint, isBreak: true)
+                } else {
+                    handleMarker(edge: .start, range: range, tint: tint)
+                    handleMarker(edge: .end, range: range, tint: tint)
+                }
             }
         }
         .frame(width: contentWidth, height: 54)
         .contentShape(Rectangle())
+        .highPriorityGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    guard !isBreak else { return }
+                    if selectionAnchor == nil {
+                        selectionAnchor = TimelineSelection.snap(
+                            Double(value.startLocation.x / pointsPerMinute)
+                        )
+                    }
+                    guard let anchor = selectionAnchor else { return }
+                    work = TimelineSelection.selection(
+                        from: anchor,
+                        to: TimelineSelection.snap(Double(value.location.x / pointsPerMinute))
+                    )
+                }
+                .onEnded { _ in selectionAnchor = nil }
+        )
 
+    }
+
+    private func handleMarker(edge: TimelineSelection.Edge, range: TimelineRange, tint: Color) -> some View {
+        RoundedRectangle(cornerRadius: 9)
+            .fill(tint)
+            .frame(width: 22, height: 48)
+            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(CoufunchColor.textPrimary, lineWidth: 1))
+            .offset(x: CGFloat(edge == .start ? range.start : range.end) * pointsPerMinute - 11)
+            .allowsHitTesting(false)
     }
 
     private func handle(edge: TimelineSelection.Edge, range: TimelineRange, tint: Color, isBreak: Bool) -> some View {
@@ -147,8 +191,8 @@ struct WorkTimelineEditor: View {
             .frame(width: 22, height: 48)
             .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(CoufunchColor.textPrimary, lineWidth: 1))
             .offset(x: CGFloat(edge == .start ? range.start : range.end) * pointsPerMinute - 11)
-            .gesture(
-                DragGesture(minimumDistance: 0)
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 2)
                     .onChanged { value in
                         if handleAnchor == nil { handleAnchor = range }
                         guard let anchor = handleAnchor else { return }

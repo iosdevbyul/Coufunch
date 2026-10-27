@@ -200,6 +200,7 @@ struct BulkWorkSessionEntryView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("취소") { dismiss() }
+                        .foregroundStyle(.red)
                 }
             }
             .confirmationDialog(
