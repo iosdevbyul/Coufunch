@@ -348,12 +348,14 @@ enum CoufunchBackupStore {
         }
 
         do {
-            for row in archive.workplaces where try shouldInsert(row) {
+            for row in archive.workplaces {
+                guard try shouldInsert(row) else { continue }
                 context.insert(Workplace(id: try identifier(row), name: try required(row, "name"),
                     weekStartWeekday: try number(row, "weekStartWeekday"),
                     createdAt: try date(row, "createdAt")))
             }
-            for row in archive.paySettings where try shouldInsert(row) {
+            for row in archive.paySettings {
+                guard try shouldInsert(row) else { continue }
                 let item = WorkplacePaySettings(
                     workplaceID: try identifier(row, "workplaceID"),
                     payMode: PayCalculationMode(rawValue: try required(row, "payMode"))!,
@@ -365,7 +367,8 @@ enum CoufunchBackupStore {
                 item.createdAt = try date(row, "createdAt")
                 context.insert(item)
             }
-            for row in archive.sessions where try shouldInsert(row) {
+            for row in archive.sessions {
+                guard try shouldInsert(row) else { continue }
                 context.insert(WorkSession(id: try identifier(row),
                     workplaceID: try identifier(row, "workplaceID"),
                     startAt: try date(row, "startAt"),
@@ -379,12 +382,14 @@ enum CoufunchBackupStore {
                     nightPremiumSnapshot: try optionalBoolean(row, "nightPremiumSnapshot"),
                     overtimePremiumSnapshot: try optionalBoolean(row, "overtimePremiumSnapshot")))
             }
-            for row in archive.breaks where try shouldInsert(row) {
+            for row in archive.breaks {
+                guard try shouldInsert(row) else { continue }
                 context.insert(WorkBreak(id: try identifier(row),
                     sessionID: try identifier(row, "sessionID"),
                     startAt: try date(row, "startAt"), endAt: try date(row, "endAt")))
             }
-            for row in archive.rules where try shouldInsert(row) {
+            for row in archive.rules {
+                guard try shouldInsert(row) else { continue }
                 context.insert(IncentiveRule(id: try identifier(row),
                     workplaceID: try identifier(row, "workplaceID"),
                     name: try required(row, "name"),
@@ -394,14 +399,16 @@ enum CoufunchBackupStore {
                     canStack: try boolean(row, "canStack"),
                     isEnabled: try boolean(row, "isEnabled")))
             }
-            for row in archive.incentives where try shouldInsert(row) {
+            for row in archive.incentives {
+                guard try shouldInsert(row) else { continue }
                 context.insert(ManualIncentive(id: try identifier(row),
                     workplaceID: try identifier(row, "workplaceID"),
                     sessionID: try optionalIdentifier(row, "sessionID"),
                     earnedOn: try date(row, "earnedOn"),
                     name: try required(row, "name"), amount: try decimal(row, "amount")))
             }
-            for row in archive.receipts where try shouldInsert(row) {
+            for row in archive.receipts {
+                guard try shouldInsert(row) else { continue }
                 let item = ReceivedPayRecord(id: try identifier(row),
                     monthStart: try date(row, "monthStart"),
                     workplaceID: try optionalIdentifier(row, "workplaceID"),
