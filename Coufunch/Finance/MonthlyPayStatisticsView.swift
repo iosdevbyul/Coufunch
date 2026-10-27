@@ -192,6 +192,53 @@ struct MonthlyPayStatisticsView: View {
         return months.first { $0.index == selectedMonthIndex }
     }
 
+    // These insights use only the cached monthly snapshot. No payroll
+    // aggregation is repeated when the user changes chart selection or mode.
+    private var selectedPreviousMonth: MonthAmount? {
+        guard let selected, selected.index > 0 else { return nil }
+        return months.first { $0.index == selected.index - 1 }
+    }
+
+    private var selectedChange: (amount: Decimal, percent: Double?)? {
+        guard let selected, let previous = selectedPreviousMonth else { return nil }
+        let current = mode == .gross ? selected.gross : selected.net
+        let prior = mode == .gross ? previous.gross : previous.net
+        let percentage: Double? = prior > 0
+            ? NSDecimalNumber(decimal: (current - prior) / prior).doubleValue * 100
+            : nil
+        return (current - prior, percentage)
+    }
+
+    private var workedMonths: [MonthAmount] {
+        months.filter { $0.completedShifts > 0 }
+    }
+
+    private var averageMonthlyPay: Decimal? {
+        guard !workedMonths.isEmpty else { return nil }
+        let sum = workedMonths.reduce(Decimal.zero) {
+            $0 + (mode == .gross ? $1.gross : $1.net)
+        }
+        return sum / Decimal(workedMonths.count)
+    }
+
+    private var highestEarningMonth: MonthAmount? {
+        workedMonths.max {
+            $0.amount(for: mode) < $1.amount(for: mode)
+        }
+    }
+
+    private var totalCompletedShifts: Int {
+        workedMonths.reduce(0) { $0 + $1.completedShifts }
+    }
+
+    private var averagePayPerShiftAcrossPeriod: Decimal? {
+        guard totalCompletedShifts > 0 else { return nil }
+        let total = workedMonths.reduce(Decimal.zero) {
+            $0 + (mode == .gross ? $1.gross : $1.net)
+        }
+        return total / Decimal(totalCompletedShifts)
+    }
+
     // Fixed for both modes so axis labels and grid lines never move during a toggle.
     private var fixedYAxisMaximum: Double {
         max(1, months.map { max($0.amount(for: .gross), $0.amount(for: .net)) }.max() ?? 0) * 1.12
@@ -400,6 +447,23 @@ struct MonthlyPayStatisticsView: View {
                             .font(.headline)
                         LabeledContent("완료 근무일", value: "\(selected.completedDays)일")
                         LabeledContent("완료 근무 횟수", value: "\(selected.completedShifts)회")
+                        if let change = selectedChange {
+                            LabeledContent("전월 대비 급여 차이", value: formatted(change.amount))
+                            if let percent = change.percent {
+                                LabeledContent("전월 대비 증감률", value: percent.formatted(.number.precision(.fractionLength(1))) + "%")
+                            } else {
+                                Text("전월 급여가 0원이므로 증감률은 표시하지 않습니다.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            if let previous = selectedPreviousMonth {
+                                let shiftDifference = selected.completedShifts - previous.completedShifts
+                                LabeledContent("전월 대비 근무 횟수", value: "\(shiftDifference > 0 ? "+" : "")\(shiftDifference)회")
+                            }
+                        } else {
+                            Text("비교할 이전 달이 없습니다.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+
                         if let average = selected.average(for: mode) {
                             LabeledContent(mode == .gross ? "1회 평균 세전 급여" : "1회 평균 세후 예상 급여", value: formatted(average))
                             Text("월 급여 합계(수당·인센티브 포함) ÷ 완료 근무 횟수")
@@ -421,6 +485,32 @@ struct MonthlyPayStatisticsView: View {
                     .padding(16)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("근무·수입 요약 (최근 12개월)")
+                        .font(.headline)
+                    if workedMonths.isEmpty {
+                        Text("완료된 근무 기록이 없어 평균과 최고 수입 월을 계산할 수 없습니다.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    } else {
+                        LabeledContent("근무한 달", value: "\(workedMonths.count)개월 / 12개월")
+                        LabeledContent("완료 근무 횟수", value: "\(totalCompletedShifts)회")
+                        if let averageMonthlyPay {
+                            LabeledContent("근무한 달의 월평균 급여", value: formatted(averageMonthlyPay))
+                        }
+                        if let averagePayPerShiftAcrossPeriod {
+                            LabeledContent("전체 1회 평균 급여", value: formatted(averagePayPerShiftAcrossPeriod))
+                        }
+                        if let peak = highestEarningMonth {
+                            LabeledContent("최고 수입 월", value: peak.month.formatted(.dateTime.year().month()))
+                            LabeledContent("최고 월 급여", value: formatted(mode == .gross ? peak.gross : peak.net))
+                        }
+                        Text("근무하지 않은 달은 월평균 계산에서 제외합니다. 1회 평균은 전체 급여 합계 ÷ 완료 근무 횟수이며, 수당·인센티브가 포함됩니다.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(16)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("예상·실제 급여 오차 분석")
