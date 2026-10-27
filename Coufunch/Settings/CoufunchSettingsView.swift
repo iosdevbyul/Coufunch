@@ -9,6 +9,9 @@ struct CoufunchSettingsView: View {
     @StateObject private var holidays = KoreanPublicHolidayStore()
     @Query private var sessions: [WorkSession]
     @Query private var rules: [IncentiveRule]
+    @Query private var breaks: [WorkBreak]
+    @Query private var paySettings: [WorkplacePaySettings]
+    @Query private var receivedPay: [ReceivedPayRecord]
     @State private var isUpdating = false
     @State private var permissionMessage: String?
     @State private var weeklyStartError: String?
@@ -102,7 +105,7 @@ struct CoufunchSettingsView: View {
                     set: { enabled in Task { await updateReminders(enabled) } }
                 ))
                 .disabled(isUpdating)
-                Text("Remind me at 10 AM on the next Korean business day after a completed shift.")
+                Text("완료한 근무의 다음 한국 영업일에 예상 급여 알림을 받습니다. 계산 가능한 경우 세후 추정액을 표시하며, 실제 입금액은 급여 화면에서 기록할 수 있습니다.")
                     .font(.footnote).foregroundStyle(.secondary)
                 if let permissionMessage {
                     Text(LocalizedStringKey(permissionMessage)).font(.footnote).foregroundStyle(.orange)
@@ -189,7 +192,8 @@ struct CoufunchSettingsView: View {
         await holidays.load(year: year + 1)
         await PaydayReminderScheduler.synchronize(sessions: sessions,
             holidays: holidays.dates, workplaces: workplaces, rules: rules,
-            loadedYears: holidays.loadedYears)
+            loadedYears: holidays.loadedYears,
+            breaks: breaks, paySettings: paySettings, receivedPay: receivedPay)
     }
 }
 
