@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct CoufunchSettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -12,6 +13,12 @@ struct CoufunchSettingsView: View {
     @State private var permissionMessage: String?
     @State private var weeklyStartError: String?
     @State private var employmentMonth = Date()
+    @State private var exportDocument: CoufunchBackupDocument?
+    @State private var showingExporter = false
+    @State private var showingImporter = false
+    @State private var pendingRestore: CoufunchBackupArchive?
+    @State private var showingRestoreConfirmation = false
+    @State private var backupMessage: String?
 
     var body: some View {
         Form {
@@ -65,6 +72,30 @@ struct CoufunchSettingsView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
 
+            Section("데이터 백업 및 복원") {
+                Text("근무 기록, 휴게시간, 사업장, 급여 설정, 수당, 실제 입금 내역을 JSON 파일로 저장하거나 가져옵니다.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Button("백업 파일 내보내기") {
+                    do {
+                        exportDocument = CoufunchBackupDocument(
+                            archive: try CoufunchBackupStore.create(from: modelContext)
+                        )
+                        showingExporter = true
+                    } catch {
+                        backupMessage = error.localizedDescription
+                    }
+                }
+                Button("백업 파일 가져오기") {
+                    showingImporter = true
+                }
+                Text("복원은 파일의 기록을 추가하며, 같은 ID의 기존 기록은 덮어쓰거나 삭제하지 않습니다. 보험·고용 프로필과 알림 설정 등 기기에 별도 저장된 설정은 현재 백업에 포함되지 않습니다.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                if let backupMessage {
+                    Text(backupMessage)
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+
             Section("Notifications") {
                 Toggle("Payday Reminders", isOn: Binding(
                     get: { remindersEnabled },
@@ -79,6 +110,47 @@ struct CoufunchSettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .fileExporter(isPresented: $showingExporter,
+                      document: exportDocument,
+                      contentType: .json,
+                      defaultFilename: "Coufunch-Backup") { result in
+            switch result {
+            case .success: backupMessage = "백업 파일을 저장했습니다."
+            case .failure(let error): backupMessage = error.localizedDescription
+            }
+            exportDocument = nil
+        }
+        .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.json]) { result in
+            do {
+                let url = try result.get()
+                let access = url.startAccessingSecurityScopedResource()
+                defer { if access { url.stopAccessingSecurityScopedResource() } }
+                let data = try Data(contentsOf: url)
+                pendingRestore = try CoufunchBackupStore.decode(data)
+                showingRestoreConfirmation = true
+            } catch {
+                backupMessage = error.localizedDescription
+            }
+        }
+        .confirmationDialog(
+            "기존 기록은 그대로 두고 백업 기록을 추가할까요?",
+            isPresented: $showingRestoreConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("복원 실행") {
+                guard let pendingRestore else { return }
+                do {
+                    let inserted = try CoufunchBackupStore.restore(pendingRestore, into: modelContext)
+                    backupMessage = "\\(inserted)건을 추가했습니다. 기존 기록은 유지했습니다."
+                } catch {
+                    backupMessage = error.localizedDescription
+                }
+                self.pendingRestore = nil
+            }
+            Button("취소", role: .cancel) { pendingRestore = nil }
+        } message: {
+            Text("백업 파일의 총 \\(pendingRestore?.recordCount ?? 0)건 중 이미 존재하는 ID는 건너뜁니다. 복원 전 별도의 백업을 먼저 저장하는 것을 권장합니다.")
+        }
     }
 
     private func saveWeekStart(_ weekday: Int, for workplace: Workplace) {
