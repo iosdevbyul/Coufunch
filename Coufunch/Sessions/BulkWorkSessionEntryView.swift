@@ -118,8 +118,8 @@ struct BulkWorkSessionEntryView: View {
                                 Text(symbols[(index + calendar.firstWeekday - 1) % 7])
                                     .font(.caption).foregroundStyle(.secondary)
                             }
-                            ForEach(Array(days.enumerated()), id: \.offset) { _, date in
-                                if let date {
+                            ForEach(Array(days.enumerated()), id: \.offset) { entry in
+                                if let date = entry.element {
                                     let active = selectedDates.contains(date)
                                     Button {
                                         if active { selectedDates.remove(date) }
