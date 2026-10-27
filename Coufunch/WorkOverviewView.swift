@@ -17,6 +17,7 @@ struct WorkOverviewView: View {
     @State private var financeScreen: WorkFinanceView.Screen?
     @State private var showFinance = false
     @State private var showStatistics = false
+    @State private var pendingStatisticsNavigation = false
     @State private var managementSection: WorkplaceManagementView.Section?
     @State private var showManagement = false
     @State private var showSettings = false
@@ -229,7 +230,12 @@ struct WorkOverviewView: View {
             .navigationDestination(isPresented: $showManagement) {
                 if let managementSection { WorkplaceManagementView(section: managementSection) }
             }
-            .sheet(isPresented: $isSidebarPresented) {
+            .sheet(isPresented: $isSidebarPresented, onDismiss: {
+                if pendingStatisticsNavigation {
+                    pendingStatisticsNavigation = false
+                    showStatistics = true
+                }
+            }) {
                 NavigationStack {
                     List {
                         Label("Work Overview", systemImage: "calendar")
@@ -241,8 +247,8 @@ struct WorkOverviewView: View {
                             Label("Pay & Allowances", systemImage: "wallet.bifold")
                         }
                         Button {
+                            pendingStatisticsNavigation = true
                             isSidebarPresented = false
-                            showStatistics = true
                         } label: {
                             Label("통계", systemImage: "chart.bar.xaxis")
                         }
