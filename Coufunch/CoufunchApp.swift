@@ -30,21 +30,37 @@ private struct CoufunchRootView: View {
     @AppStorage("paydayReminderPromptAnswered") private var promptAnswered = false
     @AppStorage("paydayRemindersEnabled") private var remindersEnabled = false
     @State private var askReminders = false
+    @State private var isShowingSplash = true
 
     var body: some View {
         Group {
-        if workplaces.isEmpty {
-            WorkplaceOnboardingView(onComplete: {})
-        } else {
-            WorkOverviewView()
+            if isShowingSplash {
+                StartupSplashView()
+                    .ignoresSafeArea()
+            } else if workplaces.isEmpty {
+                WorkplaceOnboardingView(onComplete: {})
+            } else {
+                WorkOverviewView()
+            }
         }
-        }
+        // Prefetch begins while the splash is visible; slow networks do not block navigation.
         .task {
             await holidayStore.prefetchNearbyYears()
         }
-        .onAppear { askReminders = !promptAnswered && !workplaces.isEmpty }
+        .task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            isShowingSplash = false
+        }
+        .onChange(of: isShowingSplash) { _, showing in
+            if !showing && !promptAnswered && !workplaces.isEmpty {
+                askReminders = true
+            }
+        }
         .onChange(of: workplaces.count) { _, count in
-            if count > 0 && !promptAnswered { askReminders = true }
+            if !isShowingSplash && count > 0 && !promptAnswered {
+                askReminders = true
+            }
         }
         .alert("Receive Payday Reminders?", isPresented: $askReminders) {
             Button("Enable Notifications") {
