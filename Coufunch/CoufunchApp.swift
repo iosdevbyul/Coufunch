@@ -33,24 +33,26 @@ private struct CoufunchRootView: View {
     @State private var isShowingSplash = true
 
     var body: some View {
-        Group {
+        ZStack {
+            Group {
+                if workplaces.isEmpty {
+                    WorkplaceOnboardingView(onComplete: {})
+                } else {
+                    WorkOverviewView()
+                }
+            }
+
             if isShowingSplash {
-                StartupSplashView()
-                    .ignoresSafeArea()
-            } else if workplaces.isEmpty {
-                WorkplaceOnboardingView(onComplete: {})
-            } else {
-                WorkOverviewView()
+                StartupSplashView {
+                    isShowingSplash = false
+                }
+                .ignoresSafeArea()
+                .zIndex(2)
             }
         }
         // Prefetch begins while the splash is visible; slow networks do not block navigation.
         .task {
             await holidayStore.prefetchNearbyYears()
-        }
-        .task {
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
-            isShowingSplash = false
         }
         .onChange(of: isShowingSplash) { _, showing in
             if !showing && !promptAnswered && !workplaces.isEmpty {
@@ -116,17 +118,102 @@ private struct AppSwitcherPrivacyCover: View {
 
 import SwiftUI
 
-/// Displayed after iOS LaunchScreen while startup data is prefetched.
-struct StartupSplashView: View {
-    var body: some View {
-        ZStack {
-            Color(red: 0.035, green: 0.039, blue: 0.047)
+/// Displayed after the static iOS LaunchScreen. The home screen is already
+/// underneath; the closing curtain reveals it from right to left.
+private struct StartupSplashView: View {
+    let onFinished: () -> Void
 
-            Image("SplashIcon")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 200, height: 200)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var logoX: CGFloat = -1
+    @State private var logoY: CGFloat = 0
+    @State private var curtainX: CGFloat = 0
+    @State private var started = false
+
+    private let backgroundColor = Color(red: 0.035, green: 0.039, blue: 0.047)
+    private let logoSize: CGFloat = 200
+
+    var body: some View {
+        GeometryReader { geometry in
+            let screenWidth = geometry.size.width
+            let outside = screenWidth / 2 + logoSize
+
+            ZStack {
+                backgroundColor
+
+                Image("SplashIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: logoSize, height: logoSize)
+                    .offset(x: logoX == -1 ? -outside : logoX, y: logoY)
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
+            .offset(x: curtainX)
+            .task {
+                guard !started else { return }
+                started = true
+
+                if reduceMotion {
+                    // Respect accessibility settings without requiring precise motion.
+                    try? await Task.sleep(for: .milliseconds(400))
+                    guard !Task.isCancelled else { return }
+                    onFinished()
+                    return
+                }
+
+                // The logo travels left-to-right THROUGH three bounces.
+                // Each landing advances along the screen, never in place.
+                let landings: [CGFloat] = [
+                    -screenWidth * 0.25,
+                    0,
+                    screenWidth * 0.25
+                ]
+                let heights: [CGFloat] = [64, 52, 38]
+                let launchX = -outside
+                logoX = launchX
+
+                for index in landings.indices {
+                    let startX = index == 0 ? launchX : landings[index - 1]
+                    let landingX = landings[index]
+                    // Rise while moving halfway to the next landing.
+                    withAnimation(.easeOut(duration: 0.20)) {
+                        logoX = (startX + landingX) / 2
+                        logoY = -heights[index]
+                    }
+                    guard await pause(210) else { return }
+
+                    // Fall and advance to the next rightward position.
+                    withAnimation(.easeIn(duration: 0.18)) {
+                        logoX = landingX
+                        logoY = 0
+                    }
+                    guard await pause(200) else { return }
+                }
+
+                // Exit completely off the right edge after the third landing.
+                withAnimation(.easeIn(duration: 0.34)) {
+                    logoX = outside
+                }
+                guard await pause(360) else { return }
+
+                // Slide the entire dark splash offscreen to the left.
+                withAnimation(.easeInOut(duration: 0.42)) {
+                    curtainX = -screenWidth
+                }
+                guard await pause(440) else { return }
+                onFinished()
+            }
         }
         .accessibilityHidden(true)
+        .allowsHitTesting(true)
+    }
+
+    private func pause(_ milliseconds: Int) async -> Bool {
+        do {
+            try await Task.sleep(for: .milliseconds(milliseconds))
+            return !Task.isCancelled
+        } catch {
+            return false
+        }
     }
 }
