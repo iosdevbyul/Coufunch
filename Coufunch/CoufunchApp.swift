@@ -22,6 +22,7 @@ struct CoufunchApp: App {
 }
 
 private struct CoufunchRootView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var workplaces: [Workplace]
     @Query private var sessions: [WorkSession]
     @Query private var rules: [IncentiveRule]
@@ -71,5 +72,28 @@ private struct CoufunchRootView: View {
         } message: {
             Text("Get a reminder on the next business day after you finish a shift. You can change this later in Settings.")
         }
+        .overlay {
+            if scenePhase != .active {
+                AppSwitcherPrivacyCover()
+                    .ignoresSafeArea()
+                    .transition(.identity)
+                    .zIndex(1)
+            }
+        }
+    }
+}
+
+private struct AppSwitcherPrivacyCover: View {
+    var body: some View {
+        ZStack {
+            Color(red: 0.035, green: 0.039, blue: 0.047)
+
+            Image("SplashIcon")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 200, height: 200)
+        }
+        .accessibilityHidden(true)
+        .allowsHitTesting(true)
     }
 }
