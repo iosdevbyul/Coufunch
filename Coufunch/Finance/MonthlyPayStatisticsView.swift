@@ -159,7 +159,7 @@ struct MonthlyPayStatisticsView: View {
                                         )
                                         .frame(
                                             height: geometry.size.height *
-                                                barValue(for: item) / fixedYAxisMaximum
+                                                CGFloat(barValue(for: item) / fixedYAxisMaximum)
                                         )
                                         .frame(maxHeight: .infinity, alignment: .bottom)
                                         .contentShape(Rectangle())
