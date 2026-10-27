@@ -105,15 +105,38 @@ private struct CoufunchRootView: View {
     }
 }
 
+/// Shared treatment for the opaque SplashIcon source. The dark square should
+/// not become visible on either the moving startup logo or the privacy cover.
+private struct SeamlessSplashLogo: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image("SplashIcon")
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .blendMode(.screen)
+            .mask {
+                RadialGradient(
+                    stops: [
+                        .init(color: .white, location: 0),
+                        .init(color: .white, location: 0.56),
+                        .init(color: .clear, location: 0.74)
+                    ],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: size * 0.72
+                )
+            }
+    }
+}
+
 private struct AppSwitcherPrivacyCover: View {
     var body: some View {
         ZStack {
             Color(red: 0.035, green: 0.039, blue: 0.047)
 
-            Image("SplashIcon")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 200, height: 200)
+            SeamlessSplashLogo(size: 200)
         }
         .accessibilityHidden(true)
         .allowsHitTesting(true)
@@ -144,27 +167,7 @@ private struct StartupSplashView: View {
             ZStack {
                 backgroundColor
 
-                Image("SplashIcon")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: logoSize, height: logoSize)
-                    // SplashIcon currently reuses the opaque app-icon PNG.
-                    // Screen blending removes its near-black rectangular backdrop;
-                    // soft edge masking prevents the square's boundary from showing
-                    // against the moving splash background.
-                    .blendMode(.screen)
-                    .mask {
-                        RadialGradient(
-                            stops: [
-                                .init(color: .white, location: 0),
-                                .init(color: .white, location: 0.56),
-                                .init(color: .clear, location: 0.74)
-                            ],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: logoSize * 0.72
-                        )
-                    }
+                SeamlessSplashLogo(size: logoSize)
                     .offset(x: logoX == -1 ? -outside : logoX, y: logoY)
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
