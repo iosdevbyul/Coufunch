@@ -42,7 +42,9 @@ enum PaydayReminderScheduler {
 
     static func synchronize(sessions: [WorkSession], holidays: Set<String>,
                             workplaces: [Workplace] = [], rules: [IncentiveRule] = [],
-                            loadedYears: Set<Int>, now: Date = .now) async {
+                            loadedYears: Set<Int>, now: Date = .now,
+                            breaks: [WorkBreak] = [], paySettings: [WorkplacePaySettings] = [],
+                            receivedPay: [ReceivedPayRecord] = []) async {
         guard UserDefaults.standard.bool(forKey: "paydayRemindersEnabled") else {
             await cancelAll()
             return
@@ -62,14 +64,16 @@ enum PaydayReminderScheduler {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
 
-        let upcoming = sessions.filter { $0.status == .completed }
-            .compactMap { session -> (String, Date)? in
-                guard let due = PaydayReminderDate.nextBusinessDay(
-                    after: session.startAt, holidays: holidays, loadedYears: loadedYears),
-                      due > now else { return nil }
-                let day = calendar.startOfDay(for: due)
-                return (String(Int(day.timeIntervalSince1970)), due)
-            }
+        let receivedSessionIDs = Set(receivedPay.compactMap(\.sessionID))
+        let upcoming = sessions.filter {
+            $0.status == .completed && !receivedSessionIDs.contains($0.id)
+        }.compactMap { session -> (session: WorkSession, key: String, due: Date)? in
+            guard let due = PaydayReminderDate.nextBusinessDay(
+                after: session.startAt, holidays: holidays, loadedYears: loadedYears
+            ), due > now else { return nil }
+            return (session, String(Int(calendar.startOfDay(for: due).timeIntervalSince1970)), due)
+        }
+        let byPayDate = Dictionary(grouping: upcoming, by: \.key)
         let specialDates = SpecialAllowancePayday.dueDates(
             sessions: sessions, workplaces: workplaces, rules: rules, calendar: calendar
         ).filter { $0 > now }
@@ -96,10 +100,41 @@ enum PaydayReminderScheduler {
         }
         // A single reminder per pay date, even if multiple completed shifts map to it.
         var seen = Set<String>()
-        for (key, date) in upcoming.sorted(by: { $0.1 < $1.1 }) where seen.insert(key).inserted {
+        for group in byPayDate.values.sorted(by: {
+            ($0.first?.due ?? .distantFuture) < ($1.first?.due ?? .distantFuture)
+        }) {
+            guard let first = group.first else { continue }
+            let key = first.key
+            let date = first.due
+            guard seen.insert(key).inserted else { continue }
             let content = UNMutableNotificationContent()
             content.title = String(localized: "Payday Reminder")
-            content.body = String(localized: "Today is payday.")
+            // Do not invent a monetary amount when a shift cannot be priced.
+            let amounts: [Decimal]? = {
+                var results: [Decimal] = []
+                for item in group {
+                    let setting = paySettings.first { $0.workplaceID == item.session.workplaceID }
+                    let sessionBreaks = breaks.filter { $0.sessionID == item.session.id }
+                    guard let result = try? WorkPayCalculator.calculate(
+                        session: item.session, breaks: sessionBreaks, calendar: calendar,
+                        nightPremiumEnabled: item.session.nightPremiumSnapshot ?? setting?.nightPremiumEnabled ?? true,
+                        overtimePremiumEnabled: item.session.overtimePremiumSnapshot ?? setting?.overtimePremiumEnabled ?? true,
+                        holidayPaidMinutes: HolidayWorkMinutes.calculate(
+                            session: item.session, breaks: sessionBreaks, holidayDates: holidays
+                        )
+                    ) else { return nil }
+                    results.append(result.total)
+                }
+                return results
+            }()
+            if let amounts, !amounts.isEmpty {
+                let gross = amounts.reduce(Decimal.zero, +)
+                let net = EstimatedTakeHomeCalculator.calculate(gross: gross, shifts: []).net
+                let won = NSDecimalNumber(decimal: net).int64Value.formatted()
+                content.body = "오늘 예상 급여 입금일입니다. 세후 추정액: \\(won)원 (수당·세금 등 실제 지급액과 차이 가능). 입금 후 앱에서 수령액을 기록하세요."
+            } else {
+                content.body = "오늘 예상 급여 입금일입니다. 입금 후 앱에서 실제 수령액을 기록하세요."
+            }
             content.sound = .default
             let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
             let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
