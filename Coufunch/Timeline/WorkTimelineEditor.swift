@@ -8,6 +8,7 @@ struct WorkTimelineEditor: View {
     @Binding var breaks: [TimelineRange]
 
     @State private var handleAnchor: TimelineRange?
+    @State private var movingAnchor: TimelineRange?
     @State private var activeBreakIndex = 0
 
     private let pointsPerHour: CGFloat = 132
@@ -141,6 +142,32 @@ struct WorkTimelineEditor: View {
                     .fill(tint.opacity(0.6))
                     .frame(width: CGFloat(range.duration) * pointsPerMinute, height: 36)
                     .offset(x: CGFloat(range.start) * pointsPerMinute)
+                    .highPriorityGesture(
+                        DragGesture(minimumDistance: 2)
+                            .onChanged { value in
+                                if movingAnchor == nil { movingAnchor = range }
+                                guard let anchor = movingAnchor else { return }
+                                let delta = TimelineSelection.snapDelta(
+                                    Double(value.translation.width / pointsPerMinute)
+                                )
+                                let bounds = isBreak ? work : TimelineRange(
+                                    start: 0, end: TimelineSelection.maximumMinute
+                                )
+                                let moved = TimelineSelection.move(anchor, by: delta, within: bounds)
+                                if isBreak {
+                                    guard breaks.indices.contains(activeBreakIndex),
+                                          !breaks.enumerated().contains(where: {
+                                              $0.offset != activeBreakIndex &&
+                                              moved.start < $0.element.end &&
+                                              $0.element.start < moved.end
+                                          }) else { return }
+                                    breaks[activeBreakIndex] = moved
+                                } else {
+                                    work = moved
+                                }
+                            }
+                            .onEnded { _ in movingAnchor = nil }
+                    )
                     .accessibilityLabel(String(format: String(localized: "%@ from %@ to %@"), String(localized: String.LocalizationValue(title)), label(range.start), label(range.end)))
 
                 handle(edge: .start, range: range, tint: tint, isBreak: isBreak)
