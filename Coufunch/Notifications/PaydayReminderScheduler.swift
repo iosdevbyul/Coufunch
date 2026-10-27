@@ -131,7 +131,7 @@ enum PaydayReminderScheduler {
                 let gross = amounts.reduce(Decimal.zero, +)
                 let net = EstimatedTakeHomeCalculator.calculate(gross: gross, shifts: []).net
                 let won = NSDecimalNumber(decimal: net).int64Value.formatted()
-                content.body = "오늘 예상 급여 입금일입니다. 세후 추정액: \\(won)원 (수당·세금 등 실제 지급액과 차이 가능). 입금 후 앱에서 수령액을 기록하세요."
+                content.body = "오늘 예상 급여 입금일입니다. 세후 추정액: \(won)원 (수당·세금 등 실제 지급액과 차이 가능). 입금 후 앱에서 수령액을 기록하세요."
             } else {
                 content.body = "오늘 예상 급여 입금일입니다. 입금 후 앱에서 실제 수령액을 기록하세요."
             }
