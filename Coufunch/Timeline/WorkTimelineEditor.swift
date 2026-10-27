@@ -9,6 +9,7 @@ struct WorkTimelineEditor: View {
 
     @State private var handleAnchor: TimelineRange?
     @State private var movingAnchor: TimelineRange?
+    @State private var selectionAnchor: Int?
     @State private var activeBreakIndex = 0
 
     private let pointsPerHour: CGFloat = 132
@@ -21,7 +22,7 @@ struct WorkTimelineEditor: View {
                 .font(WakTypography.screenTitle)
                 .foregroundStyle(CoufunchColor.textPrimary)
 
-            Text("Swipe to explore the timeline. Drag a colored handle, or use the five-minute adjustment buttons below.")
+            Text("Drag an empty Shift lane to select start and end times. Drag the colored band to move the shift, or drag its handles to resize it. Scroll using the ruler.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -37,8 +38,7 @@ struct WorkTimelineEditor: View {
                 }
                 .scrollIndicators(.visible)
                 .onAppear {
-                    // The default shift starts at 19:00, well offscreen from 00:00.
-                    // Show the handles on first presentation, without changing the selected times.
+                    // Reveal the selected shift without changing its start or end values.
                     proxy.scrollTo(max(0, work.start / 60 - 1), anchor: .leading)
                 }
             }
@@ -136,6 +136,24 @@ struct WorkTimelineEditor: View {
             RoundedRectangle(cornerRadius: 10)
                 .fill(CoufunchColor.textPrimary.opacity(0.08))
                 .frame(width: contentWidth, height: 54)
+                .contentShape(Rectangle())
+                .highPriorityGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            guard !isBreak else { return }
+                            if selectionAnchor == nil {
+                                selectionAnchor = TimelineSelection.snap(
+                                    Double(value.startLocation.x / pointsPerMinute)
+                                )
+                            }
+                            guard let anchor = selectionAnchor else { return }
+                            let minute = TimelineSelection.snap(
+                                Double(value.location.x / pointsPerMinute)
+                            )
+                            work = TimelineSelection.selection(from: anchor, to: minute)
+                        }
+                        .onEnded { _ in selectionAnchor = nil }
+                )
 
             if let range {
                 RoundedRectangle(cornerRadius: 8)
