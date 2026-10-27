@@ -30,10 +30,16 @@ struct MonthlyPayStatisticsView: View {
         let month: Date
         let index: Int
         let completedDays: Int
+        let completedShifts: Int
         let gross: Decimal
         let net: Decimal
 
         var id: Date { month }
+        func average(for mode: PayMode) -> Decimal? {
+            guard completedShifts > 0 else { return nil }
+            let amount = mode == .gross ? gross : net
+            return Decimal(NSDecimalNumber(decimal: amount).int64Value / Int64(completedShifts))
+        }
         func amount(for mode: PayMode) -> Double {
             NSDecimalNumber(decimal: mode == .gross ? gross : net).doubleValue
         }
@@ -86,10 +92,13 @@ struct MonthlyPayStatisticsView: View {
             let net = EstimatedTakeHomeCalculator.calculate(
                 gross: gross, shifts: []
             ).net
+            let interval = calendar.dateInterval(of: .month, for: month)!
+            let completedShifts = sessions.filter { $0.status == .completed && interval.contains($0.startAt) }.count
             return MonthAmount(
                 month: month,
                 index: index,
                 completedDays: summary.completedDays,
+                completedShifts: completedShifts,
                 gross: gross,
                 net: net
             )
@@ -259,6 +268,14 @@ struct MonthlyPayStatisticsView: View {
                         Text(selected.month.formatted(.dateTime.year().month(.wide)))
                             .font(.headline)
                         LabeledContent("완료 근무일", value: "\(selected.completedDays)일")
+                        LabeledContent("완료 근무 횟수", value: "\(selected.completedShifts)회")
+                        if let average = selected.average(for: mode) {
+                            LabeledContent(mode == .gross ? "1회 평균 세전 급여" : "1회 평균 세후 예상 급여", value: formatted(average))
+                            Text("월 급여 합계(수당·인센티브 포함) ÷ 완료 근무 횟수")
+                                .font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            LabeledContent("1회 평균 근무 급여", value: "근무 기록 없음")
+                        }
                         LabeledContent("세전 급여", value: formatted(selected.gross))
                         LabeledContent("세후 예상 급여", value: formatted(selected.net))
                         Divider()
