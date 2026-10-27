@@ -10,6 +10,7 @@ struct MonthlyPayStatisticsView: View {
 
     private struct MonthAmount: Identifiable {
         let month: Date
+        let index: Int
         let completedDays: Int
         let gross: Decimal
         let net: Decimal
@@ -31,14 +32,15 @@ struct MonthlyPayStatisticsView: View {
     @State private var mode: PayMode = .gross
     @State private var visibleMode: PayMode = .gross
     @State private var chartHeightFactor = 1.0
-    @State private var selectedMonth: Date?
+    @State private var selectedMonthIndex: Int?
     @State private var transitionTask: Task<Void, Never>?
 
     private var calendar: Calendar { .current }
 
     private var months: [MonthAmount] {
         let start = calendar.dateInterval(of: .month, for: .now)!.start
-        return (0..<12).reversed().compactMap { offset -> MonthAmount? in
+        return (0..<12).compactMap { index -> MonthAmount? in
+            let offset = 11 - index
             guard let month = calendar.date(byAdding: .month, value: -offset, to: start) else {
                 return nil
             }
@@ -58,6 +60,7 @@ struct MonthlyPayStatisticsView: View {
             ).net
             return MonthAmount(
                 month: month,
+                index: index,
                 completedDays: summary.completedDays,
                 gross: summary.total,
                 net: net
@@ -66,8 +69,13 @@ struct MonthlyPayStatisticsView: View {
     }
 
     private var selected: MonthAmount? {
-        guard let selectedMonth else { return months.last }
-        return months.first(where: { calendar.isDate($0.month, equalTo: selectedMonth, toGranularity: .month) })
+        guard let selectedMonthIndex else { return months.last }
+        return months.first { $0.index == selectedMonthIndex }
+    }
+
+    // Fixed for both modes so axis labels and grid lines never move during a toggle.
+    private var fixedYAxisMaximum: Double {
+        max(1, months.map { max($0.amount(for: .gross), $0.amount(for: .net)) }.max() ?? 0) * 1.12
     }
 
     private func formatted(_ amount: Decimal) -> String {
@@ -121,19 +129,25 @@ struct MonthlyPayStatisticsView: View {
 
                 Chart(months) { item in
                     BarMark(
-                        x: .value("월", item.month, unit: .month),
+                        x: .value("월", item.index),
                         y: .value("급여", item.amount(for: visibleMode) * chartHeightFactor)
                     )
                     .foregroundStyle(
-                        selected.map { calendar.isDate($0.month, equalTo: item.month, toGranularity: .month) } == true
+                        selected?.index == item.index
                         ? CoufunchColor.primary : CoufunchColor.primary.opacity(0.55)
                     )
                     .cornerRadius(5)
                 }
-                .chartXScale(domain: chartDomain)
+                .chartXScale(domain: -0.6...11.6)
+                .chartYScale(domain: 0...fixedYAxisMaximum)
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: .month, count: 2)) { _ in
-                        AxisValueLabel(format: .dateTime.month(.twoDigits))
+                    AxisMarks(values: [0, 2, 4, 6, 8, 10]) { axis in
+                        AxisValueLabel {
+                            if let index = axis.as(Int.self),
+                               let item = months.first(where: { $0.index == index }) {
+                                Text(item.month.formatted(.dateTime.month(.twoDigits)))
+                            }
+                        }
                     }
                 }
                 .chartYAxis {
@@ -146,8 +160,9 @@ struct MonthlyPayStatisticsView: View {
                         }
                     }
                 }
-                .chartXSelection(value: $selectedMonth)
+                .chartXSelection(value: $selectedMonthIndex)
                 .frame(height: 260)
+                .frame(maxWidth: .infinity)
 
                 Text("막대를 누르면 해당 월의 근무 정보가 표시됩니다.")
                     .font(.caption)
@@ -191,11 +206,4 @@ struct MonthlyPayStatisticsView: View {
         }
     }
 
-    private var chartDomain: ClosedRange<Date> {
-        let first = months.first?.month ?? .now
-        let last = months.last?.month ?? .now
-        let lower = calendar.date(byAdding: .day, value: -12, to: first) ?? first
-        let upper = calendar.date(byAdding: .day, value: 12, to: last) ?? last
-        return lower...upper
-    }
 }
