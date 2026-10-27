@@ -217,9 +217,9 @@ enum CoufunchBackupStore {
         if archive.version == 2 && archive.monthlyPreferences == nil {
             throw CoufunchBackupError.invalidRecord("missing monthly preferences")
         }
-        for (key, _) in archive.monthlyPreferences ?? [:] {
-            guard isApprovedMonthlyKey(key) else {
-                throw CoufunchBackupError.invalidRecord("unsupported preference key")
+        for (key, value) in archive.monthlyPreferences ?? [:] {
+            guard isApprovedMonthlyKey(key), isValidMonthlyValue(value, for: key) else {
+                throw CoufunchBackupError.invalidRecord("invalid monthly preference")
             }
         }
         var ids = Set<UUID>()
@@ -331,13 +331,26 @@ enum CoufunchBackupStore {
         return (1...12).contains(month)
     }
 
+    private static func isValidMonthlyValue(_ value: String, for key: String) -> Bool {
+        if key.hasPrefix("payroll.validation.") { return value == "true" || value == "false" }
+        if key.hasPrefix("insurance.employment.") { return ["yes", "no", "unknown"].contains(value) }
+        if key.hasSuffix(".pensionEnrollment") || key.hasSuffix(".healthEnrollment") {
+            return ["enrolled", "notEnrolled", "unknown"].contains(value)
+        }
+        if key.hasSuffix(".pensionBase") || key.hasSuffix(".healthBase") {
+            return value.isEmpty || (Decimal(string: value, locale: Locale(identifier: "en_US_POSIX")).map { $0 >= 0 } ?? false)
+        }
+        return false
+    }
+
     private static func exportMonthlyPreferences(defaults: UserDefaults = .standard) -> [String: String] {
         defaults.dictionaryRepresentation().reduce(into: [:]) { result, entry in
             guard isApprovedMonthlyKey(entry.key) else { return }
             if let value = entry.value as? String {
-                result[entry.key] = value
+                if isValidMonthlyValue(value, for: entry.key) { result[entry.key] = value }
             } else if let value = entry.value as? Bool {
-                result[entry.key] = value ? "true" : "false"
+                let raw = value ? "true" : "false"
+                if isValidMonthlyValue(raw, for: entry.key) { result[entry.key] = raw }
             }
         }
     }
