@@ -34,4 +34,32 @@ final class TimelineSelectionTests: XCTestCase {
         )
         XCTAssertEqual(result, TimelineRange(start: 1140, end: 1200))
     }
+    func testDraggingColoredRangeMovesWholeShiftInFiveMinuteSteps() {
+        let initial = TimelineRange(start: 1140, end: 1680)
+        let bounds = TimelineRange(start: 0, end: 2880)
+        XCTAssertEqual(TimelineSelection.snapDelta(7), 5)
+        XCTAssertEqual(TimelineSelection.snapDelta(-7), -5)
+        XCTAssertEqual(
+            TimelineSelection.move(initial, by: 15, within: bounds),
+            TimelineRange(start: 1155, end: 1695)
+        )
+        XCTAssertEqual(
+            TimelineSelection.move(initial, by: -15, within: bounds),
+            TimelineRange(start: 1125, end: 1665)
+        )
+    }
+
+    func testMovingShiftKeepsDurationAndStaysWithinBounds() {
+        let initial = TimelineRange(start: 1140, end: 1680)
+        let bounds = TimelineRange(start: 0, end: 2880)
+        XCTAssertEqual(
+            TimelineSelection.move(initial, by: -5000, within: bounds),
+            TimelineRange(start: 0, end: 540)
+        )
+        XCTAssertEqual(
+            TimelineSelection.move(initial, by: 5000, within: bounds),
+            TimelineRange(start: 2340, end: 2880)
+        )
+    }
+
 }
