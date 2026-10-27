@@ -49,10 +49,13 @@ final class BackupRoundTripStabilityTests: XCTestCase {
             amount: 97_000, basis: .net, note: "Actual",
             sessionID: shift.id, depositedAt: shiftEnd
         )
-        for object in [workplace as any PersistentModel, shift, rest, paySetting,
-                       rule, incentive, receipt] {
-            a.insert(object)
-        }
+        a.insert(workplace)
+        a.insert(shift)
+        a.insert(rest)
+        a.insert(paySetting)
+        a.insert(rule)
+        a.insert(incentive)
+        a.insert(receipt)
         try a.save()
 
         let archive = try CoufunchBackupStore.decode(
