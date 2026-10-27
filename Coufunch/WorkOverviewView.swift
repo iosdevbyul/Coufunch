@@ -16,6 +16,7 @@ struct WorkOverviewView: View {
     @State private var isSidebarPresented = false
     @State private var financeScreen: WorkFinanceView.Screen?
     @State private var showFinance = false
+    @State private var showStatistics = false
     @State private var managementSection: WorkplaceManagementView.Section?
     @State private var showManagement = false
     @State private var showSettings = false
@@ -219,6 +220,9 @@ struct WorkOverviewView: View {
             .navigationDestination(isPresented: $showFinance) {
                 if let financeScreen { WorkFinanceView(screen: financeScreen) }
             }
+            .navigationDestination(isPresented: $showStatistics) {
+                MonthlyPayStatisticsView()
+            }
             .navigationDestination(isPresented: $showSettings) {
                 CoufunchSettingsView()
             }
@@ -235,6 +239,12 @@ struct WorkOverviewView: View {
                             showFinance = true
                         } label: {
                             Label("Pay & Allowances", systemImage: "wallet.bifold")
+                        }
+                        Button {
+                            isSidebarPresented = false
+                            showStatistics = true
+                        } label: {
+                            Label("통계", systemImage: "chart.bar.xaxis")
                         }
                         Button {
                             financeScreen = .strategy
