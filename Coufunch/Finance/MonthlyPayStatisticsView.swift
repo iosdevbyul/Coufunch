@@ -31,8 +31,11 @@ struct MonthlyPayStatisticsView: View {
 
     @State private var mode: PayMode = .gross
     @State private var visibleMode: PayMode = .gross
-    @State private var displayedBarValues: [Double] = []
+    private enum BarPhase { case idle, descending, ascending }
+    @State private var barPhase: BarPhase = .idle
+    @State private var phaseStartedAt = Date()
     @State private var isTransitioning = false
+    private let phaseDuration = 0.8
     @State private var selectedMonthIndex: Int?
     @State private var transitionTask: Task<Void, Never>?
 
@@ -83,31 +86,39 @@ struct MonthlyPayStatisticsView: View {
         amount.formatted(.currency(code: "KRW").precision(.fractionLength(0)))
     }
 
+    // Equal currency units per second: smaller bars reach zero sooner.
+    // Both axes stay fixed, and the next series only starts once ALL bars reach zero.
+    private func animatedValue(for item: MonthAmount, at now: Date) -> Double {
+        let amount = item.amount(for: visibleMode)
+        let speed = fixedYAxisMaximum / phaseDuration
+        let distance = max(0, now.timeIntervalSince(phaseStartedAt)) * speed
+        switch barPhase {
+        case .idle: return amount
+        case .descending: return max(0, amount - distance)
+        case .ascending: return min(amount, distance)
+        }
+    }
+
     private func changeMode(_ newMode: PayMode) {
         guard mode != newMode, !isTransitioning else { return }
+        transitionTask?.cancel()
         mode = newMode
         isTransitioning = true
-        transitionTask?.cancel()
-
-        // First animation: EVERY bar descends to the baseline together.
-        withAnimation(.easeInOut(duration: 0.35)) {
-            displayedBarValues = Array(repeating: 0, count: months.count)
-        }
+        barPhase = .descending
+        phaseStartedAt = .now
 
         transitionTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(400))
+            try? await Task.sleep(for: .seconds(phaseDuration))
             guard !Task.isCancelled else { return }
 
-            // Replace the data only after every rendered bar has reached zero.
+            // All bars are now at zero. Only now switch the dataset.
             visibleMode = newMode
-            let nextValues = months.map { $0.amount(for: newMode) }
+            phaseStartedAt = .now
+            barPhase = .ascending
 
-            // Second animation: EVERY bar grows from the baseline together.
-            withAnimation(.easeInOut(duration: 0.55)) {
-                displayedBarValues = nextValues
-            }
-            try? await Task.sleep(for: .milliseconds(570))
+            try? await Task.sleep(for: .seconds(phaseDuration))
             guard !Task.isCancelled else { return }
+            barPhase = .idle
             isTransitioning = false
         }
     }
@@ -141,10 +152,11 @@ struct MonthlyPayStatisticsView: View {
                 .padding(4)
                 .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 14))
 
-                Chart(months) { item in
+                TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: !isTransitioning)) { timeline in
+                    Chart(months) { item in
                     BarMark(
                         x: .value("월", item.index),
-                        y: .value("급여", displayedBarValues.indices.contains(item.index) ? displayedBarValues[item.index] : item.amount(for: visibleMode))
+                        y: .value("급여", animatedValue(for: item, at: timeline.date))
                     )
                     .foregroundStyle(
                         selected?.index == item.index
@@ -176,7 +188,8 @@ struct MonthlyPayStatisticsView: View {
                 }
                 .chartXSelection(value: $selectedMonthIndex)
                 .frame(height: 260)
-                .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity)
+                }
 
                 Text("막대를 누르면 해당 월의 근무 정보가 표시됩니다.")
                     .font(.caption)
@@ -215,12 +228,10 @@ struct MonthlyPayStatisticsView: View {
             await holidays.load(year: year - 1)
             await holidays.load(year: year)
         }
-        .onAppear {
-            displayedBarValues = months.map { $0.amount(for: visibleMode) }
-        }
         .onDisappear {
             transitionTask?.cancel()
             isTransitioning = false
+            barPhase = .idle
         }
     }
 
