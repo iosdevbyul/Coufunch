@@ -87,8 +87,9 @@ struct MonthlyPayStatisticsView: View {
     // The tallest bar takes 0.3 seconds. Other bars use the same value-per-second
     // speed and therefore reach zero (or their target) earlier.
     private func barDuration(for item: MonthAmount) -> Double {
-        guard fixedYAxisMaximum > 0 else { return 0 }
-        return phaseDuration * item.amount(for: visibleMode) / fixedYAxisMaximum
+        let tallestBar = months.map { $0.amount(for: visibleMode) }.max() ?? 0
+        guard tallestBar > 0 else { return 0 }
+        return phaseDuration * item.amount(for: visibleMode) / tallestBar
     }
 
     private func barValue(for item: MonthAmount) -> Double {
