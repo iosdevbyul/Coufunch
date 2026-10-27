@@ -24,16 +24,23 @@ struct WorkTimelineEditor: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            ScrollView(.horizontal) {
-                VStack(alignment: .leading, spacing: 14) {
-                    ruler
-                    lane(title: "Shift", range: work, tint: CoufunchColor.primary, isBreak: false)
-                    lane(title: "Break", range: breaks.indices.contains(activeBreakIndex) ? breaks[activeBreakIndex] : nil, tint: .orange, isBreak: true)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ruler
+                        lane(title: "Shift", range: work, tint: CoufunchColor.primary, isBreak: false)
+                        lane(title: "Break", range: breaks.indices.contains(activeBreakIndex) ? breaks[activeBreakIndex] : nil, tint: .orange, isBreak: true)
+                    }
+                    .frame(width: contentWidth)
+                    .padding(.vertical, 8)
                 }
-                .frame(width: contentWidth)
-                .padding(.vertical, 8)
+                .scrollIndicators(.visible)
+                .onAppear {
+                    // The default shift starts at 19:00, well offscreen from 00:00.
+                    // Show the handles on first presentation, without changing the selected times.
+                    proxy.scrollTo(max(0, work.start / 60 - 1), anchor: .leading)
+                }
             }
-            .scrollIndicators(.visible)
 
             VStack(alignment: .leading, spacing: WakSpacing.medium) {
                 Label(String(format: String(localized: "Shift: %@ – %@"), label(work.start), label(work.end)), systemImage: "clock")
@@ -99,15 +106,17 @@ struct WorkTimelineEditor: View {
 
     private var ruler: some View {
         ZStack(alignment: .topLeading) {
-            Rectangle().fill(.clear).frame(width: contentWidth, height: 44)
-            ForEach(0...48, id: \.self) { hour in
-                let position = CGFloat(hour) * pointsPerHour
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(hour < 24 ? String(format: "%02d:00", hour) : "+1d " + String(format: "%02d:00", hour - 24))
-                        .font(.caption2.monospacedDigit())
-                    Rectangle().fill(.secondary).frame(width: 1, height: 10)
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(0..<48, id: \.self) { hour in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(hour < 24 ? String(format: "%02d:00", hour) :
+                             "+1d " + String(format: "%02d:00", hour - 24))
+                            .font(.caption2.monospacedDigit())
+                        Rectangle().fill(.secondary).frame(width: 1, height: 10)
+                    }
+                    .frame(width: pointsPerHour, height: 44, alignment: .topLeading)
+                    .id(hour)
                 }
-                .offset(x: position)
             }
             ForEach(0..<576, id: \.self) { tick in
                 Rectangle()
@@ -116,6 +125,7 @@ struct WorkTimelineEditor: View {
                     .offset(x: CGFloat(tick * 5) * pointsPerMinute, y: 34)
             }
         }
+        .frame(width: contentWidth, height: 44, alignment: .topLeading)
         .accessibilityLabel("Timeline ruler, 48 hours in five-minute increments")
     }
 
@@ -147,8 +157,8 @@ struct WorkTimelineEditor: View {
             .frame(width: 22, height: 48)
             .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(CoufunchColor.textPrimary, lineWidth: 1))
             .offset(x: CGFloat(edge == .start ? range.start : range.end) * pointsPerMinute - 11)
-            .gesture(
-                DragGesture(minimumDistance: 0)
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 2)
                     .onChanged { value in
                         if handleAnchor == nil { handleAnchor = range }
                         guard let anchor = handleAnchor else { return }
