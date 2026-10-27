@@ -1,6 +1,25 @@
 import SwiftUI
 import SwiftData
 
+/// Animatable drawing without changing the layout of the chart columns.
+private struct PayrollBarShape: Shape {
+    var heightFraction: CGFloat
+
+    var animatableData: CGFloat {
+        get { heightFraction }
+        set { heightFraction = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let height = rect.height * min(1, max(0, heightFraction))
+        guard height > 0 else { return Path() }
+        return Path(roundedRect: CGRect(
+            x: rect.minX, y: rect.maxY - height,
+            width: rect.width, height: height
+        ), cornerRadius: 3)
+    }
+}
+
 struct MonthlyPayStatisticsView: View {
     private enum PayMode: String, CaseIterable {
         case gross = "세전"
@@ -28,6 +47,7 @@ struct MonthlyPayStatisticsView: View {
     @Query private var manual: [ManualIncentive]
     @StateObject private var holidays = KoreanPublicHolidayStore()
 
+    @State private var cachedMonths: [MonthAmount] = []
     @State private var mode: PayMode = .gross
     @State private var visibleMode: PayMode = .gross
     private enum BarPhase { case idle, descending, ascending }
@@ -39,9 +59,11 @@ struct MonthlyPayStatisticsView: View {
 
     private var calendar: Calendar { .current }
 
-    private var months: [MonthAmount] {
+    private var months: [MonthAmount] { cachedMonths }
+
+    private func rebuildMonthSnapshot() {
         let start = calendar.dateInterval(of: .month, for: .now)!.start
-        return (0..<12).compactMap { index -> MonthAmount? in
+        cachedMonths = (0..<12).compactMap { index -> MonthAmount? in
             let offset = 11 - index
             guard let month = calendar.date(byAdding: .month, value: -offset, to: start) else {
                 return nil
@@ -154,22 +176,17 @@ struct MonthlyPayStatisticsView: View {
                                 Button {
                                     selectedMonthIndex = item.index
                                 } label: {
-                                    GeometryReader { column in
-                                        RoundedRectangle(cornerRadius: 3)
-                                            .fill(selected?.index == item.index
-                                                  ? CoufunchColor.primary
-                                                  : CoufunchColor.primary.opacity(0.55))
-                                            .frame(
-                                                width: column.size.width,
-                                                height: geometry.size.height *
-                                                    CGFloat(barValue(for: item) / fixedYAxisMaximum)
-                                            )
-                                            .frame(maxHeight: .infinity, alignment: .bottom)
-                                            .animation(
-                                                .linear(duration: barDuration(for: item)),
-                                                value: barPhase
-                                            )
-                                    }
+                                    PayrollBarShape(
+                                        heightFraction: CGFloat(barValue(for: item) / fixedYAxisMaximum)
+                                    )
+                                    .fill(selected?.index == item.index
+                                          ? CoufunchColor.primary
+                                          : CoufunchColor.primary.opacity(0.55))
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .animation(
+                                        .linear(duration: barDuration(for: item)),
+                                        value: barPhase
+                                    )
                                     .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
@@ -266,9 +283,13 @@ struct MonthlyPayStatisticsView: View {
         .navigationTitle("통계")
         .navigationBarTitleDisplayMode(.inline)
         .task {
+            // Let navigation render before running the expensive monthly aggregation.
+            await Task.yield()
+            rebuildMonthSnapshot()
             let year = calendar.component(.year, from: .now)
             await holidays.load(year: year - 1)
             await holidays.load(year: year)
+            rebuildMonthSnapshot()
         }
         .onDisappear {
             transitionTask?.cancel()
