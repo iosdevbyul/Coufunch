@@ -126,6 +126,7 @@ struct WorkTimelineEditor: View {
             }
         }
         .frame(width: contentWidth, height: 44, alignment: .topLeading)
+        .allowsHitTesting(false)
         .accessibilityLabel("Timeline ruler, 48 hours in five-minute increments")
     }
 
