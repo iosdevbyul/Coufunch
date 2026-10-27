@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import Charts
 
 struct MonthlyPayStatisticsView: View {
     private enum PayMode: String, CaseIterable {
@@ -33,9 +32,8 @@ struct MonthlyPayStatisticsView: View {
     @State private var visibleMode: PayMode = .gross
     private enum BarPhase { case idle, descending, ascending }
     @State private var barPhase: BarPhase = .idle
-    @State private var phaseStartedAt = Date()
     @State private var isTransitioning = false
-    private let phaseDuration = 0.8
+    private let phaseDuration = 0.3
     @State private var selectedMonthIndex: Int?
     @State private var transitionTask: Task<Void, Never>?
 
@@ -86,17 +84,16 @@ struct MonthlyPayStatisticsView: View {
         amount.formatted(.currency(code: "KRW").precision(.fractionLength(0)))
     }
 
-    // Equal currency units per second: smaller bars reach zero sooner.
-    // Both axes stay fixed, and the next series only starts once ALL bars reach zero.
-    private func animatedValue(for item: MonthAmount, at now: Date) -> Double {
-        let amount = item.amount(for: visibleMode)
-        let speed = fixedYAxisMaximum / phaseDuration
-        let distance = max(0, now.timeIntervalSince(phaseStartedAt)) * speed
-        switch barPhase {
-        case .idle: return amount
-        case .descending: return max(0, amount - distance)
-        case .ascending: return min(amount, distance)
-        }
+    // The tallest bar takes 0.3 seconds. Other bars use the same value-per-second
+    // speed and therefore reach zero (or their target) earlier.
+    private func barDuration(for item: MonthAmount) -> Double {
+        let tallestBar = months.map { $0.amount(for: visibleMode) }.max() ?? 0
+        guard tallestBar > 0 else { return 0 }
+        return phaseDuration * item.amount(for: visibleMode) / tallestBar
+    }
+
+    private func barValue(for item: MonthAmount) -> Double {
+        barPhase == .descending ? 0 : item.amount(for: visibleMode)
     }
 
     private func changeMode(_ newMode: PayMode) {
@@ -105,15 +102,13 @@ struct MonthlyPayStatisticsView: View {
         mode = newMode
         isTransitioning = true
         barPhase = .descending
-        phaseStartedAt = .now
 
         transitionTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(phaseDuration))
             guard !Task.isCancelled else { return }
 
-            // All bars are now at zero. Only now switch the dataset.
+            // All bars are at zero before any new bar starts rising.
             visibleMode = newMode
-            phaseStartedAt = .now
             barPhase = .ascending
 
             try? await Task.sleep(for: .seconds(phaseDuration))
@@ -121,6 +116,84 @@ struct MonthlyPayStatisticsView: View {
             barPhase = .idle
             isTransitioning = false
         }
+    }
+
+    // Static axis and grid layout; only the individual rectangles are animated.
+    private var monthlyBarChart: some View {
+        let chartHeight: CGFloat = 220
+
+        return HStack(alignment: .top, spacing: 6) {
+            VStack(alignment: .trailing) {
+                Text(fixedYAxisMaximum.formatted(.number.notation(.compactName)))
+                Spacer()
+                Text((fixedYAxisMaximum / 2).formatted(.number.notation(.compactName)))
+                Spacer()
+                Text("0")
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .frame(width: 48, height: chartHeight)
+
+            VStack(spacing: 5) {
+                GeometryReader { geometry in
+                    ZStack(alignment: .bottom) {
+                        VStack {
+                            Rectangle().fill(.gray.opacity(0.25)).frame(height: 1)
+                            Spacer()
+                            Rectangle().fill(.gray.opacity(0.25)).frame(height: 1)
+                            Spacer()
+                            Rectangle().fill(.gray.opacity(0.35)).frame(height: 1)
+                        }
+
+                        HStack(alignment: .bottom, spacing: 3) {
+                            ForEach(months) { item in
+                                Button {
+                                    selectedMonthIndex = item.index
+                                } label: {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(selected?.index == item.index
+                                              ? CoufunchColor.primary
+                                              : CoufunchColor.primary.opacity(0.55))
+                                        .frame(
+                                            maxWidth: .infinity,
+                                            minHeight: 0
+                                        )
+                                        .frame(
+                                            height: geometry.size.height *
+                                                CGFloat(barValue(for: item) / fixedYAxisMaximum)
+                                        )
+                                        .frame(maxHeight: .infinity, alignment: .bottom)
+                                        .contentShape(Rectangle())
+                                        .animation(
+                                            .linear(duration: barDuration(for: item)),
+                                            value: barPhase
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity)
+                                .accessibilityLabel(
+                                    "\(item.month.formatted(.dateTime.year().month())): \(formatted(visibleMode == .gross ? item.gross : item.net))"
+                                )
+                            }
+                        }
+                    }
+                }
+                .frame(height: chartHeight)
+
+                HStack(spacing: 3) {
+                    ForEach(months) { item in
+                        Text(item.index.isMultiple(of: 2)
+                             ? item.month.formatted(.dateTime.month(.twoDigits))
+                             : "")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .frame(height: 20)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     var body: some View {
@@ -152,44 +225,7 @@ struct MonthlyPayStatisticsView: View {
                 .padding(4)
                 .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 14))
 
-                TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: !isTransitioning)) { timeline in
-                    Chart(months) { item in
-                    BarMark(
-                        x: .value("월", item.index),
-                        y: .value("급여", animatedValue(for: item, at: timeline.date))
-                    )
-                    .foregroundStyle(
-                        selected?.index == item.index
-                        ? CoufunchColor.primary : CoufunchColor.primary.opacity(0.55)
-                    )
-                    .cornerRadius(5)
-                }
-                .chartXScale(domain: -0.6...11.6)
-                .chartYScale(domain: 0...fixedYAxisMaximum)
-                .chartXAxis {
-                    AxisMarks(values: [0, 2, 4, 6, 8, 10]) { axis in
-                        AxisValueLabel {
-                            if let index = axis.as(Int.self),
-                               let item = months.first(where: { $0.index == index }) {
-                                Text(item.month.formatted(.dateTime.month(.twoDigits)))
-                            }
-                        }
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { axis in
-                        AxisGridLine()
-                        AxisValueLabel {
-                            if let value = axis.as(Double.self) {
-                                Text(value.formatted(.number.notation(.compactName)))
-                            }
-                        }
-                    }
-                }
-                .chartXSelection(value: $selectedMonthIndex)
-                .frame(height: 260)
-                    .frame(maxWidth: .infinity)
-                }
+                monthlyBarChart
 
                 Text("막대를 누르면 해당 월의 근무 정보가 표시됩니다.")
                     .font(.caption)
