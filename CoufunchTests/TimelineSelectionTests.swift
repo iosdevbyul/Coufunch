@@ -62,4 +62,20 @@ final class TimelineSelectionTests: XCTestCase {
         )
     }
 
+    func testMoveWithinSixToSixWindowKeepsDuration() {
+        let bounds = TimelineRange(start: 360, end: 1800)
+        let original = TimelineRange(start: 1140, end: 1680)
+        let shifted = TimelineSelection.move(original, by: -300, within: bounds)
+        XCTAssertEqual(shifted, TimelineRange(start: 840, end: 1380))
+        let capped = TimelineSelection.move(original, by: 500, within: bounds)
+        XCTAssertEqual(capped, TimelineRange(start: 1260, end: 1800))
+        XCTAssertEqual(capped.duration, original.duration)
+    }
+
+    func testTwentyFourHourVisibleWindowSupportsNextDaySix() {
+        let bounds = TimelineRange(start: 360, end: 1800)
+        XCTAssertEqual(bounds.duration, 24 * 60)
+        XCTAssertEqual(TimelineSelection.selection(from: 360, to: 1800), bounds)
+    }
+
 }

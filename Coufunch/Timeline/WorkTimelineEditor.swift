@@ -8,6 +8,7 @@ struct WorkTimelineEditor: View {
     @Binding var breaks: [TimelineRange]
 
     @State private var selectionAnchor: Int?
+    @State private var moveOriginal: TimelineRange?
     @State private var activeBreakIndex = 0
 
 
@@ -22,58 +23,68 @@ struct WorkTimelineEditor: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("시작 시간부터 종료 시간까지 아래 시간표를 한 번에 그어 선택하세요.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
+                Text("아래쪽을 드래그해 시간을 선택하고, 선택된 녹색 영역을 드래그해 이동하세요.")
+                    .font(.caption).foregroundStyle(.secondary)
                 GeometryReader { geometry in
                     let width = max(1, geometry.size.width)
-                    let toX: (Int) -> CGFloat = {
-                        width * CGFloat($0) / CGFloat(TimelineSelection.maximumMinute)
+                    let bounds = TimelineRange(start: 360, end: 1800)
+                    let x: (Int) -> CGFloat = {
+                        width * CGFloat($0 - bounds.start) / CGFloat(bounds.duration)
                     }
                     ZStack(alignment: .topLeading) {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(CoufunchColor.textPrimary.opacity(0.08))
                         ForEach(0...8, id: \.self) { tick in
-                            let minute = tick * 360
+                            let minute = 360 + tick * 180
                             VStack(spacing: 4) {
-                                Text(tick < 4 ? "\(tick * 6)시" : "+1일 \((tick - 4) * 6)시")
-                                    .font(.system(size: 9))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.6)
-                                Rectangle()
-                                    .fill(.secondary.opacity(0.3))
-                                    .frame(width: 1, height: 46)
+                                Text(minute == 1800 ? "+1일 06" : String(format: "%02d", (minute / 60) % 24))
+                                    .font(.system(size: 10))
+                                Rectangle().fill(.secondary.opacity(0.35))
+                                    .frame(width: 1, height: 45)
                             }
-                            .offset(x: min(width - 20, max(0, toX(minute) - 10)), y: 7)
+                            .offset(x: min(width - 20, max(0, x(minute) - 10)), y: 7)
                         }
-                        RoundedRectangle(cornerRadius: 7)
-                            .fill(CoufunchColor.primary.opacity(0.75))
-                            .frame(width: max(2, toX(work.end - work.start)), height: 34)
-                            .offset(x: toX(work.start), y: 41)
                         Rectangle()
-                            .fill(Color.clear)
-                            .contentShape(Rectangle())
+                            .fill(Color.clear).contentShape(Rectangle())
+                            .frame(height: 34).offset(y: 54)
                             .gesture(
-                                DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                                DragGesture(minimumDistance: 0)
                                     .onChanged { value in
                                         if selectionAnchor == nil {
                                             selectionAnchor = minute(at: value.startLocation.x, width: width)
                                         }
                                         guard let anchor = selectionAnchor else { return }
-                                        work = TimelineSelection.selection(
-                                            from: anchor,
-                                            to: minute(at: value.location.x, width: width)
+                                        let selected = TimelineSelection.selection(
+                                            from: anchor, to: minute(at: value.location.x, width: width)
                                         )
+                                        work = TimelineSelection.contained(selected, within: bounds) ?? work
                                     }
                                     .onEnded { _ in selectionAnchor = nil }
                             )
+                        if let shown = TimelineSelection.contained(work, within: bounds) {
+                            RoundedRectangle(cornerRadius: 7)
+                                .fill(CoufunchColor.primary.opacity(0.8))
+                                .frame(width: max(2, x(shown.end) - x(shown.start)), height: 30)
+                                .offset(x: x(shown.start), y: 20)
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { value in
+                                            if moveOriginal == nil { moveOriginal = work }
+                                            guard let original = moveOriginal else { return }
+                                            let delta = TimelineSelection.snapDelta(
+                                                Double(value.translation.width / width) * 1440
+                                            )
+                                            work = TimelineSelection.move(original, by: delta, within: bounds)
+                                        }
+                                        .onEnded { _ in moveOriginal = nil }
+                                )
+                                .accessibilityLabel("선택한 근무시간 이동")
+                        }
                     }
                 }
-                .frame(height: 84)
-                Text("전체 48시간을 표시합니다. 자정 이후는 +1일이며, 아래 ± 버튼으로 5분씩 정밀 조정할 수 있습니다.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                .frame(height: 88)
+                Text("06:00~다음 날 06:00 · 아래쪽: 영역 선택 · 녹색 영역: 이동 · ± 5분 조정")
+                    .font(.caption2).foregroundStyle(.secondary)
             }
 
             VStack(alignment: .leading, spacing: WakSpacing.medium) {
@@ -140,7 +151,7 @@ struct WorkTimelineEditor: View {
 
     private func minute(at x: CGFloat, width: CGFloat) -> Int {
         let fraction = Double(max(0, min(width, x)) / max(width, 1))
-        return TimelineSelection.snap(fraction * Double(TimelineSelection.maximumMinute))
+        return TimelineSelection.snap(360 + fraction * 1440)
     }
 
     private var hasAvailableBreakGap: Bool {
@@ -181,7 +192,7 @@ struct WorkTimelineEditor: View {
     private func adjustByStep(range: TimelineRange, isBreak: Bool,
                               edge: TimelineSelection.Edge, direction: Int) {
         let current = edge == .start ? range.start : range.end
-        let bounds = isBreak ? work : TimelineRange(start: 0, end: TimelineSelection.maximumMinute)
+        let bounds = isBreak ? work : TimelineRange(start: 360, end: 1800)
         let updated = TimelineSelection.adjust(
             range, edge: edge, to: current + direction * TimelineSelection.step, bounds: bounds
         )
