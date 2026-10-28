@@ -48,6 +48,7 @@ struct WorkFinanceView: View {
         let day: Date
         let name: String
         let amount: Decimal
+        let sessionID: UUID?
     }
 
     // Present awards on the qualifying attendance date; keep the existing
@@ -74,12 +75,12 @@ struct WorkFinanceView: View {
                 guard calendar.isDate(day, equalTo: selectedMonth, toGranularity: .month) else { continue }
                 result.append(EarnedIncentive(
                     id: "\(workplace.id)-\(award.ruleID)-\(award.periodStart.timeIntervalSince1970)",
-                    day: day, name: rule.name, amount: award.amount))
+                    day: day, name: rule.name, amount: award.amount, sessionID: nil))
             }
         }
         for bonus in manual where calendar.isDate(bonus.earnedOn, equalTo: selectedMonth, toGranularity: .month) {
             result.append(EarnedIncentive(id: "manual-\(bonus.id)", day: bonus.earnedOn,
-                                          name: bonus.name, amount: bonus.amount))
+                                          name: bonus.name, amount: bonus.amount, sessionID: bonus.sessionID))
         }
         return result
     }
@@ -89,14 +90,18 @@ struct WorkFinanceView: View {
             .reduce(Decimal.zero) { $0 + $1.amount }
     }
 
-    // Attach one day's incentive awards to the last completed shift only.
+    // Explicitly linked SMS incentives belong to their shift. Unlinked daily
+    // allowances stay on the last completed shift of the date as before.
     private func assignedIncentives(for item: PayrollAuditEntry) -> [EarnedIncentive] {
         let lastShift = audit.entries.filter {
             Calendar.current.isDate($0.start, inSameDayAs: item.start)
         }.last
-        guard lastShift?.id == item.id else { return [] }
-        return earnedIncentives.filter {
-            Calendar.current.isDate($0.day, inSameDayAs: item.start)
+        return earnedIncentives.filter { award in
+            if let sessionID = award.sessionID {
+                return sessionID == item.id
+            }
+            return lastShift?.id == item.id &&
+                Calendar.current.isDate(award.day, inSameDayAs: item.start)
         }
     }
 
@@ -448,6 +453,7 @@ struct WorkFinanceView: View {
         switch name {
         case "5-day weekly bonus": return appLocale.language.languageCode?.identifier == "ko" ? "주 5일 근무 주휴수당" : name
         case "6-day weekly bonus": return appLocale.language.languageCode?.identifier == "ko" ? "주 6일 근무 특근수당" : name
+        case "SMS incentive": return appLocale.language.languageCode?.identifier == "ko" ? "문자 인센티브" : name
         case "15-day monthly bonus": return appLocale.language.languageCode?.identifier == "ko" ? "월 15일 위너프로모션" : name
         default: return name
         }
@@ -701,6 +707,9 @@ struct WorkFinanceView: View {
                                     let incentiveGross = awards.reduce(Decimal.zero) { $0 + $1.amount }
                                     ForEach(awards) { bonus in
                                         row(localizedBonusName(bonus.name), money(bonus.amount))
+                                    }
+                                    if incentiveGross > 0 {
+                                        row("추가 인센티브 합계", money(incentiveGross))
                                     }
                                     row("Shift gross (including earned incentives)", money(item.grossTotal + incentiveGross))
                                     row("Shift estimated net (including earned incentives)",

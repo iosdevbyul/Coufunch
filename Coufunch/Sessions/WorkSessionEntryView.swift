@@ -12,12 +12,14 @@ struct WorkSessionEntryView: View {
     @Query(sort: \Workplace.name) private var workplaces: [Workplace]
     @Query private var settings: [WorkplacePaySettings]
     @Query private var storedBreaks: [WorkBreak]
+    @Query private var storedIncentives: [ManualIncentive]
 
     @State private var workplaceID: UUID?
     @State private var status: WorkSessionStatus = .completed
     @State private var work = TimelineRange(start: 540, end: 1080)
     @State private var breaks = [TimelineRange(start: 720, end: 780)]
     @State private var overrideAmount = ""
+    @State private var smsIncentiveAmount = ""
     @State private var earlyDeparture = false
     @State private var scheduledEndMinute = 1080
     @State private var errorMessage: String?
@@ -133,6 +135,16 @@ struct WorkSessionEntryView: View {
                             .textFieldStyle(.roundedBorder)
                     }
 
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("문자 인센티브 (선택)").font(.headline)
+                        TextField("인센티브 금액 (원)", text: $smsIncentiveAmount)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.roundedBorder)
+                            .accessibilityIdentifier("work.session.smsIncentiveAmount")
+                        Text("문자로 안내받은 추가 지급액만 입력하세요. 기본급과 별도로 저장되며, 자동 수당에 이미 포함된 금액은 중복 입력하지 마세요.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+
                     if let preview = payPreview {
                         CoufunchCard {
                             VStack(alignment: .leading, spacing: 8) {
@@ -210,6 +222,11 @@ struct WorkSessionEntryView: View {
             TimelineRange(start: Int($0.startAt.timeIntervalSince(startOfDay) / 60),
                           end: Int($0.endAt.timeIntervalSince(startOfDay) / 60))
         }
+        if let incentive = storedIncentives.first(where: {
+            $0.sessionID == session.id && $0.name == "SMS incentive"
+        }) {
+            smsIncentiveAmount = NSDecimalNumber(decimal: incentive.amount).stringValue
+        }
         if session.payMode == .fixedDaily, let amount = session.fixedDailyPaySnapshot {
             overrideAmount = NSDecimalNumber(decimal: amount).stringValue
         }
@@ -248,6 +265,18 @@ struct WorkSessionEntryView: View {
             errorMessage = "Break times must be within the shift."
             return
         }
+        let smsAmount: Decimal?
+        if smsIncentiveAmount.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            smsAmount = nil
+        } else {
+            guard let parsed = Decimal(string: smsIncentiveAmount,
+                                       locale: Locale(identifier: "en_US_POSIX")),
+                  parsed >= 0 else {
+                errorMessage = "인센티브 금액은 0원 이상의 숫자로 입력해 주세요."
+                return
+            }
+            smsAmount = parsed
+        }
         let session: WorkSession
         if let existing = editingSession {
             session = existing
@@ -282,6 +311,24 @@ struct WorkSessionEntryView: View {
                 startAt: midnight.addingTimeInterval(TimeInterval(rest.start * 60)),
                 endAt: midnight.addingTimeInterval(TimeInterval(rest.end * 60))
             ))
+        }
+        let matchingIncentives = storedIncentives.filter {
+            $0.sessionID == session.id && $0.name == "SMS incentive"
+        }
+        if let amount = smsAmount, amount > 0 {
+            if let existing = matchingIncentives.first {
+                existing.amount = amount
+                existing.workplaceID = workplaceID
+                existing.earnedOn = start
+                for duplicate in matchingIncentives.dropFirst() { context.delete(duplicate) }
+            } else {
+                context.insert(ManualIncentive(
+                    workplaceID: workplaceID, sessionID: session.id,
+                    earnedOn: start, name: "SMS incentive", amount: amount
+                ))
+            }
+        } else {
+            for existing in matchingIncentives { context.delete(existing) }
         }
         do {
             try context.save()
