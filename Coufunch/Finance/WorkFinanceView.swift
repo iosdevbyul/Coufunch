@@ -762,8 +762,6 @@ struct WorkFinanceView: View {
                                         row(bonus.ruleName, money(bonus.amount))
                                         Text(bonus.earnedAt, format: .dateTime.year().month())
                                             .font(.caption).foregroundStyle(.secondary)
-                                        Text("Monthly incentive deposit date is not confirmed.")
-                                            .font(.caption).foregroundStyle(.secondary)
                                     }
                                     Divider()
                                 }
@@ -795,11 +793,7 @@ struct WorkFinanceView: View {
                                                 Text(deposited, format: .dateTime.year().month().day())
                                             }
                                             .font(.subheadline)
-                                        } else {
-                                            Text(item.inclusion == .excluded
-                                                 ? "Allowance marked as separately paid; deposit not yet recorded."
-                                                 : "Allowance deposit date is unconfirmed.")
-                                                .font(.caption).foregroundStyle(.secondary)
+                                        }
                                         }
                                     }
                                     Divider()
