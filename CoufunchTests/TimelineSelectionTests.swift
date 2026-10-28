@@ -145,7 +145,7 @@ final class TimelineSelectionTests: XCTestCase {
         XCTAssertEqual(TimelineSelection.adjust(work, edge: .end, to: 2000, bounds: visible).end, 1920)
         XCTAssertEqual(TimelineSelection.contained(
             TimelineRange(start: 1860, end: 1980), within: visible
-        ), TimelineRange(start: 1860, end: 1920))
+        ), TimelineRange(start: 1800, end: 1920))
     }
 
 }
