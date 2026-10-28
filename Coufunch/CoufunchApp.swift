@@ -134,7 +134,7 @@ private struct SeamlessSplashLogo: View {
 private struct AppSwitcherPrivacyCover: View {
     var body: some View {
         ZStack {
-            Color(red: 0.035, green: 0.039, blue: 0.047)
+            Color.black
 
             SeamlessSplashLogo(size: 200)
         }
@@ -156,7 +156,7 @@ private struct StartupSplashView: View {
     @State private var curtainX: CGFloat = 0
     @State private var started = false
 
-    private let backgroundColor = Color(red: 0.035, green: 0.039, blue: 0.047)
+    private let backgroundColor = Color.black
     private let logoSize: CGFloat = 200
 
     var body: some View {
