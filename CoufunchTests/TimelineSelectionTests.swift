@@ -78,4 +78,30 @@ final class TimelineSelectionTests: XCTestCase {
         XCTAssertEqual(TimelineSelection.selection(from: 360, to: 1800), bounds)
     }
 
+    func testResizingEdgesChangesDurationWithoutMovingOppositeEdge() {
+        let bounds = TimelineRange(start: 360, end: 1800)
+        let original = TimelineRange(start: 540, end: 1080)
+        let startMoved = TimelineSelection.adjust(original, edge: .start,
+                                                  to: 600, bounds: bounds)
+        XCTAssertEqual(startMoved, TimelineRange(start: 600, end: 1080))
+        let endMoved = TimelineSelection.adjust(original, edge: .end,
+                                                to: 1200, bounds: bounds)
+        XCTAssertEqual(endMoved, TimelineRange(start: 540, end: 1200))
+    }
+
+    func testEdgeResizeClampsAtMinimumFiveMinutesAndVisibleBounds() {
+        let bounds = TimelineRange(start: 360, end: 1800)
+        let original = TimelineRange(start: 540, end: 1080)
+        XCTAssertEqual(TimelineSelection.adjust(original, edge: .start,
+                                                to: 2000, bounds: bounds),
+                       TimelineRange(start: 1075, end: 1080))
+        XCTAssertEqual(TimelineSelection.adjust(original, edge: .end,
+                                                to: 0, bounds: bounds),
+                       TimelineRange(start: 540, end: 545))
+        XCTAssertEqual(TimelineSelection.adjust(original, edge: .start,
+                                                to: 0, bounds: bounds).start, 360)
+        XCTAssertEqual(TimelineSelection.adjust(original, edge: .end,
+                                                to: 2000, bounds: bounds).end, 1800)
+    }
+
 }
