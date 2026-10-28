@@ -5,6 +5,7 @@ struct WeeklyAllowanceTimelineEntry: Identifiable {
     let workplaceName: String
     let amount: Decimal
     let earnedAt: Date
+    let isSpecialAllowance: Bool
     let expectedPaymentAt: Date?
     let actualDepositAt: Date?
     let inclusion: BonusInclusion
@@ -59,6 +60,7 @@ enum WeeklyAllowanceTimeline {
                     workplaceName: workplace.name,
                     amount: award.amount,
                     earnedAt: earnedAt,
+                    isSpecialAllowance: rule.requiredAttendanceDays == 6,
                     expectedPaymentAt: expected,
                     actualDepositAt: receipt?.bonusInclusion == .included ? receipt?.depositedAt : nil,
                     inclusion: receipt?.bonusInclusion ?? .unknown,
