@@ -17,8 +17,8 @@ struct BulkWorkSessionEntryView: View {
     @State private var step = 0
     @State private var workplaceID: UUID?
     @State private var status: WorkSessionStatus = .completed
-    @State private var work = TimelineRange(start: 1140, end: 1680)
-    @State private var breaks = [TimelineRange(start: 1320, end: 1380)]
+    @State private var work = TimelineRange(start: 540, end: 1080)
+    @State private var breaks = [TimelineRange(start: 720, end: 780)]
     @State private var fixedAmount = ""
     @State private var errorMessage: String?
     @State private var showSaveConfirmation = false
