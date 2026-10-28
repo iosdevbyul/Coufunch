@@ -9,6 +9,7 @@ struct WorkTimelineEditor: View {
 
     @State private var selectionAnchor: Int?
     @State private var moveOriginal: TimelineRange?
+    @State private var resizeOriginal: TimelineRange?
     @State private var activeBreakIndex = 0
 
 
@@ -23,7 +24,7 @@ struct WorkTimelineEditor: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("아래쪽을 드래그해 시간을 선택하고, 선택된 녹색 영역을 드래그해 이동하세요.")
+                Text("아래쪽을 드래그해 시간을 선택하고, 선택 영역 가운데는 이동, 양 끝 흰 손잡이는 길이를 조절하세요.")
                     .font(.caption).foregroundStyle(.secondary)
                 GeometryReader { geometry in
                     let width = max(1, geometry.size.width)
@@ -79,11 +80,41 @@ struct WorkTimelineEditor: View {
                                         .onEnded { _ in moveOriginal = nil }
                                 )
                                 .accessibilityLabel("선택한 근무시간 이동")
+
+                            // The two edge handles resize; the center remains draggable.
+                            ForEach([TimelineSelection.Edge.start, .end], id: \.self) { edge in
+                                Capsule()
+                                    .fill(.white)
+                                    .frame(width: 7, height: 24)
+                                    .frame(width: 32, height: 42)
+                                    .contentShape(Rectangle())
+                                    .offset(
+                                        x: x(edge == .start ? shown.start : shown.end) - 16,
+                                        y: 14
+                                    )
+                                    .gesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { value in
+                                                if resizeOriginal == nil { resizeOriginal = work }
+                                                guard let original = resizeOriginal else { return }
+                                                let delta = TimelineSelection.snapDelta(
+                                                    Double(value.translation.width / width) * 1440
+                                                )
+                                                let originalEdge = edge == .start ? original.start : original.end
+                                                work = TimelineSelection.adjust(
+                                                    original, edge: edge, to: originalEdge + delta,
+                                                    bounds: bounds
+                                                )
+                                            }
+                                            .onEnded { _ in resizeOriginal = nil }
+                                    )
+                                    .accessibilityLabel(edge == .start ? "근무 시작시간 조절" : "근무 종료시간 조절")
+                            }
                         }
                     }
                 }
                 .frame(height: 88)
-                Text("06:00~다음 날 06:00 · 아래쪽: 영역 선택 · 녹색 영역: 이동 · ± 5분 조정")
+                Text("06:00~다음 날 06:00 · 아래쪽: 영역 선택 · 녹색 가운데: 이동 · 양 끝: 길이 조절 · ± 5분 조정")
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
