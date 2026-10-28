@@ -50,7 +50,7 @@ struct WorkTimelineEditor: View {
                         }
                         Rectangle()
                             .fill(Color.clear).contentShape(Rectangle())
-                            .frame(height: 34).offset(y: 54)
+                            .frame(height: 25).offset(y: 98)
                             .gesture(
                                 DragGesture(minimumDistance: 0)
                                     .onChanged { value in
@@ -114,14 +114,14 @@ struct WorkTimelineEditor: View {
                                     .accessibilityLabel(edge == .start ? "근무 시작시간 조절" : "근무 종료시간 조절")
                             }
                         }
+                        inlineBreakLane(width: width, x: x)
                     }
                 }
-                .frame(height: 88)
-                Text("06:00~다음 날 06:00 · 아래쪽: 영역 선택 · 녹색 가운데: 이동 · 양 끝: 길이 조절 · ± 5분 조정")
+                .frame(height: 124)
+                Text("06:00~다음 날 06:00 · 위쪽 녹색: 근무 · 바로 아래: 휴게 · 가운데 이동 / 양 끝 길이 조절")
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
-            breakTimeline
 
             VStack(alignment: .leading, spacing: WakSpacing.medium) {
                 Label(String(format: String(localized: "Shift: %@ – %@"), label(work.start), label(work.end)), systemImage: "clock")
@@ -186,29 +186,19 @@ struct WorkTimelineEditor: View {
     }
 
 
-    /// The break lane shares the 06:00–06:00 scale with the work lane.
-    /// Its light green track is the only legal area for rest time.
-    private var breakTimeline: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("휴게시간").font(WakTypography.screenTitle)
-            Text("아래 바에서 휴게시간을 이동하고 양 끝으로 길이를 조절하세요.")
-                .font(.caption).foregroundStyle(.secondary)
-            GeometryReader { geometry in
-                let width = max(1, geometry.size.width)
-                let scale = width / 1440
-                let x: (Int) -> CGFloat = { CGFloat($0 - 360) * scale }
-                ZStack(alignment: .topLeading) {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(CoufunchColor.textPrimary.opacity(0.08))
+    /// Break controls share the work ruler's x-axis and appear directly below its green bar.
+    /// No second section or duplicate time ruler is rendered.
+    private func inlineBreakLane(width: CGFloat, x: @escaping (Int) -> CGFloat) -> some View {
+        ZStack(alignment: .topLeading) {
                     RoundedRectangle(cornerRadius: 7)
                         .fill(CoufunchColor.primary.opacity(0.17))
                         .frame(width: max(0, x(work.end) - x(work.start)), height: 33)
-                        .offset(x: x(work.start), y: 19)
+                        .offset(x: x(work.start), y: 0)
                         .allowsHitTesting(false)
 
                     // A fresh drag in the lower lane changes the active break.
                     Rectangle().fill(.clear).contentShape(Rectangle())
-                        .frame(height: 28).offset(y: 55)
+                        .frame(height: 28).offset(y: 38)
                         .gesture(
                             DragGesture(minimumDistance: 0)
                                 .onChanged { value in
@@ -235,7 +225,7 @@ struct WorkTimelineEditor: View {
                         RoundedRectangle(cornerRadius: 7)
                             .fill(CoufunchColor.primary.opacity(active ? 0.85 : 0.42))
                             .frame(width: max(2, x(rest.end) - x(rest.start)), height: 30)
-                            .offset(x: x(rest.start), y: 20)
+                            .offset(x: x(rest.start), y: 1)
                             .gesture(
                                 DragGesture(minimumDistance: 0)
                                     .onChanged { value in
@@ -259,7 +249,7 @@ struct WorkTimelineEditor: View {
                                     .frame(width: 7, height: 24)
                                     .frame(width: 32, height: 42)
                                     .contentShape(Rectangle())
-                                    .offset(x: x(edge == .start ? rest.start : rest.end) - 16, y: 14)
+                                    .offset(x: x(edge == .start ? rest.start : rest.end) - 16, y: -5)
                                     .gesture(
                                         DragGesture(minimumDistance: 0)
                                             .onChanged { value in
@@ -280,12 +270,9 @@ struct WorkTimelineEditor: View {
                             }
                         }
                     }
-                }
-            }
-            .frame(height: 86)
-            Text("연한 녹색은 근무 가능 범위 · 진한 녹색은 휴게시간 · 5분 단위")
-                .font(.caption2).foregroundStyle(.secondary)
+
         }
+        .offset(y: 56)
     }
 
     private func breakBounds(for index: Int) -> TimelineRange {
