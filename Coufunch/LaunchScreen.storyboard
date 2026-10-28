@@ -22,7 +22,7 @@
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="safe-area"/>
-                        <color key="backgroundColor" red="0.035" green="0.039" blue="0.047" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0" green="0" blue="0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="launch-icon" firstAttribute="centerX" secondItem="launch-root" secondAttribute="centerX" id="center-x"/>
                             <constraint firstItem="launch-icon" firstAttribute="centerY" secondItem="launch-root" secondAttribute="centerY" id="center-y"/>
