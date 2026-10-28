@@ -15,11 +15,11 @@ struct WorkSessionEntryView: View {
 
     @State private var workplaceID: UUID?
     @State private var status: WorkSessionStatus = .completed
-    @State private var work = TimelineRange(start: 1140, end: 1680)
-    @State private var breaks = [TimelineRange(start: 1320, end: 1380)]
+    @State private var work = TimelineRange(start: 540, end: 1080)
+    @State private var breaks = [TimelineRange(start: 720, end: 780)]
     @State private var overrideAmount = ""
     @State private var earlyDeparture = false
-    @State private var scheduledEndMinute = 1680
+    @State private var scheduledEndMinute = 1080
     @State private var errorMessage: String?
 
     private var currentSettings: WorkplacePaySettings? {
