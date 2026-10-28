@@ -10,6 +10,9 @@ struct WorkTimelineEditor: View {
     @State private var selectionAnchor: Int?
     @State private var moveOriginal: TimelineRange?
     @State private var resizeOriginal: TimelineRange?
+    @State private var breakDragOriginal: TimelineRange?
+    @State private var breakResizeOriginal: TimelineRange?
+    @State private var breakSelectionAnchor: Int?
     @State private var activeBreakIndex = 0
 
 
@@ -38,7 +41,7 @@ struct WorkTimelineEditor: View {
                         ForEach(0...8, id: \.self) { tick in
                             let minute = 360 + tick * 180
                             VStack(spacing: 4) {
-                                Text(minute == 1800 ? "+1일 06" : String(format: "%02d", (minute / 60) % 24))
+                                Text(minute == 1440 ? "+1일 00" : String(format: "%02d", (minute / 60) % 24))
                                     .font(.system(size: 10))
                                 Rectangle().fill(.secondary.opacity(0.35))
                                     .frame(width: 1, height: 45)
@@ -118,6 +121,8 @@ struct WorkTimelineEditor: View {
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
+            breakTimeline
+
             VStack(alignment: .leading, spacing: WakSpacing.medium) {
                 Label(String(format: String(localized: "Shift: %@ – %@"), label(work.start), label(work.end)), systemImage: "clock")
                     .font(.footnote.monospacedDigit())
@@ -178,6 +183,113 @@ struct WorkTimelineEditor: View {
             breaks = breaks.compactMap { TimelineSelection.contained($0, within: updated) }
             activeBreakIndex = max(0, min(activeBreakIndex, breaks.count - 1))
         }
+    }
+
+
+    /// The break lane shares the 06:00–06:00 scale with the work lane.
+    /// Its light green track is the only legal area for rest time.
+    private var breakTimeline: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("휴게시간").font(WakTypography.screenTitle)
+            Text("아래 바에서 휴게시간을 이동하고 양 끝으로 길이를 조절하세요.")
+                .font(.caption).foregroundStyle(.secondary)
+            GeometryReader { geometry in
+                let width = max(1, geometry.size.width)
+                let scale = width / 1440
+                let x: (Int) -> CGFloat = { CGFloat($0 - 360) * scale }
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(CoufunchColor.textPrimary.opacity(0.08))
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(CoufunchColor.primary.opacity(0.17))
+                        .frame(width: max(0, x(work.end) - x(work.start)), height: 33)
+                        .offset(x: x(work.start), y: 19)
+                        .allowsHitTesting(false)
+
+                    // A fresh drag in the lower lane changes the active break.
+                    Rectangle().fill(.clear).contentShape(Rectangle())
+                        .frame(height: 28).offset(y: 55)
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    guard breaks.indices.contains(activeBreakIndex) else { return }
+                                    if breakSelectionAnchor == nil {
+                                        breakSelectionAnchor = minute(at: value.startLocation.x, width: width)
+                                    }
+                                    guard let anchor = breakSelectionAnchor else { return }
+                                    let proposed = TimelineSelection.selection(
+                                        from: anchor, to: minute(at: value.location.x, width: width)
+                                    )
+                                    if let valid = TimelineSelection.contained(
+                                        proposed, within: breakBounds(for: activeBreakIndex)
+                                    ) {
+                                        breaks[activeBreakIndex] = valid
+                                    }
+                                }
+                                .onEnded { _ in breakSelectionAnchor = nil }
+                        )
+
+                    ForEach(breaks.indices, id: \.self) { index in
+                        let rest = breaks[index]
+                        let active = index == activeBreakIndex
+                        RoundedRectangle(cornerRadius: 7)
+                            .fill(CoufunchColor.primary.opacity(active ? 0.85 : 0.42))
+                            .frame(width: max(2, x(rest.end) - x(rest.start)), height: 30)
+                            .offset(x: x(rest.start), y: 20)
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        guard active else { return }
+                                        if breakDragOriginal == nil { breakDragOriginal = rest }
+                                        guard let original = breakDragOriginal else { return }
+                                        let delta = TimelineSelection.snapDelta(
+                                            Double(value.translation.width / width) * 1440
+                                        )
+                                        breaks[index] = TimelineSelection.move(
+                                            original, by: delta, within: breakBounds(for: index)
+                                        )
+                                    }
+                                    .onEnded { _ in breakDragOriginal = nil }
+                            )
+                            .onTapGesture { activeBreakIndex = index }
+
+                        if active {
+                            ForEach([TimelineSelection.Edge.start, .end], id: \.self) { edge in
+                                Capsule().fill(.white)
+                                    .frame(width: 7, height: 24)
+                                    .frame(width: 32, height: 42)
+                                    .contentShape(Rectangle())
+                                    .offset(x: x(edge == .start ? rest.start : rest.end) - 16, y: 14)
+                                    .gesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { value in
+                                                if breakResizeOriginal == nil { breakResizeOriginal = rest }
+                                                guard let original = breakResizeOriginal else { return }
+                                                let delta = TimelineSelection.snapDelta(
+                                                    Double(value.translation.width / width) * 1440
+                                                )
+                                                let time = (edge == .start ? original.start : original.end) + delta
+                                                breaks[index] = TimelineSelection.adjust(
+                                                    original, edge: edge, to: time,
+                                                    bounds: breakBounds(for: index)
+                                                )
+                                            }
+                                            .onEnded { _ in breakResizeOriginal = nil }
+                                    )
+                                    .accessibilityLabel(edge == .start ? "휴게 시작시간 조절" : "휴게 종료시간 조절")
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(height: 86)
+            Text("연한 녹색은 근무 가능 범위 · 진한 녹색은 휴게시간 · 5분 단위")
+                .font(.caption2).foregroundStyle(.secondary)
+        }
+    }
+
+    private func breakBounds(for index: Int) -> TimelineRange {
+        TimelineSelection.breakBounds(work: work, breaks: breaks, index: index) ?? work
     }
 
     private func minute(at x: CGFloat, width: CGFloat) -> Int {

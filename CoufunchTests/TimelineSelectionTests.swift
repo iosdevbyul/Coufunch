@@ -104,4 +104,37 @@ final class TimelineSelectionTests: XCTestCase {
                                                 to: 2000, bounds: bounds).end, 1800)
     }
 
+    func testBreakIsClampedToGreenWorkInterval() {
+        let work = TimelineRange(start: 540, end: 1080)
+        let rest = TimelineRange(start: 720, end: 780)
+        let bounds = TimelineSelection.breakBounds(work: work, breaks: [rest], index: 0)
+        XCTAssertEqual(bounds, work)
+        XCTAssertEqual(TimelineSelection.move(rest, by: -500, within: work),
+                       TimelineRange(start: 540, end: 600))
+        XCTAssertEqual(TimelineSelection.move(rest, by: 500, within: work),
+                       TimelineRange(start: 1020, end: 1080))
+        XCTAssertEqual(TimelineSelection.adjust(rest, edge: .end, to: 1800, bounds: work).end,
+                       1080)
+    }
+
+    func testBreakCannotOverlapAnotherBreakWhenMovedOrResized() {
+        let work = TimelineRange(start: 540, end: 1080)
+        let first = TimelineRange(start: 660, end: 720)
+        let second = TimelineRange(start: 840, end: 900)
+        let bounds = TimelineSelection.breakBounds(
+            work: work, breaks: [first, second], index: 0
+        )!
+        XCTAssertEqual(bounds, TimelineRange(start: 540, end: 840))
+        XCTAssertEqual(TimelineSelection.move(first, by: 500, within: bounds),
+                       TimelineRange(start: 780, end: 840))
+        XCTAssertEqual(TimelineSelection.adjust(first, edge: .end, to: 1000, bounds: bounds).end,
+                       840)
+    }
+
+    func testInvalidBreakIndexDoesNotProduceBounds() {
+        XCTAssertNil(TimelineSelection.breakBounds(
+            work: TimelineRange(start: 540, end: 1080), breaks: [], index: 0
+        ))
+    }
+
 }
