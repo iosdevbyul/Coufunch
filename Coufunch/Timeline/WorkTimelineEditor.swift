@@ -339,7 +339,7 @@ struct WorkTimelineEditor: View {
     }
 
     private func label(_ minute: Int) -> String {
-        let day = minute / 1560
+        let day = minute / 1440
         let hour = (minute % 1440) / 60
         let min = minute % 60
         return String(format: "%02d:%02d", hour, min) + (day > 0 ? " (+\(day)d)" : "")
