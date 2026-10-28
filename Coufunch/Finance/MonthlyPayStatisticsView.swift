@@ -101,6 +101,26 @@ struct MonthlyPayStatisticsView: View {
 
     private var months: [MonthAmount] { cachedMonths }
 
+    // The 12-month snapshot always includes Jan through the current month.
+    // Use the same cached pay figures to avoid an extra annual aggregation.
+    private var currentYearMonths: [MonthAmount] {
+        let year = calendar.component(.year, from: .now)
+        return months.filter { calendar.component(.year, from: $0.month) == year }
+    }
+
+    private var currentYearGross: Decimal {
+        currentYearMonths.reduce(Decimal.zero) { $0 + $1.gross }
+    }
+
+    private var currentYearEstimatedNet: Decimal {
+        currentYearMonths.reduce(Decimal.zero) { $0 + $1.net }
+    }
+
+    private var currentYearCompletedShifts: Int {
+        currentYearMonths.reduce(0) { $0 + $1.completedShifts }
+    }
+
+
     private func rebuildMonthSnapshot() {
         let start = calendar.dateInterval(of: .month, for: .now)!.start
         cachedMonths = (0..<12).compactMap { index -> MonthAmount? in
@@ -541,6 +561,22 @@ struct MonthlyPayStatisticsView: View {
                     }
                     Text("양수 오차는 앱 예상액이 실제 입금액보다 큰 경우입니다. 세후 예상은 소득세를 포함하지 않습니다.")
                         .font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(16)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("\(calendar.component(.year, from: .now))년 총수입")
+                        .font(.headline)
+                    Text(formatted(currentYearGross))
+                        .font(.title.bold())
+                        .foregroundStyle(CoufunchColor.primary)
+                    LabeledContent("올해 세전 총수입", value: formatted(currentYearGross))
+                    LabeledContent("올해 예상 세후 총수입", value: formatted(currentYearEstimatedNet))
+                    LabeledContent("올해 완료 근무 횟수", value: "\(currentYearCompletedShifts)회")
+                    Text("올해 1월부터 현재 월까지 완료한 근무와 계산된 수당·인센티브를 합산합니다. 세후 금액은 월별 추정치를 더한 값이며 실제 입금액이나 소득세 신고 금액과 다를 수 있습니다.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(16)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
