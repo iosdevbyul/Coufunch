@@ -794,7 +794,6 @@ struct WorkFinanceView: View {
                                             }
                                             .font(.subheadline)
                                         }
-                                        }
                                     }
                                     Divider()
                                 }
