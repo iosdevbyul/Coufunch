@@ -202,15 +202,6 @@ struct WorkOverviewView: View {
                     }
                     .accessibilityLabel("Open menu")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        displayedMonth = Date()
-                        selectedDate = nil
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .accessibilityLabel("Refresh overview")
-                }
             }
             .sheet(item: $editingSession) { session in
                 WorkSessionEntryView(date: session.startAt, editingSession: session) {
