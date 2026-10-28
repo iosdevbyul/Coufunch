@@ -289,13 +289,7 @@ struct WorkTimelineEditor: View {
     }
 
     private func breakBounds(for index: Int) -> TimelineRange {
-        let left = breaks.enumerated()
-            .filter { $0.offset != index && $0.element.end <= breaks[index].start }
-            .map { $0.element.end }.max() ?? work.start
-        let right = breaks.enumerated()
-            .filter { $0.offset != index && $0.element.start >= breaks[index].end }
-            .map { $0.element.start }.min() ?? work.end
-        return TimelineRange(start: max(work.start, left), end: min(work.end, right))
+        TimelineSelection.breakBounds(work: work, breaks: breaks, index: index) ?? work
     }
 
     private func minute(at x: CGFloat, width: CGFloat) -> Int {
