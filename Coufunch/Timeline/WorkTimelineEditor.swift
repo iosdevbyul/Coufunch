@@ -31,15 +31,15 @@ struct WorkTimelineEditor: View {
                     .font(.caption).foregroundStyle(.secondary)
                 GeometryReader { geometry in
                     let width = max(1, geometry.size.width)
-                    let bounds = TimelineRange(start: 360, end: 1800)
+                    let bounds = TimelineRange(start: 360, end: 1920)
                     let x: (Int) -> CGFloat = {
                         width * CGFloat($0 - bounds.start) / CGFloat(bounds.duration)
                     }
                     ZStack(alignment: .topLeading) {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(CoufunchColor.textPrimary.opacity(0.08))
-                        ForEach(0...8, id: \.self) { tick in
-                            let minute = 360 + tick * 180
+                        ForEach(0...9, id: \.self) { tick in
+                            let minute = tick == 9 ? 1920 : 360 + tick * 180
                             VStack(spacing: 4) {
                                 Text(minute == 1440 ? "+1일 00" : String(format: "%02d", (minute / 60) % 24))
                                     .font(.system(size: 10))
@@ -76,7 +76,7 @@ struct WorkTimelineEditor: View {
                                             if moveOriginal == nil { moveOriginal = work }
                                             guard let original = moveOriginal else { return }
                                             let delta = TimelineSelection.snapDelta(
-                                                Double(value.translation.width / width) * 1440
+                                                Double(value.translation.width / width) * 1560
                                             )
                                             work = TimelineSelection.move(original, by: delta, within: bounds)
                                         }
@@ -101,7 +101,7 @@ struct WorkTimelineEditor: View {
                                                 if resizeOriginal == nil { resizeOriginal = work }
                                                 guard let original = resizeOriginal else { return }
                                                 let delta = TimelineSelection.snapDelta(
-                                                    Double(value.translation.width / width) * 1440
+                                                    Double(value.translation.width / width) * 1560
                                                 )
                                                 let originalEdge = edge == .start ? original.start : original.end
                                                 work = TimelineSelection.adjust(
@@ -118,7 +118,7 @@ struct WorkTimelineEditor: View {
                     }
                 }
                 .frame(height: 124)
-                Text("06:00~다음 날 06:00 · 위쪽 녹색: 근무 · 바로 아래: 휴게 · 가운데 이동 / 양 끝 길이 조절")
+                Text("06:00~다음 날 08:00 · 위쪽 녹색: 근무 · 바로 아래: 휴게 · 가운데 이동 / 양 끝 길이 조절")
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
@@ -191,7 +191,7 @@ struct WorkTimelineEditor: View {
     private func inlineBreakLane(width: CGFloat, x: @escaping (Int) -> CGFloat) -> some View {
         ZStack(alignment: .topLeading) {
                     RoundedRectangle(cornerRadius: 7)
-                        .fill(CoufunchColor.primary.opacity(0.17))
+                        .fill(Color.orange.opacity(0.18))
                         .frame(width: max(0, x(work.end) - x(work.start)), height: 33)
                         .offset(x: x(work.start), y: 0)
                         .allowsHitTesting(false)
@@ -223,7 +223,7 @@ struct WorkTimelineEditor: View {
                         let rest = breaks[index]
                         let active = index == activeBreakIndex
                         RoundedRectangle(cornerRadius: 7)
-                            .fill(CoufunchColor.primary.opacity(active ? 0.85 : 0.42))
+                            .fill(Color.orange.opacity(active ? 0.88 : 0.45))
                             .frame(width: max(2, x(rest.end) - x(rest.start)), height: 30)
                             .offset(x: x(rest.start), y: 1)
                             .gesture(
@@ -233,7 +233,7 @@ struct WorkTimelineEditor: View {
                                         if breakDragOriginal == nil { breakDragOriginal = rest }
                                         guard let original = breakDragOriginal else { return }
                                         let delta = TimelineSelection.snapDelta(
-                                            Double(value.translation.width / width) * 1440
+                                            Double(value.translation.width / width) * 1560
                                         )
                                         breaks[index] = TimelineSelection.move(
                                             original, by: delta, within: breakBounds(for: index)
@@ -256,7 +256,7 @@ struct WorkTimelineEditor: View {
                                                 if breakResizeOriginal == nil { breakResizeOriginal = rest }
                                                 guard let original = breakResizeOriginal else { return }
                                                 let delta = TimelineSelection.snapDelta(
-                                                    Double(value.translation.width / width) * 1440
+                                                    Double(value.translation.width / width) * 1560
                                                 )
                                                 let time = (edge == .start ? original.start : original.end) + delta
                                                 breaks[index] = TimelineSelection.adjust(
@@ -281,7 +281,7 @@ struct WorkTimelineEditor: View {
 
     private func minute(at x: CGFloat, width: CGFloat) -> Int {
         let fraction = Double(max(0, min(width, x)) / max(width, 1))
-        return TimelineSelection.snap(360 + fraction * 1440)
+        return TimelineSelection.snap(360 + fraction * 1560)
     }
 
     private var hasAvailableBreakGap: Bool {
@@ -322,7 +322,7 @@ struct WorkTimelineEditor: View {
     private func adjustByStep(range: TimelineRange, isBreak: Bool,
                               edge: TimelineSelection.Edge, direction: Int) {
         let current = edge == .start ? range.start : range.end
-        let bounds = isBreak ? work : TimelineRange(start: 360, end: 1800)
+        let bounds = isBreak ? work : TimelineRange(start: 360, end: 1920)
         let updated = TimelineSelection.adjust(
             range, edge: edge, to: current + direction * TimelineSelection.step, bounds: bounds
         )
@@ -339,7 +339,7 @@ struct WorkTimelineEditor: View {
     }
 
     private func label(_ minute: Int) -> String {
-        let day = minute / 1440
+        let day = minute / 1560
         let hour = (minute % 1440) / 60
         let min = minute % 60
         return String(format: "%02d:%02d", hour, min) + (day > 0 ? " (+\(day)d)" : "")
