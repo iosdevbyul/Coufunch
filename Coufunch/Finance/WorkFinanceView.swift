@@ -770,9 +770,9 @@ struct WorkFinanceView: View {
                                 ForEach(weeklyAllowanceTimeline) { item in
                                     VStack(alignment: .leading, spacing: 5) {
                                         Text(item.workplaceName).font(.headline)
-                                        row("Estimated weekly allowance (gross)", money(item.amount))
+                                        row(item.isSpecialAllowance ? "예상 특근수당(세전)" : "예상 주휴수당(세전)", money(item.amount))
                                         HStack {
-                                            Text("Allowance earned").foregroundStyle(.secondary)
+                                            Text(item.isSpecialAllowance ? "특근수당 발생일" : "주휴수당 발생일").foregroundStyle(.secondary)
                                             Spacer()
                                             Text(item.earnedAt, format: .dateTime.year().month().day())
                                         }
