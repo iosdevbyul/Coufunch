@@ -53,5 +53,22 @@ enum TimelineSelection {
         return .init(start: start, end: start + length)
     }
 
+    /// Keep the edited break inside work and outside all other breaks.
+    static func breakBounds(work: TimelineRange, breaks: [TimelineRange],
+                            index: Int) -> TimelineRange? {
+        guard breaks.indices.contains(index) else { return nil }
+        let current = breaks[index]
+        let before = breaks.enumerated()
+            .filter { $0.offset != index && $0.element.end <= current.start }
+            .map { $0.element.end }.max() ?? work.start
+        let after = breaks.enumerated()
+            .filter { $0.offset != index && $0.element.start >= current.end }
+            .map { $0.element.start }.min() ?? work.end
+        let lower = max(work.start, before)
+        let upper = min(work.end, after)
+        guard upper - lower >= step else { return nil }
+        return TimelineRange(start: lower, end: upper)
+    }
+
     enum Edge { case start, end }
 }
