@@ -137,4 +137,15 @@ final class TimelineSelectionTests: XCTestCase {
         ))
     }
 
+    func testTwentySixHourRulerSupportsNextDayEight() {
+        let visible = TimelineRange(start: 360, end: 1920)
+        XCTAssertEqual(visible.duration, 26 * 60)
+        let work = TimelineRange(start: 1380, end: 1920)
+        XCTAssertEqual(TimelineSelection.move(work, by: 100, within: visible), work)
+        XCTAssertEqual(TimelineSelection.adjust(work, edge: .end, to: 2000, bounds: visible).end, 1920)
+        XCTAssertEqual(TimelineSelection.contained(
+            TimelineRange(start: 1860, end: 1980), within: visible
+        ), TimelineRange(start: 1800, end: 1920))
+    }
+
 }
