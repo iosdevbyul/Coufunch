@@ -12,6 +12,9 @@ packages:
   NetworkKit:
     url: https://github.com/iosdevbyul/TrisNetworkKit
     exactVersion: 0.1.0
+  TrisAdKit:
+    url: https://github.com/iosdevbyul/TrisAdKit
+    revision: 3aca53c6551db710123fabd771f4301350b76d07
   TrisCalendarKit:
     url: https://github.com/iosdevbyul/TrisCalendarKit
     revision: 8aef88a41fea8c8e4dc4b8cde74a692488223942
@@ -24,11 +27,15 @@ targets:
     platform: iOS
     sources:
       - path: Coufunch
+    info:
+      path: Coufunch/Info.plist
+      properties:
+        GADApplicationIdentifier: 'ca-app-pub-3940256099942544~1458002511'
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iosdevbyul.Coufunch
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        GENERATE_INFOPLIST_FILE: YES
+        GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: NO
@@ -40,6 +47,7 @@ targets:
     dependencies:
       - package: NetworkKit
       - package: TrisCalendarKit
+      - package: TrisAdKit
       - package: WakTrainerDesignSystem
     scheme:
       testTargets:

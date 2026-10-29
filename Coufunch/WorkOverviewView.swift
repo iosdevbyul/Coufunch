@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import TrisCalendarKit
+import TrisAdKit
 import WakTrainerDesignSystem
 
 struct WorkOverviewView: View {
@@ -17,6 +18,7 @@ struct WorkOverviewView: View {
     @State private var financeScreen: WorkFinanceView.Screen?
     @State private var showFinance = false
     @State private var showStatistics = false
+    @State private var showSideHustle = false
     @State private var pendingStatisticsNavigation = false
     @State private var managementSection: WorkplaceManagementView.Section?
     @State private var showManagement = false
@@ -231,6 +233,9 @@ struct WorkOverviewView: View {
             .navigationDestination(isPresented: $showStatistics) {
                 MonthlyPayStatisticsView()
             }
+            .navigationDestination(isPresented: $showSideHustle) {
+                TrisSideHustleView()
+            }
             .navigationDestination(isPresented: $showSettings) {
                 CoufunchSettingsView()
             }
@@ -279,6 +284,12 @@ struct WorkOverviewView: View {
                             showManagement = true
                         } label: {
                             Label("Incentives", systemImage: "slider.horizontal.3")
+                        }
+                        Button {
+                            isSidebarPresented = false
+                            showSideHustle = true
+                        } label: {
+                            Label("부업", systemImage: "play.rectangle")
                         }
                         Button {
                             isSidebarPresented = false
