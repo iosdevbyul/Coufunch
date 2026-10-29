@@ -12,6 +12,9 @@ packages:
   NetworkKit:
     url: https://github.com/iosdevbyul/TrisNetworkKit
     exactVersion: 0.1.0
+  TrisAdKit:
+    url: https://github.com/iosdevbyul/TrisAdKit
+    revision: 3aca53c6551db710123fabd771f4301350b76d07
   TrisCalendarKit:
     url: https://github.com/iosdevbyul/TrisCalendarKit
     revision: 8aef88a41fea8c8e4dc4b8cde74a692488223942
@@ -40,6 +43,7 @@ targets:
     dependencies:
       - package: NetworkKit
       - package: TrisCalendarKit
+      - package: TrisAdKit
       - package: WakTrainerDesignSystem
     scheme:
       testTargets:
