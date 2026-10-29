@@ -14,7 +14,7 @@ packages:
     exactVersion: 0.1.0
   TrisAdKit:
     url: https://github.com/iosdevbyul/TrisAdKit
-    revision: 3aca53c6551db710123fabd771f4301350b76d07
+    revision: 582d8e671351a9edb45bc3a45af0bc9324a3c81b
   TrisCalendarKit:
     url: https://github.com/iosdevbyul/TrisCalendarKit
     revision: 8aef88a41fea8c8e4dc4b8cde74a692488223942
