@@ -234,7 +234,7 @@ struct WorkOverviewView: View {
                 MonthlyPayStatisticsView()
             }
             .navigationDestination(isPresented: $showSideHustle) {
-                TrisSideHustleView()
+                TrisSideHustleView(pointsProvider: UnconfiguredRewardPointsProvider())
             }
             .navigationDestination(isPresented: $showSettings) {
                 CoufunchSettingsView()
