@@ -43,5 +43,4 @@ jobs:
             -project Coufunch.xcodeproj \
             -scheme Coufunch \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
-            INFOPLIST_KEY_GADApplicationIdentifier='ca-app-pub-3940256099942544~1458002511' \
             CODE_SIGNING_ALLOWED=NO
