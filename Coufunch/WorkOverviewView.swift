@@ -19,6 +19,9 @@ struct WorkOverviewView: View {
     @State private var showFinance = false
     @State private var showStatistics = false
     @State private var showSideHustle = false
+#if DEBUG && targetEnvironment(simulator)
+    @State private var debugRewardPointsProvider = DebugLocalRewardPointsProvider()
+#endif
     @State private var pendingStatisticsNavigation = false
     @State private var managementSection: WorkplaceManagementView.Section?
     @State private var showManagement = false
@@ -234,7 +237,11 @@ struct WorkOverviewView: View {
                 MonthlyPayStatisticsView()
             }
             .navigationDestination(isPresented: $showSideHustle) {
+#if DEBUG && targetEnvironment(simulator)
+                TrisSideHustleView(pointsProvider: debugRewardPointsProvider)
+#else
                 TrisSideHustleView(pointsProvider: UnconfiguredRewardPointsProvider())
+#endif
             }
             .navigationDestination(isPresented: $showSettings) {
                 CoufunchSettingsView()
