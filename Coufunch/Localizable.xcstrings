@@ -1,6 +1,26 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Statistics": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "통계"
+          }
+        }
+      }
+    },
+    "Side Hustle": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "부업"
+          }
+        }
+      }
+    },
     "Work Overview": {
       "localizations": {
         "ko": {
