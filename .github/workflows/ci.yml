@@ -20,6 +20,13 @@ jobs:
         run: |
           test -f Coufunch/Info.plist
           test "$(plutil -extract GADApplicationIdentifier raw -o - Coufunch/Info.plist)" = "ca-app-pub-3940256099942544~1458002511"
+      - name: Verify loopback-only ATS exception
+        run: |
+          test "$(plutil -extract NSAppTransportSecurity.NSAllowsLocalNetworking raw -o - Coufunch/Info.plist)" = "true"
+          if plutil -extract NSAppTransportSecurity.NSAllowsArbitraryLoads raw -o - Coufunch/Info.plist >/dev/null 2>&1; then
+            echo "Arbitrary HTTP transport must stay disabled"
+            exit 1
+          fi
       - name: Resolve Swift packages
         run: xcodebuild -resolvePackageDependencies -project Coufunch.xcodeproj -scheme Coufunch
       - name: Build for iOS Simulator
