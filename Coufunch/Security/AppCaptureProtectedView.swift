@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import SwiftData
 
 /// Experimental screen-capture protection for the entire app's content.
 ///
@@ -7,27 +8,38 @@ import UIKit
 /// not publish or guarantee an API for blocking ordinary iOS screenshots.
 /// Validate on a physical iPhone before enabling in a release build.
 struct AppCaptureProtectedView<Content: View>: UIViewRepresentable {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.locale) private var locale
+
     let content: Content
 
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
     }
 
-    func makeUIView(context: Context) -> SecureContentContainer<Content> {
-        SecureContentContainer(rootView: content)
+    func makeUIView(context: Context) -> SecureContentContainer {
+        SecureContentContainer(rootView: wrappedContent)
     }
 
     func updateUIView(_ uiView: SecureContentContainer<Content>, context: Context) {
-        uiView.update(rootView: content)
+        uiView.update(rootView: wrappedContent)
+    }
+
+    private var wrappedContent: AnyView {
+        AnyView(content
+            .environment(\.modelContext, modelContext)
+            .environment(\.scenePhase, scenePhase)
+            .environment(\.locale, locale))
     }
 }
 
-final class SecureContentContainer<Content: View>: UIView {
+final class SecureContentContainer: UIView {
     private let secureField = UITextField(frame: .zero)
-    private let hostingController: UIHostingController<Content>
+    private let hostingController: UIHostingController<AnyView>
     private let contentContainer = UIView(frame: .zero)
 
-    init(rootView: Content) {
+    init(rootView: AnyView) {
         hostingController = UIHostingController(rootView: rootView)
         super.init(frame: .zero)
 
@@ -79,7 +91,7 @@ final class SecureContentContainer<Content: View>: UIView {
         fatalError("init(coder:) is unavailable")
     }
 
-    func update(rootView: Content) {
+    func update(rootView: AnyView) {
         hostingController.rootView = rootView
     }
 }
