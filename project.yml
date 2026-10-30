@@ -30,6 +30,7 @@ targets:
     info:
       path: Coufunch/Info.plist
       properties:
+        UILaunchStoryboardName: LaunchScreen
         GADApplicationIdentifier: 'ca-app-pub-3940256099942544~1458002511'
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
