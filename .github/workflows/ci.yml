@@ -16,6 +16,11 @@ jobs:
         run: brew install xcodegen
       - name: Generate Xcode project
         run: xcodegen generate
+      - name: Verify full-screen launch storyboard configuration
+        run: |
+          test -f Coufunch/Info.plist
+          test -f Coufunch/LaunchScreen.storyboard
+          test "$(plutil -extract UILaunchStoryboardName raw -o - Coufunch/Info.plist)" = "LaunchScreen"
       - name: Verify generated AdMob application ID
         run: |
           test -f Coufunch/Info.plist
