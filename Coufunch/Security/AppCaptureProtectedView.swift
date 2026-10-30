@@ -22,7 +22,7 @@ struct AppCaptureProtectedView<Content: View>: UIViewRepresentable {
         SecureContentContainer(rootView: wrappedContent)
     }
 
-    func updateUIView(_ uiView: SecureContentContainer<Content>, context: Context) {
+    func updateUIView(_ uiView: SecureContentContainer, context: Context) {
         uiView.update(rootView: wrappedContent)
     }
 
