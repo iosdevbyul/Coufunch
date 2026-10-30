@@ -10,7 +10,7 @@ struct CoufunchApp: App {
                 CoufunchRootView()
                     .tint(CoufunchColor.primary)
             }
-            .ignoresSafeArea()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .modelContainer(for: [
             Workplace.self,
