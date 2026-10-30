@@ -269,7 +269,7 @@ struct WorkOverviewView: View {
                             pendingStatisticsNavigation = true
                             isSidebarPresented = false
                         } label: {
-                            Label("통계", systemImage: "chart.bar.xaxis")
+                            Label("Statistics", systemImage: "chart.bar.xaxis")
                         }
                         Button {
                             financeScreen = .strategy
@@ -296,7 +296,7 @@ struct WorkOverviewView: View {
                             isSidebarPresented = false
                             showSideHustle = true
                         } label: {
-                            Label("부업", systemImage: "play.rectangle")
+                            Label("Side Hustle", systemImage: "play.rectangle")
                         }
                         Button {
                             isSidebarPresented = false
