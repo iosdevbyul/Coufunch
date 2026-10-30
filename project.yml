@@ -31,6 +31,8 @@ targets:
       path: Coufunch/Info.plist
       properties:
         GADApplicationIdentifier: 'ca-app-pub-3940256099942544~1458002511'
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iosdevbyul.Coufunch
