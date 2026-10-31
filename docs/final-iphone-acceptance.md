@@ -24,6 +24,7 @@ This is an acceptance plan, **not** a claim that real-device tests or real emplo
 | A09 | Switch device language to Korean; check screens, payroll help and alert copy | No accidental English user-facing guidance |
 | A10 | Test small iPhone, large Dynamic Type and VoiceOver | Buttons, drag handles, labels, reading order |
 | A11 | Install updated build **over** a previous populated build without uninstalling | Retained shifts, receipts, wage snapshots, incentives and settings |
+| A12 | After the secure-host layout fix, inspect the **top and bottom** of the splash, onboarding, Work Overview, sidebar, detail pages, sheets and keyboard on a Face ID iPhone and a smaller iPhone | Full-bleed splash without bars; navigation bars below status area, bottom controls above the home indicator, scrollable content not clipped; repeat a screenshot-protection check on physical hardware |
 
 ## Failure criteria and follow-up
 

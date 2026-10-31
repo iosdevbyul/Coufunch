@@ -11,6 +11,13 @@ struct CoufunchApp: App {
                     .tint(CoufunchColor.primary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The SwiftUI window already owns the device safe areas. The
+            // UIKit screenshot-protection host must cover the entire window;
+            // otherwise its nested UIHostingController gets an inset viewport
+            // and the top and bottom of navigation screens appear clipped.
+            // UIHostingController still applies the device's safe areas to
+            // navigation bars and interactive content inside the full host.
+            .ignoresSafeArea(.container, edges: .all)
             .background {
                 // Fill the window's safe-area margins behind the secure host.
                 // The animated splash curtain must still slide independently.
