@@ -6,8 +6,11 @@ import WakTrainerDesignSystem
 struct CoufunchApp: App {
     var body: some Scene {
         WindowGroup {
-            CoufunchRootView()
-                .tint(CoufunchColor.primary)
+            AppCaptureProtectedView {
+                CoufunchRootView()
+                    .tint(CoufunchColor.primary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .modelContainer(for: [
             Workplace.self,
