@@ -11,6 +11,12 @@ struct CoufunchApp: App {
                     .tint(CoufunchColor.primary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background {
+                // Fill the window's safe-area margins behind the secure host.
+                // The animated splash curtain must still slide independently.
+                Color(red: 0.035, green: 0.039, blue: 0.047)
+                    .ignoresSafeArea()
+            }
         }
         .modelContainer(for: [
             Workplace.self,
@@ -40,6 +46,11 @@ private struct CoufunchRootView: View {
 
     var body: some View {
         ZStack {
+            // Cover any transparency around the protected SwiftUI host while
+            // keeping the current splash animation and app navigation intact.
+            Color(red: 0.035, green: 0.039, blue: 0.047)
+                .ignoresSafeArea()
+
             Group {
                 if workplaces.isEmpty {
                     WorkplaceOnboardingView(onComplete: {})
