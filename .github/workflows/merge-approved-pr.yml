@@ -1,0 +1,91 @@
+name: Merge approved PR after CI
+
+on:
+  workflow_run:
+    workflows:
+      - iOS CI
+    types:
+      - completed
+
+# This privileged workflow never checks out or executes pull request code.
+# Only the completed iOS CI result and GitHub API metadata are inspected.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge explicitly approved safe PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pr_count=$(jq '.workflow_run.pull_requests | length' "$GITHUB_EVENT_PATH")
+          if [[ "$pr_count" != "1" ]]; then
+            echo "Skipping: expected exactly one PR associated with this CI run."
+            exit 0
+          fi
+
+          pr=$(jq -r '.workflow_run.pull_requests[0].number // empty' "$GITHUB_EVENT_PATH")
+          tested_head=$(jq -r '.workflow_run.pull_requests[0].head.sha // empty' "$GITHUB_EVENT_PATH")
+          if [[ -z "$pr" || -z "$tested_head" ]]; then
+            echo "Skipping: the CI event lacks an unambiguous PR number or head SHA."
+            exit 0
+          fi
+
+          gh api "repos/$REPO/pulls/$pr" > "$RUNNER_TEMP/pr.json"
+          if ! jq -e --arg repo "$REPO" '
+            .state == "open" and
+            .draft == false and
+            .base.ref == "main" and
+            .base.repo.full_name == $repo and
+            .head.repo.full_name == $repo and
+            .user.login == "iosdevbyul"
+          ' "$RUNNER_TEMP/pr.json" >/dev/null; then
+            echo "Skipping: PR is not an open, trusted, non-draft PR targeting main."
+            exit 0
+          fi
+
+          actual_head=$(jq -r '.head.sha' "$RUNNER_TEMP/pr.json")
+          if [[ "$actual_head" != "$tested_head" ]]; then
+            echo "Skipping: new commits arrived after the successful CI run."
+            exit 0
+          fi
+
+          gh api "repos/$REPO/issues/$pr" > "$RUNNER_TEMP/issue.json"
+          if ! jq -e '
+            ([.labels[].name] | index("automerge-safe")) != null and
+            ([.labels[].name] | index("manual-qa")) == null
+          ' "$RUNNER_TEMP/issue.json" >/dev/null; then
+            echo "Skipping: the PR must have automerge-safe and must not have manual-qa."
+            exit 0
+          fi
+
+          gh api --paginate "repos/$REPO/pulls/$pr/files?per_page=100"             --jq '.[].filename' > "$RUNNER_TEMP/changed-files.txt"
+
+          if [[ ! -s "$RUNNER_TEMP/changed-files.txt" ]]; then
+            echo "Skipping: no changed files returned by the API."
+            exit 0
+          fi
+
+          # High-risk and visual changes always need explicit manual merging.
+          # A label never bypasses these path-based restrictions.
+          while IFS= read -r path; do
+            case "$path" in
+              .github/*|scripts/*|project.yml|Coufunch/Info.plist|Coufunch/LaunchScreen.storyboard|Coufunch/CoufunchApp.swift|Coufunch/Security/*|Coufunch/Assets.xcassets/*|*View.swift|*Screen.swift|*Widget*.swift|*.xcstrings|*Package.resolved)
+                echo "Skipping: manual merge required for protected file: $path"
+                exit 0
+                ;;
+            esac
+          done < "$RUNNER_TEMP/changed-files.txt"
+
+          echo "PR #$pr: CI passed, approval label verified and changed paths allowed."
+          # GitHub branch rules remain enforced. Never use --admin.
+          # Reject merge if the PR head moved since this CI run.
+          gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$tested_head"
