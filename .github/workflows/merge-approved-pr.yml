@@ -53,8 +53,14 @@ jobs:
           fi
 
           actual_head=$(jq -r '.head.sha' "$RUNNER_TEMP/pr.json")
+          tested_base=$(jq -r '.workflow_run.pull_requests[0].base.sha // empty' "$GITHUB_EVENT_PATH")
+          actual_base=$(jq -r '.base.sha' "$RUNNER_TEMP/pr.json")
           if [[ "$actual_head" != "$tested_head" ]]; then
             echo "Skipping: new commits arrived after the successful CI run."
+            exit 0
+          fi
+          if [[ -z "$tested_base" || "$actual_base" != "$tested_base" ]]; then
+            echo "Skipping: the base branch changed or CI lacks the tested base SHA."
             exit 0
           fi
 
