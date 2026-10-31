@@ -26,18 +26,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          pr_count=$(jq '.workflow_run.pull_requests | length' "$GITHUB_EVENT_PATH")
-          if [[ "$pr_count" != "1" ]]; then
-            echo "Skipping: expected exactly one PR associated with this CI run."
+          # GitHub can omit workflow_run.pull_requests even for a PR run.
+          # Resolve the PR from the exact commit that CI tested.
+          tested_head=$(jq -r '.workflow_run.head_sha // empty' "$GITHUB_EVENT_PATH")
+          if [[ ! "$tested_head" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Skipping: CI run has no valid tested commit SHA."
             exit 0
           fi
 
-          pr=$(jq -r '.workflow_run.pull_requests[0].number // empty' "$GITHUB_EVENT_PATH")
-          tested_head=$(jq -r '.workflow_run.pull_requests[0].head.sha // empty' "$GITHUB_EVENT_PATH")
-          if [[ -z "$pr" || -z "$tested_head" ]]; then
-            echo "Skipping: the CI event lacks an unambiguous PR number or head SHA."
+          gh api "repos/$REPO/commits/$tested_head/pulls" > "$RUNNER_TEMP/associated-prs.json"
+          pr_count=$(jq '[.[] | select(.state == "open" and .base.ref == "main")] | length' "$RUNNER_TEMP/associated-prs.json")
+          if [[ "$pr_count" != "1" ]]; then
+            echo "Skipping: CI commit is not associated with exactly one open PR targeting main."
             exit 0
           fi
+          pr=$(jq -r '[.[] | select(.state == "open" and .base.ref == "main")][0].number' "$RUNNER_TEMP/associated-prs.json")
 
           gh api "repos/$REPO/pulls/$pr" > "$RUNNER_TEMP/pr.json"
           if ! jq -e --arg repo "$REPO" '
@@ -53,17 +56,10 @@ jobs:
           fi
 
           actual_head=$(jq -r '.head.sha' "$RUNNER_TEMP/pr.json")
-          tested_base=$(jq -r '.workflow_run.pull_requests[0].base.sha // empty' "$GITHUB_EVENT_PATH")
-          actual_base=$(jq -r '.base.sha' "$RUNNER_TEMP/pr.json")
           if [[ "$actual_head" != "$tested_head" ]]; then
             echo "Skipping: new commits arrived after the successful CI run."
             exit 0
           fi
-          if [[ -z "$tested_base" || "$actual_base" != "$tested_base" ]]; then
-            echo "Skipping: the base branch changed or CI lacks the tested base SHA."
-            exit 0
-          fi
-
           gh api "repos/$REPO/issues/$pr" > "$RUNNER_TEMP/issue.json"
           if ! jq -e '
             ([.labels[].name] | index("automerge-safe")) != null and
