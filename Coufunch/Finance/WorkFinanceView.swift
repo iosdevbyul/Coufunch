@@ -20,6 +20,7 @@ struct WorkFinanceView: View {
     @State private var receiptError: String?
     @State private var scenarioAdditionalShifts = 0
     @State private var scenarioGrossPerShift = ""
+    @FocusState private var isScenarioPayFocused: Bool
     enum Screen { case pay, strategy }
     let screen: Screen
 
@@ -504,6 +505,7 @@ struct WorkFinanceView: View {
                                 Spacer()
                                 TextField("금액 입력", text: $scenarioGrossPerShift)
                                     .keyboardType(.decimalPad)
+                                    .focused($isScenarioPayFocused)
                                     .multilineTextAlignment(.trailing)
                                     .frame(maxWidth: 130)
                                     .accessibilityIdentifier("finance.scenario.grossPerShift")
@@ -937,6 +939,19 @@ struct WorkFinanceView: View {
                     }
                 }
             }
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(Color(uiColor: .systemBackground).ignoresSafeArea())
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                if isScenarioPayFocused {
+                    Button("Done") { isScenarioPayFocused = false }
+                }
+            }
+        }
+        .onChange(of: scenarioAdditionalShifts) { _, _ in
+            isScenarioPayFocused = false
         }
         .confirmationDialog("공유 파일 형식 선택", isPresented: $showPayrollExportOptions, titleVisibility: .visible) {
             Button("CSV 파일") { exportPayrollCSV() }
