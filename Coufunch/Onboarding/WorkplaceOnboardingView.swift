@@ -86,6 +86,7 @@ struct WorkplaceOnboardingView: View {
                 .padding(WakSpacing.large)
             }
             .background(CoufunchColor.background)
+            .modifier(CoufunchKeyboardDismissal())
             .navigationTitle("Set Up Coufunch")
             .navigationBarTitleDisplayMode(.inline)
         }
