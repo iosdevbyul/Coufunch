@@ -179,6 +179,7 @@ struct WorkSessionEntryView: View {
                 .padding(WakSpacing.medium)
             }
             .background(CoufunchColor.background)
+            .modifier(CoufunchKeyboardDismissal())
             .navigationTitle(editingSession == nil ? "Add Work Session" : "Edit Work Session")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
