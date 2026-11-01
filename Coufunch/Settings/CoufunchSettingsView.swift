@@ -112,6 +112,7 @@ struct CoufunchSettingsView: View {
                 }
             }
         }
+        .modifier(CoufunchKeyboardDismissal())
         .navigationTitle("Settings")
         .fileExporter(isPresented: $showingExporter,
                       document: exportDocument,

@@ -195,6 +195,7 @@ struct BulkWorkSessionEntryView: View {
                 }
                 .padding()
             }
+            .modifier(CoufunchKeyboardDismissal())
             .navigationTitle("여러 날짜 근무 추가")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

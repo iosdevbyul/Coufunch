@@ -41,3 +41,23 @@ struct CoufunchCard<Content: View>: View {
                                         style: .continuous))
     }
 }
+
+
+/// Shared dismissal behavior for editable screens, including decimal/number pads.
+struct CoufunchKeyboardDismissal: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder),
+                            to: nil, from: nil, for: nil
+                        )
+                    }
+                }
+            }
+    }
+}
