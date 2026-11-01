@@ -70,6 +70,7 @@ struct WorkplaceManagementView: View {
             .padding(WakSpacing.large)
         }
         .background(CoufunchColor.background)
+        .modifier(CoufunchKeyboardDismissal())
         .navigationTitle(LocalizedStringKey(section.rawValue))
         .onChange(of: selectedWorkplaceID) { _, _ in
             loadWorkplace()
