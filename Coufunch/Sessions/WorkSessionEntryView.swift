@@ -167,13 +167,13 @@ struct WorkSessionEntryView: View {
                                 if let smsAmount = smsIncentivePreview {
                                     LabeledContent("SMS incentive", value: currency(smsAmount))
                                     Text(currency(preview.total + smsAmount))
+                                        .font(.title2.bold())
+                                        .foregroundStyle(CoufunchColor.primary)
                                         .accessibilityIdentifier("work.session.estimatedGrossTotal")
                                 } else {
                                     Text("Enter a valid incentive amount")
                                         .foregroundStyle(.orange)
                                 }
-                                    .font(.title2.bold())
-                                    .foregroundStyle(CoufunchColor.primary)
                                 Text("Before deductions. Overtime estimates assume eligible employment and daily work exceeding 8 paid hours; weekly and holiday rules are not included.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
