@@ -84,6 +84,32 @@ final class WorkFinanceSummaryTests: XCTestCase {
             settings: [], rules: [], manual: [], calendar: calendar)
         XCTAssertEqual(result.skippedSessions, 1)
     }
+    func testSmsIncentiveIsNotEarnedUntilLinkedSessionCompleted() {
+        let workplace = Workplace(name: "Workplace")
+        let confirmed = WorkSession(
+            workplaceID: workplace.id, startAt: date(11, 1),
+            endAt: date(11, 1, 17), status: .confirmed,
+            payMode: .fixedDaily, fixedDailyPaySnapshot: 108_000
+        )
+        let incentive = ManualIncentive(
+            workplaceID: workplace.id, sessionID: confirmed.id,
+            earnedOn: confirmed.startAt, name: "SMS incentive", amount: 45_000
+        )
+        func summarize() -> MonthlyPaySummary {
+            WorkFinanceSummary.summarize(
+                month: date(11, 1), sessions: [confirmed], breaks: [],
+                workplaces: [workplace], settings: [], rules: [],
+                manual: [incentive], calendar: calendar
+            )
+        }
+        XCTAssertEqual(summarize().total, 0)
+        XCTAssertEqual(summarize().manualIncentives, 0)
+        confirmed.status = .completed
+        XCTAssertEqual(summarize().basePay, 108_000)
+        XCTAssertEqual(summarize().manualIncentives, 45_000)
+        XCTAssertEqual(summarize().total, 153_000)
+    }
+
     func testSmsIncentiveIsAdditionalToBasePay() {
         let workplace = Workplace(name: "Workplace")
         let session = WorkSession(workplaceID: workplace.id, startAt: date(10, 28),
