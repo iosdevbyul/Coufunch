@@ -945,8 +945,12 @@ struct WorkFinanceView: View {
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                if isScenarioPayFocused {
-                    Button("Done") { isScenarioPayFocused = false }
+                Button("Done") {
+                    isScenarioPayFocused = false
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil, from: nil, for: nil
+                    )
                 }
             }
         }
