@@ -74,6 +74,14 @@ struct WorkSessionEntryView: View {
                                                   holidayPaidMinutes: holidayMinutes)
     }
 
+    private var smsIncentivePreview: Decimal? {
+        let text = smsIncentiveAmount.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty { return 0 }
+        guard let amount = Decimal(string: text, locale: Locale(identifier: "en_US_POSIX")),
+              amount >= 0 else { return nil }
+        return amount
+    }
+
     private func timeLabel(_ minute: Int) -> String {
         String(format: "%02d:%02d", (minute / 60) % 24, minute % 60)
             + (minute >= 1440 ? " (+\(minute / 1440)d)" : "")
@@ -156,9 +164,16 @@ struct WorkSessionEntryView: View {
                                 LabeledContent("Night premium", value: currency(preview.nightPremium))
                                 LabeledContent("Overtime premium", value: currency(preview.overtimePremium))
                                 LabeledContent("Holiday premium", value: currency(preview.holidayPremium))
-                                Text(currency(preview.total))
-                                    .font(.title2.bold())
-                                    .foregroundStyle(CoufunchColor.primary)
+                                if let smsAmount = smsIncentivePreview {
+                                    LabeledContent("SMS incentive", value: currency(smsAmount))
+                                    Text(currency(preview.total + smsAmount))
+                                        .font(.title2.bold())
+                                        .foregroundStyle(CoufunchColor.primary)
+                                        .accessibilityIdentifier("work.session.estimatedGrossTotal")
+                                } else {
+                                    Text("Enter a valid incentive amount")
+                                        .foregroundStyle(.orange)
+                                }
                                 Text("Before deductions. Overtime estimates assume eligible employment and daily work exceeding 8 paid hours; weekly and holiday rules are not included.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
