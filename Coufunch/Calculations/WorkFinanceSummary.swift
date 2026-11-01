@@ -91,7 +91,11 @@ enum WorkFinanceSummary {
                 if interval.contains(attributed) { incentiveTotal += award.amount }
             }
         }
-        let manualTotal = manual.filter { interval.contains($0.earnedOn) }.reduce(Decimal.zero) {
+        let completedSessionIDs = Set(included.map(\.id))
+        let manualTotal = manual.filter { incentive in
+            interval.contains(incentive.earnedOn) &&
+                (incentive.sessionID.map { completedSessionIDs.contains($0) } ?? true)
+        }.reduce(Decimal.zero) {
             value, item in value + item.amount
         }
         let unique = Set(included.map { calendar.startOfDay(for: $0.startAt) })
