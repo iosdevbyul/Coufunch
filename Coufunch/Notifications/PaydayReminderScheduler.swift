@@ -44,7 +44,8 @@ enum PaydayReminderScheduler {
                             workplaces: [Workplace] = [], rules: [IncentiveRule] = [],
                             loadedYears: Set<Int>, now: Date = .now,
                             breaks: [WorkBreak] = [], paySettings: [WorkplacePaySettings] = [],
-                            receivedPay: [ReceivedPayRecord] = []) async {
+                            receivedPay: [ReceivedPayRecord] = [],
+                            manualIncentives: [ManualIncentive] = []) async {
         guard UserDefaults.standard.bool(forKey: "paydayRemindersEnabled") else {
             await cancelAll()
             return
@@ -123,7 +124,10 @@ enum PaydayReminderScheduler {
                             session: item.session, breaks: sessionBreaks, holidayDates: holidays
                         )
                     ) else { return nil }
-                    results.append(result.total)
+                    let incentives = manualIncentives.filter {
+                        $0.sessionID == item.session.id && $0.name == "SMS incentive"
+                    }.reduce(Decimal.zero) { $0 + $1.amount }
+                    results.append(result.total + incentives)
                 }
                 return results
             }()
