@@ -53,6 +53,15 @@ struct WorkOverviewView: View {
         sessions.sorted { $0.id.uuidString < $1.id.uuidString }
             .map { "\($0.id):\($0.startAt.timeIntervalSince1970):\($0.statusRaw)" }
             .joined(separator: "|")
+            + "|" + workBreaks.sorted { $0.id.uuidString < $1.id.uuidString }
+                .map { "\($0.id):\($0.startAt.timeIntervalSince1970):\($0.endAt.timeIntervalSince1970)" }
+                .joined(separator: "|")
+            + "|" + manualIncentives.sorted { $0.id.uuidString < $1.id.uuidString }
+                .map { "\($0.id):\($0.sessionID?.uuidString ?? ""):\($0.amount)" }
+                .joined(separator: "|")
+            + "|" + receivedPay.sorted { $0.id.uuidString < $1.id.uuidString }
+                .map { "\($0.id):\($0.sessionID?.uuidString ?? "")" }
+                .joined(separator: "|")
     }
 
     private func refreshPaydayReminders() async {
