@@ -37,4 +37,37 @@ final class SessionEntryPersistenceTests: XCTestCase {
         XCTAssertEqual(breaks[0].sessionID, sessions[0].id)
         XCTAssertEqual(try WorkPayCalculator.calculate(session: sessions[0], breaks: breaks, calendar: calendar).total, 108_360)
     }
+    func testLatestSavedSessionTimesAndBreaksAreReused() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        func date(_ day: Int, _ hour: Int) -> Date {
+            calendar.date(from: DateComponents(year: 2026, month: 11, day: day, hour: hour))!
+        }
+
+        let workplaceID = UUID()
+        let older = WorkSession(
+            workplaceID: workplaceID, startAt: date(1, 9), endAt: date(1, 18),
+            recordedAt: date(1, 19)
+        )
+        let newest = WorkSession(
+            workplaceID: workplaceID, startAt: date(2, 19), endAt: date(3, 4),
+            recordedAt: date(2, 20)
+        )
+        let oldBreak = WorkBreak(sessionID: older.id, startAt: date(1, 12), endAt: date(1, 13))
+        let latestBreak = WorkBreak(sessionID: newest.id, startAt: date(2, 23), endAt: date(3, 0))
+
+        let result = WorkSessionEntryDefaults.mostRecentlySaved(
+            sessions: [older, newest], breaks: [oldBreak, latestBreak], calendar: calendar
+        )
+        XCTAssertEqual(result?.work.start, 1140)
+        XCTAssertEqual(result?.work.end, 1680)
+        XCTAssertEqual(result?.breaks.count, 1)
+        XCTAssertEqual(result?.breaks.first?.start, 1380)
+        XCTAssertEqual(result?.breaks.first?.end, 1440)
+    }
+
+    func testNoSavedSessionsLeavesEntryDefaultsUntouched() {
+        XCTAssertNil(WorkSessionEntryDefaults.mostRecentlySaved(sessions: [], breaks: []))
+    }
+
 }
