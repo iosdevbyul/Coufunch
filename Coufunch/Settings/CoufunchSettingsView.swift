@@ -6,12 +6,14 @@ struct CoufunchSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Workplace.name) private var workplaces: [Workplace]
     @AppStorage("paydayRemindersEnabled") private var remindersEnabled = false
+    @AppStorage("paydayReminderShowAmount") private var showPaydayAmount = false
     @StateObject private var holidays = KoreanPublicHolidayStore()
     @Query private var sessions: [WorkSession]
     @Query private var rules: [IncentiveRule]
     @Query private var breaks: [WorkBreak]
     @Query private var paySettings: [WorkplacePaySettings]
     @Query private var receivedPay: [ReceivedPayRecord]
+    @Query private var manualIncentives: [ManualIncentive]
     @State private var isUpdating = false
     @State private var permissionMessage: String?
     @State private var weeklyStartError: String?
@@ -105,7 +107,12 @@ struct CoufunchSettingsView: View {
                     set: { enabled in Task { await updateReminders(enabled) } }
                 ))
                 .disabled(isUpdating)
-                Text("완료한 근무의 다음 한국 영업일에 예상 급여 알림을 받습니다. 계산 가능한 경우 세후 추정액을 표시하며, 실제 입금액은 급여 화면에서 기록할 수 있습니다.")
+                Toggle("Show Estimated Pay Amount", isOn: $showPaydayAmount)
+                    .disabled(!remindersEnabled || isUpdating)
+                    .onChange(of: showPaydayAmount) { _, _ in
+                        Task { await refreshReminders() }
+                    }
+                Text("급여일 알림에는 기본적으로 금액을 표시하지 않습니다. 예상 급여 금액 표시는 직접 선택한 경우에만 적용됩니다.")
                     .font(.footnote).foregroundStyle(.secondary)
                 if let permissionMessage {
                     Text(LocalizedStringKey(permissionMessage)).font(.footnote).foregroundStyle(.orange)
@@ -186,6 +193,11 @@ struct CoufunchSettingsView: View {
         }
         remindersEnabled = true
         permissionMessage = nil
+        await refreshReminders()
+    }
+
+    private func refreshReminders() async {
+        guard remindersEnabled else { return }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
         let year = calendar.component(.year, from: Date())
@@ -194,7 +206,8 @@ struct CoufunchSettingsView: View {
         await PaydayReminderScheduler.synchronize(sessions: sessions,
             holidays: holidays.dates, workplaces: workplaces, rules: rules,
             loadedYears: holidays.loadedYears,
-            breaks: breaks, paySettings: paySettings, receivedPay: receivedPay)
+            breaks: breaks, paySettings: paySettings, receivedPay: receivedPay,
+            manualIncentives: manualIncentives)
     }
 }
 
