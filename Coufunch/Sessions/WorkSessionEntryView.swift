@@ -11,6 +11,7 @@ struct WorkSessionEntryView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Workplace.name) private var workplaces: [Workplace]
     @Query private var settings: [WorkplacePaySettings]
+    @Query(sort: \WorkSession.recordedAt, order: .reverse) private var storedSessions: [WorkSession]
     @Query private var storedBreaks: [WorkBreak]
     @Query private var storedIncentives: [ManualIncentive]
 
@@ -221,6 +222,13 @@ struct WorkSessionEntryView: View {
     private func loadExisting() {
         guard let session = editingSession else {
             workplaceID = workplaces.first?.id
+            if let recent = WorkSessionEntryDefaults.mostRecentlySaved(
+                sessions: storedSessions, breaks: storedBreaks
+            ) {
+                work = recent.work
+                breaks = recent.breaks
+                scheduledEndMinute = recent.work.end
+            }
             return
         }
         workplaceID = session.workplaceID
@@ -353,5 +361,37 @@ struct WorkSessionEntryView: View {
             context.rollback()
             errorMessage = "Could not save the session."
         }
+    }
+}
+
+// Only shift and break times are reused for new entries, not status or pay values.
+enum WorkSessionEntryDefaults {
+    static func mostRecentlySaved(
+        sessions: [WorkSession],
+        breaks: [WorkBreak],
+        calendar: Calendar = .current
+    ) -> (work: TimelineRange, breaks: [TimelineRange])? {
+        guard let recent = sessions
+            .filter({ $0.endAt != nil })
+            .max(by: { $0.recordedAt < $1.recordedAt }),
+            let end = recent.endAt else { return nil }
+
+        let midnight = calendar.startOfDay(for: recent.startAt)
+        let startMinute = Int(recent.startAt.timeIntervalSince(midnight) / 60)
+        let endMinute = Int(end.timeIntervalSince(midnight) / 60)
+        guard startMinute >= 0,
+              endMinute > startMinute,
+              endMinute <= TimelineSelection.maximumMinute else { return nil }
+
+        let recentBreaks = breaks
+            .filter { $0.sessionID == recent.id }
+            .sorted { $0.startAt < $1.startAt }
+            .map {
+                TimelineRange(
+                    start: Int($0.startAt.timeIntervalSince(midnight) / 60),
+                    end: Int($0.endAt.timeIntervalSince(midnight) / 60)
+                )
+            }
+        return (TimelineRange(start: startMinute, end: endMinute), recentBreaks)
     }
 }
