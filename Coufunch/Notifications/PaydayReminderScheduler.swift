@@ -131,7 +131,8 @@ enum PaydayReminderScheduler {
                 }
                 return results
             }()
-            if let amounts, !amounts.isEmpty {
+            if UserDefaults.standard.bool(forKey: "paydayReminderShowAmount"),
+               let amounts, !amounts.isEmpty {
                 let gross = amounts.reduce(Decimal.zero, +)
                 let net = EstimatedTakeHomeCalculator.calculate(gross: gross, shifts: []).net
                 let won = NSDecimalNumber(decimal: net).int64Value.formatted()
