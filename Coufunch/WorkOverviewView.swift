@@ -9,6 +9,9 @@ struct WorkOverviewView: View {
     @Environment(\.locale) private var locale
     @Environment(\.modelContext) private var modelContext
     @Query private var workBreaks: [WorkBreak]
+    @Query private var paySettings: [WorkplacePaySettings]
+    @Query private var receivedPay: [ReceivedPayRecord]
+    @Query private var manualIncentives: [ManualIncentive]
     @Query private var sessions: [WorkSession]
     @Query private var rules: [IncentiveRule]
     @Query private var workplaces: [Workplace]
@@ -61,7 +64,9 @@ struct WorkOverviewView: View {
         await PaydayReminderScheduler.synchronize(
             sessions: sessions, holidays: holidayStore.dates,
             workplaces: workplaces, rules: rules,
-            loadedYears: holidayStore.loadedYears
+            loadedYears: holidayStore.loadedYears,
+            breaks: workBreaks, paySettings: paySettings,
+            receivedPay: receivedPay, manualIncentives: manualIncentives
         )
     }
 
