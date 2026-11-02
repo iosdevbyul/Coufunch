@@ -3480,6 +3480,16 @@
           }
         }
       }
+    },
+    "Show Estimated Pay Amount": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "예상 급여 금액 표시"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
