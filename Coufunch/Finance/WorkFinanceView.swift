@@ -123,6 +123,30 @@ struct WorkFinanceView: View {
         EstimatedTakeHomeCalculator.calculate(gross: selectedDayGross, shifts: []).net
     }
 
+    private func earlyWorkdayComparison(for item: PayrollAuditEntry, gross: Decimal)
+        -> (employmentOnly: Decimal, allInsurance: Decimal)? {
+        guard let session = sessions.first(where: { $0.id == item.id }),
+              let dayNumber = EarlyWorkdayPayComparison.attendanceDayNumber(
+                for: session, sessions: sessions, calendar: .current
+              ) else { return nil }
+        return EarlyWorkdayPayComparison.estimates(gross: gross, dayNumber: dayNumber)
+    }
+
+    private var earlyMonthComparison: (employmentOnly: Decimal, allInsurance: Decimal)? {
+        guard workplaces.count == 1 else { return nil }
+        return EarlyWorkdayPayComparison.estimates(
+            gross: summary.total, dayNumber: summary.completedDays
+        )
+    }
+
+    private var selectedDayEarlyComparison: (employmentOnly: Decimal, allInsurance: Decimal)? {
+        guard workplaces.count == 1,
+              let lastEntry = audit.entries.last(where: {
+                  Calendar.current.isDate($0.start, inSameDayAs: selectedPayrollDay)
+              }) else { return nil }
+        return earlyWorkdayComparison(for: lastEntry, gross: selectedDayGross)
+    }
+
     private var payrollCalendar: some View {
         let calendar = Calendar.current
         let interval = calendar.dateInterval(of: .month, for: selectedMonth)
@@ -496,7 +520,14 @@ struct WorkFinanceView: View {
                             Text(money(reconciledNet))
                                 .font(.title.bold())
                                 .foregroundStyle(CoufunchColor.primary)
-                            row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
+                            if let comparison = earlyMonthComparison {
+                                row("고용보험 0.9%만 공제한 예상 수령액", money(comparison.employmentOnly))
+                                row("4대보험 전체 공제 시 비교 금액", money(comparison.allInsurance))
+                                Text("실근무 1~7일차 비교용 추정액입니다. 실제 가입 여부, 세금 및 보험료 정산액에 따라 지급액이 달라집니다.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                row("Estimated insurance deductions", money(estimatedTakeHome.deductions))
+                            }
                             Divider()
                             if let key = currentConfirmationKey {
                                 Toggle("I confirm this receipt covers the entire month", isOn: Binding(
@@ -613,7 +644,12 @@ struct WorkFinanceView: View {
                             if payrollDetailMode == .calendar {
                                 payrollCalendar
                                 row("Selected day gross (including incentives)", money(selectedDayGross))
-                                row("Selected day estimated net (including incentives)", money(selectedDayNet))
+                                if let comparison = selectedDayEarlyComparison {
+                                    row("고용보험만 공제한 예상 수령액", money(comparison.employmentOnly))
+                                    row("4대보험 전체 공제 시 비교 금액", money(comparison.allInsurance))
+                                } else {
+                                    row("Selected day estimated net (including incentives)", money(selectedDayNet))
+                                }
                                 Text("The net amount is a flat-rate estimate, not a confirmed deposit. Incentives appear on the day their attendance threshold is reached.")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
@@ -667,10 +703,19 @@ struct WorkFinanceView: View {
                                         row("추가 인센티브 합계", money(incentiveGross))
                                     }
                                     row("Shift gross (including earned incentives)", money(item.grossTotal + incentiveGross))
-                                    row("Shift estimated net (including earned incentives)",
-                                        money(EstimatedTakeHomeCalculator.calculate(
-                                            gross: item.grossTotal + incentiveGross, shifts: []
-                                        ).net))
+                                    if let comparison = earlyWorkdayComparison(
+                                        for: item, gross: item.grossTotal + incentiveGross
+                                    ) {
+                                        row("고용보험 0.9%만 공제한 예상 수령액", money(comparison.employmentOnly))
+                                        row("4대보험 전체 공제 시 비교 금액", money(comparison.allInsurance))
+                                        Text("실근무 1~7일차 비교이며 실제 보험료·세금·급여 정산액은 다를 수 있습니다.")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    } else {
+                                        row("Shift estimated net (including earned incentives)",
+                                            money(EstimatedTakeHomeCalculator.calculate(
+                                                gross: item.grossTotal + incentiveGross, shifts: []
+                                            ).net))
+                                    }
                                     if let actual = actualBySession[item.id] {
                                         row("Actual received", money(actual))
                                         if let date = receivedPay.first(where: { $0.sessionID == item.id })?.depositedAt {

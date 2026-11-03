@@ -51,3 +51,41 @@ enum EstimatedTakeHomeCalculator {
         )
     }
 }
+
+
+/// A display-only comparison for the first seven completed attendance days
+/// per workplace and calendar month. Does not determine legal enrollment.
+enum EarlyWorkdayPayComparison {
+    static let employmentOnlyRate = Decimal(string: "0.009")!
+
+    static func attendanceDayNumber(
+        for session: WorkSession, sessions: [WorkSession],
+        calendar: Calendar
+    ) -> Int? {
+        guard session.status == .completed,
+              let month = calendar.dateInterval(of: .month, for: session.startAt) else {
+            return nil
+        }
+        let days = Set(sessions.filter {
+            $0.status == .completed &&
+            $0.workplaceID == session.workplaceID &&
+            month.contains($0.startAt)
+        }.map { calendar.startOfDay(for: $0.startAt) }).sorted()
+        guard let index = days.firstIndex(of: calendar.startOfDay(for: session.startAt)) else {
+            return nil
+        }
+        return index + 1
+    }
+
+    static func estimates(gross: Decimal, dayNumber: Int) -> (employmentOnly: Decimal, allInsurance: Decimal)? {
+        guard (1...7).contains(dayNumber) else { return nil }
+        let amount = max(Decimal.zero, gross)
+        var raw = amount * employmentOnlyRate
+        var deduction = Decimal.zero
+        NSDecimalRound(&deduction, &raw, 0, .plain)
+        return (
+            employmentOnly: amount - deduction,
+            allInsurance: EstimatedTakeHomeCalculator.calculate(gross: amount, shifts: []).net
+        )
+    }
+}
