@@ -202,10 +202,10 @@ enum ConfirmedShiftReminderScheduler {
             let content = UNMutableNotificationContent()
             content.title = String(localized: "Upcoming Work Shift")
             let shiftTime = session.startAt.formatted(
-                .dateTime.hour().minute().locale(Locale(identifier: "ko_KR"))
+                .dateTime.month().day().hour().minute().locale(Locale(identifier: "ko_KR"))
             )
             content.body = String(
-                format: String(localized: "You are scheduled to work today at %@."),
+                format: String(localized: "Your confirmed work shift starts %@."),
                 shiftTime
             )
             content.sound = .default
