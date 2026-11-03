@@ -7,6 +7,7 @@ struct CoufunchSettingsView: View {
     @Query(sort: \Workplace.name) private var workplaces: [Workplace]
     @AppStorage("paydayRemindersEnabled") private var remindersEnabled = false
     @AppStorage("paydayReminderShowAmount") private var showPaydayAmount = false
+    @AppStorage("confirmedShiftRemindersEnabled") private var confirmedShiftRemindersEnabled = true
     @StateObject private var holidays = KoreanPublicHolidayStore()
     @Query private var sessions: [WorkSession]
     @Query private var rules: [IncentiveRule]
@@ -102,6 +103,18 @@ struct CoufunchSettingsView: View {
             }
 
             Section("Notifications") {
+                Toggle("Confirmed Shift Reminders", isOn: $confirmedShiftRemindersEnabled)
+                    .disabled(isUpdating)
+                    .onChange(of: confirmedShiftRemindersEnabled) { _, enabled in
+                        Task {
+                            if enabled {
+                                _ = await PaydayReminderScheduler.requestAuthorization()
+                            }
+                            await ConfirmedShiftReminderScheduler.synchronize(sessions: sessions)
+                        }
+                    }
+                Text("Get notified two hours before a confirmed work shift. Changing or cancelling a shift updates its reminder.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 Toggle("Payday Reminders", isOn: Binding(
                     get: { remindersEnabled },
                     set: { enabled in Task { await updateReminders(enabled) } }
