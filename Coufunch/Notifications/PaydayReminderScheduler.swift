@@ -153,3 +153,75 @@ enum PaydayReminderScheduler {
         }
     }
 }
+
+
+/// Remind only confirmed work sessions, two hours before their actual start.
+enum ConfirmedShiftReminderDate {
+    static func dueDate(for session: WorkSession, now: Date) -> Date? {
+        guard session.status == .confirmed else { return nil }
+        let due = session.startAt.addingTimeInterval(-2 * 60 * 60)
+        return due > now ? due : nil
+    }
+}
+
+@MainActor
+enum ConfirmedShiftReminderScheduler {
+    private static let prefix = "coufunch.shift."
+
+    static func cancelAll() async {
+        let center = UNUserNotificationCenter.current()
+        let requests = await center.pendingNotificationRequests()
+        center.removePendingNotificationRequests(
+            withIdentifiers: requests.map(\.identifier).filter { $0.hasPrefix(prefix) }
+        )
+    }
+
+    static func synchronize(sessions: [WorkSession], now: Date = .now) async {
+        guard UserDefaults.standard.object(forKey: "confirmedShiftRemindersEnabled") as? Bool ?? true else {
+            await cancelAll()
+            return
+        }
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized ||
+              settings.authorizationStatus == .provisional else { return }
+
+        await cancelAll()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+
+        // iOS caps pending notifications; schedule the nearest shifts first.
+        let eligible = sessions.compactMap { session -> (WorkSession, Date)? in
+            guard let due = ConfirmedShiftReminderDate.dueDate(for: session, now: now) else {
+                return nil
+            }
+            return (session, due)
+        }.sorted { $0.1 < $1.1 }.prefix(50)
+
+        for (session, due) in eligible {
+            let content = UNMutableNotificationContent()
+            content.title = String(localized: "Upcoming Work Shift")
+            let shiftTime = session.startAt.formatted(
+                .dateTime.hour().minute().locale(Locale(identifier: "ko_KR"))
+            )
+            content.body = String(
+                format: String(localized: "You are scheduled to work today at %@."),
+                shiftTime
+            )
+            content.sound = .default
+            let components = calendar.dateComponents(
+                [.year, .month, .day, .hour, .minute, .second], from: due
+            )
+            let request = UNNotificationRequest(
+                identifier: prefix + session.id.uuidString,
+                content: content,
+                trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            )
+            do {
+                try await center.add(request)
+            } catch {
+                NSLog("Coufunch shift reminder scheduling failed: %@", String(describing: error))
+            }
+        }
+    }
+}
