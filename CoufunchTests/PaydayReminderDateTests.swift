@@ -69,4 +69,34 @@ final class PaydayReminderDateTests: XCTestCase {
         )
     }
 
+    func testReminderIsNotRescheduledAtOrAfterTwoHourBoundary() {
+        let shift = WorkSession(
+            workplaceID: UUID(), startAt: date(20, 9),
+            endAt: date(20, 18), status: .confirmed
+        )
+        XCTAssertNil(ConfirmedShiftReminderDate.dueDate(for: shift, now: date(20, 7)))
+        XCTAssertNil(ConfirmedShiftReminderDate.dueDate(for: shift, now: date(20, 8)))
+    }
+
+    func testOvernightShiftUsesStartTimeRatherThanEndTime() {
+        let shift = WorkSession(
+            workplaceID: UUID(), startAt: date(20, 23),
+            endAt: date(21, 8), status: .confirmed
+        )
+        XCTAssertEqual(
+            ConfirmedShiftReminderDate.dueDate(for: shift, now: date(20, 19)),
+            date(20, 21)
+        )
+    }
+
+    func testCancellingConfirmedShiftRemovesReminderEligibility() {
+        let shift = WorkSession(
+            workplaceID: UUID(), startAt: date(20, 9),
+            endAt: date(20, 18), status: .confirmed
+        )
+        XCTAssertNotNil(ConfirmedShiftReminderDate.dueDate(for: shift, now: date(19, 19)))
+        shift.status = .applied
+        XCTAssertNil(ConfirmedShiftReminderDate.dueDate(for: shift, now: date(19, 19)))
+    }
+
 }
