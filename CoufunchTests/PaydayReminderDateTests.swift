@@ -33,4 +33,40 @@ final class PaydayReminderDateTests: XCTestCase {
         XCTAssertNil(PaydayReminderDate.nextBusinessDay(after: date(19),
             holidays: [], loadedYears: []))
     }
+    func testConfirmedShiftReminderOccursTwoHoursBeforeStart() {
+        let shift = WorkSession(
+            workplaceID: UUID(), startAt: date(20, 9),
+            endAt: date(20, 18), status: .confirmed
+        )
+        let expected = date(20, 7)
+        XCTAssertEqual(
+            ConfirmedShiftReminderDate.dueDate(for: shift, now: date(19, 19)),
+            expected
+        )
+    }
+
+    func testOnlyConfirmedFutureShiftsProduceReminders() {
+        let shift = WorkSession(
+            workplaceID: UUID(), startAt: date(20, 9),
+            endAt: date(20, 18), status: .applied
+        )
+        XCTAssertNil(ConfirmedShiftReminderDate.dueDate(for: shift, now: date(19, 19)))
+        shift.status = .completed
+        XCTAssertNil(ConfirmedShiftReminderDate.dueDate(for: shift, now: date(19, 19)))
+        shift.status = .confirmed
+        XCTAssertNil(ConfirmedShiftReminderDate.dueDate(for: shift, now: date(20, 8)))
+    }
+
+    func testRescheduledShiftUsesUpdatedStartTime() {
+        let shift = WorkSession(
+            workplaceID: UUID(), startAt: date(20, 9),
+            endAt: date(20, 18), status: .confirmed
+        )
+        shift.startAt = date(20, 11)
+        XCTAssertEqual(
+            ConfirmedShiftReminderDate.dueDate(for: shift, now: date(19, 19)),
+            date(20, 9)
+        )
+    }
+
 }
