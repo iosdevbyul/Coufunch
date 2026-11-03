@@ -3521,12 +3521,12 @@
         }
       }
     },
-    "You are scheduled to work today at %@.": {
+    "Your confirmed work shift starts %@.": {
       "localizations": {
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "오늘 %@에 근무가 예정되어 있습니다."
+            "value": "확정된 근무가 %@에 시작됩니다."
           }
         }
       }
