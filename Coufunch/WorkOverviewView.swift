@@ -77,6 +77,12 @@ struct WorkOverviewView: View {
             breaks: workBreaks, paySettings: paySettings,
             receivedPay: receivedPay, manualIncentives: manualIncentives
         )
+        if sessions.contains(where: {
+            ConfirmedShiftReminderDate.dueDate(for: $0, now: .now) != nil
+        }) && (UserDefaults.standard.object(forKey: "confirmedShiftRemindersEnabled") as? Bool ?? true) {
+            _ = await PaydayReminderScheduler.requestAuthorization()
+        }
+        await ConfirmedShiftReminderScheduler.synchronize(sessions: sessions)
     }
 
     private struct HolidayDisplay: Identifiable {
