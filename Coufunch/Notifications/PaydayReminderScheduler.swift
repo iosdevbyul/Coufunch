@@ -24,6 +24,52 @@ enum PaydayReminderDate {
     }
 }
 
+/// Attribute a five-day weekly holiday allowance to the fifth completed
+/// attendance date. The sixth-day special allowance has its own Tuesday payday.
+enum WeeklyHolidayPayReminder {
+    static func amount(
+        for payableSessions: [WorkSession],
+        allSessions: [WorkSession],
+        workplaces: [Workplace],
+        rules: [IncentiveRule],
+        calendar baseCalendar: Calendar
+    ) -> Decimal {
+        let payableIDs = Set(payableSessions.map(\.id))
+        var total: Decimal = 0
+        for workplace in workplaces {
+            var calendar = baseCalendar
+            calendar.firstWeekday = workplace.weekStartWeekday
+            let attendance = WorkAttendance.uniqueDays(
+                of: allSessions, workplaceID: workplace.id, calendar: calendar
+            )
+            let weekDays = Dictionary(grouping: attendance) {
+                calendar.dateInterval(of: .weekOfYear, for: $0)?.start ?? $0
+            }
+            let awards = WorkIncentiveCalculator.awards(
+                sessions: allSessions, rules: rules,
+                workplace: workplace, calendar: calendar
+            )
+            for award in awards {
+                guard let rule = rules.first(where: { $0.id == award.ruleID }),
+                      rule.period == .weekly, rule.requiredAttendanceDays == 5,
+                      let days = weekDays[award.periodStart], days.count >= 5 else {
+                    continue
+                }
+                let qualifyingDay = days.sorted()[4]
+                let containsPayableFifthDay = allSessions.contains {
+                    $0.workplaceID == workplace.id &&
+                    payableIDs.contains($0.id) &&
+                    $0.status == .completed &&
+                    !$0.isEarlyDeparture &&
+                    calendar.startOfDay(for: $0.startAt) == qualifyingDay
+                }
+                if containsPayableFifthDay { total += award.amount }
+            }
+        }
+        return total
+    }
+}
+
 @MainActor
 enum PaydayReminderScheduler {
     private static let prefix = "coufunch.payday."
@@ -133,10 +179,15 @@ enum PaydayReminderScheduler {
             }()
             if UserDefaults.standard.bool(forKey: "paydayReminderShowAmount"),
                let amounts, !amounts.isEmpty {
-                let gross = amounts.reduce(Decimal.zero, +)
+                let holidayPay = WeeklyHolidayPayReminder.amount(
+                    for: group.map(\.session), allSessions: sessions,
+                    workplaces: workplaces, rules: rules, calendar: calendar
+                )
+                let gross = amounts.reduce(Decimal.zero, +) + holidayPay
                 let net = EstimatedTakeHomeCalculator.calculate(gross: gross, shifts: []).net
                 let won = NSDecimalNumber(decimal: net).int64Value.formatted()
-                content.body = "오늘 예상 급여 입금일입니다. 세후 추정액: \(won)원 (수당·세금 등 실제 지급액과 차이 가능). 입금 후 앱에서 수령액을 기록하세요."
+                let holidayNote = holidayPay > 0 ? " (주휴수당 포함)" : ""
+                content.body = "오늘 예상 급여 입금일입니다. 세후 추정액: \(won)원\(holidayNote) (수당·세금 등 실제 지급액과 차이 가능). 입금 후 앱에서 수령액을 기록하세요."
             } else {
                 content.body = "오늘 예상 급여 입금일입니다. 입금 후 앱에서 실제 수령액을 기록하세요."
             }
