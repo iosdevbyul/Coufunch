@@ -37,16 +37,17 @@ final class WorkplacePaySettings {
     }
 }
 
-/// These are opt-in examples, not claims of any employer's current policy.
+/// Opt-in 2026 examples using an eight-hour day at KRW 10,320/hour.
+/// They are snapshots, not an automatic employer-policy update or a recurring wage formula.
 enum IncentivePreset {
     static func exampleRules(workplaceID: UUID) -> [IncentiveRule] {
         [
             IncentiveRule(workplaceID: workplaceID, name: "5-day weekly bonus",
                           period: .weekly, requiredAttendanceDays: 5,
-                          amount: 80_000, canStack: true),
+                          amount: 82_560, canStack: true),
             IncentiveRule(workplaceID: workplaceID, name: "6-day weekly bonus",
                           period: .weekly, requiredAttendanceDays: 6,
-                          amount: 40_000, canStack: true),
+                          amount: 41_280, canStack: true),
             IncentiveRule(workplaceID: workplaceID, name: "15-day monthly bonus",
                           period: .monthly, requiredAttendanceDays: 15,
                           amount: 70_000, canStack: true)

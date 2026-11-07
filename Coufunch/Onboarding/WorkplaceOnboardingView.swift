@@ -154,8 +154,8 @@ struct WorkplaceOnboardingView: View {
             switch incentiveChoice {
             case .preset:
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("5 days per week: +80,000 KRW")
-                    Text("6 days per week: +40,000 KRW (stackable)")
+                    Text("5 days per week: +82,560 KRW (2026 example)")
+                    Text("6 days per week: +41,280 KRW (stackable)")
                     Text("15 days per month: +70,000 KRW")
                     Text("Week: Sunday–Saturday")
                         .foregroundStyle(.secondary)
