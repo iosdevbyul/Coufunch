@@ -99,4 +99,61 @@ final class PaydayReminderDateTests: XCTestCase {
         XCTAssertNil(ConfirmedShiftReminderDate.dueDate(for: shift, now: date(19, 19)))
     }
 
+
+    func testFifthCompletedAttendanceDayAddsWeeklyHolidayPayOnce() {
+        let workplace = Workplace(name: "Warehouse")
+        let sessions = (11...16).map { day in
+            WorkSession(workplaceID: workplace.id, startAt: date(day, 19), status: .completed)
+        }
+        let rules = [
+            IncentiveRule(workplaceID: workplace.id, name: "Weekly holiday",
+                          period: .weekly, requiredAttendanceDays: 5, amount: 82_560),
+            IncentiveRule(workplaceID: workplace.id, name: "Six-day special",
+                          period: .weekly, requiredAttendanceDays: 6, amount: 41_280)
+        ]
+        XCTAssertEqual(WeeklyHolidayPayReminder.amount(
+            for: [sessions[4]], allSessions: sessions, workplaces: [workplace],
+            rules: rules, calendar: calendar
+        ), 82_560)
+        XCTAssertEqual(WeeklyHolidayPayReminder.amount(
+            for: [sessions[4], sessions[5]], allSessions: sessions,
+            workplaces: [workplace], rules: rules, calendar: calendar
+        ), 82_560)
+        XCTAssertEqual(WeeklyHolidayPayReminder.amount(
+            for: [sessions[5]], allSessions: sessions, workplaces: [workplace],
+            rules: rules, calendar: calendar
+        ), 0)
+    }
+
+    func testFourDaysOrUnpaidFifthDayDoesNotAddWeeklyHolidayPay() {
+        let workplace = Workplace(name: "Warehouse")
+        let sessions = (11...14).map { day in
+            WorkSession(workplaceID: workplace.id, startAt: date(day, 19), status: .completed)
+        }
+        let rule = IncentiveRule(workplaceID: workplace.id, name: "Weekly holiday",
+                                 period: .weekly, requiredAttendanceDays: 5, amount: 82_560)
+        XCTAssertEqual(WeeklyHolidayPayReminder.amount(
+            for: sessions, allSessions: sessions, workplaces: [workplace],
+            rules: [rule], calendar: calendar
+        ), 0)
+        let fifth = WorkSession(workplaceID: workplace.id,
+                                startAt: date(15, 19), status: .confirmed)
+        XCTAssertEqual(WeeklyHolidayPayReminder.amount(
+            for: [fifth], allSessions: sessions + [fifth],
+            workplaces: [workplace], rules: [rule], calendar: calendar
+        ), 0)
+    }
+
+    func testPreviouslyPaidFifthDayDoesNotAddAllowanceToSixthDayReminder() {
+        let workplace = Workplace(name: "Warehouse")
+        let sessions = (11...16).map { day in
+            WorkSession(workplaceID: workplace.id, startAt: date(day, 19), status: .completed)
+        }
+        let rule = IncentiveRule(workplaceID: workplace.id, name: "Weekly holiday",
+                                 period: .weekly, requiredAttendanceDays: 5, amount: 82_560)
+        XCTAssertEqual(WeeklyHolidayPayReminder.amount(
+            for: [sessions[5]], allSessions: sessions, workplaces: [workplace],
+            rules: [rule], calendar: calendar
+        ), 0)
+    }
 }
